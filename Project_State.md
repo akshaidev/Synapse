@@ -11,10 +11,10 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 0 — Initialization & Scaffolding |
-| **Last Completed Feature** | Pydantic Ingestion Schemas & ATM Registry Setup |
-| **Active Task** | Synthetic Ingestion Payload Generator (`/synthetic/generator.py`) |
-| **Immediate Next Task** | Stage 1 — Graph DAG & Viability Filter (`/core/graph.py`) |
+| **Current Phase** | Phase 1 — Core Pipeline |
+| **Last Completed Feature** | Module 3: Synthetic Ingestion Payload Generator (`/synthetic/generator.py`) |
+| **Active Task** | Module 4: Stage 1 — Graph DAG & Viability Filter (`/core/graph.py`) |
+| **Immediate Next Task** | Module 5: Stage 2 — Capped Drain Time Engine (`/core/temporal.py`) |
 | **Known Blockers / Warnings** | None |
 
 ---
@@ -37,7 +37,7 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **Description** | Pydantic v2 models for `Incident_Payload` (NCRP ticket, fund flow, terminal mule) and `FreezeCardATM` webhook payload. Includes all field validations: IFSC regex, PIN code regex, card hash pattern, lat/lon bounds (6–37°N, 68–98°E), enum constraints, and optional `cell_tower_cluster` (`min_length=0`). Dual-gate Golden Hour validation logic. |
 | **Status** | `Verified & Approved` |
 | **Verification Date** | 05 September 2026 |
-| **Notes** | |
+| **Notes** | Verified with `/tests/verify_schemas_and_registry.py` |
 
 **Critical v1.2/v1.3 requirements for this module:**
 
@@ -57,7 +57,7 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **Description** | Static JSON file containing 200 synthetic ATM records across 3 cities (Pune, Bengaluru, Delhi). Each record contains: `atm_id`, `bank_name`, `address`, `pin_code`, `lat`, `lon`, `is_onsite`, `daily_avg_txn_count`, `cash_replenishment_status`. Loaded into memory at server startup. Queried via haversine radius in Stage 3b. |
 | **Status** | `Verified & Approved` |
 | **Verification Date** | 05 September 2026 |
-| **Notes** | |
+| **Notes** | Verified with `/tests/verify_schemas_and_registry.py` |
 
 **Critical v1.3 requirements for this module:**
 
@@ -76,9 +76,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/synthetic/generator.py` |
 | **PRD Reference** | §6 Synthetic Data Generation Strategy, §3.3 JSON Examples (v1.3 corrected) |
 | **Description** | Python script that generates valid `Incident_Payload.json` files conforming to the v1.1 schema. Produces randomized but realistic payloads with: valid IFSC codes (regex-conformant), valid PIN codes, fund flows of 2–7 hops with decreasing amounts, IP geolocation clusters within Indian bounds, empty `cell_tower_cluster` (MVP default), correct `account_type` and `linked_card_number_hash`, and timestamps within Golden Hour window. Must generate the 3 demo payloads (Pune, Bengaluru, Delhi). |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_generator.py`. All 3 demo payloads (`payload_pune.json`, `payload_bengaluru.json`, `payload_delhi.json`) created and validated against Golden Hour dual-gate and Pydantic schemas. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -247,6 +247,7 @@ All verification records are appended here chronologically. Each entry is create
 | Date | Module | Verification Script | Result | Approved By |
 |---|---|---|---|---|
 | 05 Sep 2026 | Module 1 & 2 | `/tests/verify_schemas_and_registry.py` | PASS | USER |
+| 05 Sep 2026 | Module 3 | `/tests/verify_generator.py` | PASS | USER |
 
 ---
 
@@ -254,8 +255,8 @@ All verification records are appended here chronologically. Each entry is create
 
 | Phase | Scope | Status |
 |---|---|---|
-| **Phase 0** | Initialization & Scaffolding (schemas, ATM registry, project structure) | **Active** |
-| **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | Not Started |
+| **Phase 0** | Initialization & Scaffolding (schemas, ATM registry, project structure) | Complete |
+| **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | **Active** |
 | **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Not Started |
 | **Phase 3** | Verification Interface (UI, maps, demo flow) | Not Started |
 | **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Not Started |

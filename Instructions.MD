@@ -11,7 +11,7 @@
  # 1\. NEW SESSION BOOTSTRAP PROTOCOL (MANDATORY)
 
  Whenever you start a session with zero previous chat history, you MUST execute this bootstrap sequence before touching any files or suggesting new work:
-
+ 0. Read 'model_handover.md' to understand the how and where the project started and progressed to.
  1. Read `PRD.md` to load functional requirements, schemas, and constraints.
 2. Read `PROJECT_STATE.md` to identify the current milestone, what is completed, and what is active.
 3. Read `ASSUMPTIONS.md` to understand every technical trade-off, ML parameter, and domain assumption made by previous sessions.

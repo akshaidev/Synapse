@@ -239,4 +239,11 @@
 
 ---
 
+### [Engineering Trade-off] Non-ATM Bank Dual Identification (Name + IFSC Prefix)
+* **Context / Decision:** In Stage 1 (`/core/graph.py`), `is_non_atm_bank` checks both the bank name substring (e.g. "Paytm", "Fino", "Airtel", "Jio", "India Post") and the IFSC prefix (first 4 characters: `PYTM`, `FINO`, `AIRP`, `JIOP`, `IPOS`).
+* **Why This Over Alternatives:** Relying solely on bank name string matching is fragile if incoming payloads use variations like "Paytm PB" or "IPPB". Relying solely on IFSC prefix fails if the bank name is present but IFSC is misformatted. Checking both ensures robust exclusion of non-ATM entities in defensive ingestion.
+* **System Impact:** Guarantees that any payment bank account in `fund_flow` or `terminal_mule` is reliably intercepted by the viability filter without escaping due to naming variation.
+
+---
+
 > **Note:** This document is a living log. Every new session that makes a technical decision must append to the relevant category following the schema above. Do not delete or modify existing entries — append corrections as new entries referencing the original.

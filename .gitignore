@@ -1,1 +1,4 @@
 .idea/
+model_handover.md
+tests/
+core/__pycache__
