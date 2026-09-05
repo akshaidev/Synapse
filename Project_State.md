@@ -1,0 +1,281 @@
+# PROJECT_STATE.md — Project Synapse
+
+> **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
+> **PRD Version:** v1.3.0 (16 fixes across 3 review rounds)  
+> **ASSUMPTIONS Version:** 31 entries (1 superseded, 5 updated, 2 added in v1.3)  
+> **Last Updated:** 05 September 2026 — Rewritten to reflect PRD v1.3.0 + ASSUMPTIONS v1.3
+
+---
+
+## Current Status
+
+| Field | Value |
+|---|---|
+| **Current Phase** | Phase 0 — Initialization & Scaffolding |
+| **Last Completed Feature** | None (Repository Initialization) |
+| **Active Task** | Pydantic Ingestion Schemas & ATM Registry Setup (`/api/schemas.py` + `/data/atm_registry.json`) |
+| **Immediate Next Task** | Synthetic Ingestion Payload Generator (`/synthetic/generator.py`) |
+| **Known Blockers / Warnings** | None |
+
+---
+
+## Module Completion Matrix
+
+Each module maps to a PRD v1.3.0 requirement. Status transitions follow `instructions.md` §3:  
+`Not Started` → `In Progress` → `Code Complete (Unverified)` → `Verified & Approved` with date.
+
+No module may reach `Verified & Approved` without a passing verification script, terminal output proof, and explicit user sign-off.
+
+---
+
+### Module 1: Ingestion & Webhook Schemas
+
+| Field | Value |
+|---|---|
+| **File** | `/api/schemas.py` |
+| **PRD Reference** | §3.1 Ingestion Payload Schema (v1.1), §3.2 Bank Webhook Payload Schema (v1.1), §1.3 Golden Hour (v1.2/v1.3), §4.5 Confidence Aggregation (v1.3) |
+| **Description** | Pydantic v2 models for `Incident_Payload` (NCRP ticket, fund flow, terminal mule) and `FreezeCardATM` webhook payload. Includes all field validations: IFSC regex, PIN code regex, card hash pattern, lat/lon bounds (6–37°N, 68–98°E), enum constraints, and optional `cell_tower_cluster` (`min_length=0`). Dual-gate Golden Hour validation logic. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.2/v1.3 requirements for this module:**
+
+- `[v1.2 FIX 3D]` **Gate 1** must compute `T_latest = max(t.txn_timestamp for t in fund_flow.transactions)` — do NOT use `transactions[-1]`. Array order is not guaranteed to reflect temporal order in branched/fan-out flows.
+- `[v1.2 FIX 3D]` **Gate 2** uses `complaint_timestamp` as before.
+- Must include `account_type` enum (`SAVINGS`, `BASIC_SAVINGS_BD`, `CURRENT`, `UNKNOWN`), nullable `linked_card_number_hash`, `daily_withdrawal_limit_inr` (default 100000), `withdrawals_today_inr` (default 0) per v1.1 FIX 1B/3B.
+- Webhook `justification` must include `drainable_today_inr` and `drain_time_remaining_minutes` (which reflects **remaining** time after τ subtraction per v1.3 FIX 4B).
+
+---
+
+### Module 2: Internal ATM Registry
+
+| Field | Value |
+|---|---|
+| **File** | `/data/atm_registry.json` |
+| **PRD Reference** | §5.1 ADM-09 (v1.2 clarified), §4.4 Step 3b, §6.3.3 |
+| **Description** | Static JSON file containing 200 synthetic ATM records across 3 cities (Pune, Bengaluru, Delhi). Each record contains: `atm_id`, `bank_name`, `address`, `pin_code`, `lat`, `lon`, `is_onsite`, `daily_avg_txn_count`, `cash_replenishment_status`. Loaded into memory at server startup. Queried via haversine radius in Stage 3b. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4D]` **CNRB-ATM-PNE-0042** (Canara Bank, FC Road, Shivaji Nagar, Pune) **MUST** be `is_onsite: false`. An onsite ATM's theoretical max RiskScore is 0.85 (β₄ contribution = 0), making the PRD's mocked score of 0.91 mathematically impossible if onsite. Offsite ceiling is 1.0.
+- ATM IDs follow `{BANK_CODE}-ATM-{CITY_CODE}-{SEQUENTIAL}` pattern. Coordinates must fall within India bounds.
+- `daily_avg_txn_count` drawn from log-normal (μ=5.0, σ=0.8). Cash status distribution: FULL 60%, PARTIAL 25%, LOW 10%, EMPTY 5%.
+- Must include Canara Bank, SBI, HDFC, PNB, ICICI, Bank of Baroda, Axis Bank ATMs.
+- `[v1.2 FIX 2-clarify]` MVP uses in-memory brute-force scan (200 ATMs, < 10ms). Production target (50K ATMs, ≤ 100ms) requires vectorized NumPy haversine or PostGIS — not in MVP scope.
+
+---
+
+### Module 3: Synthetic Data Generator
+
+| Field | Value |
+|---|---|
+| **File** | `/synthetic/generator.py` |
+| **PRD Reference** | §6 Synthetic Data Generation Strategy, §3.3 JSON Examples (v1.3 corrected) |
+| **Description** | Python script that generates valid `Incident_Payload.json` files conforming to the v1.1 schema. Produces randomized but realistic payloads with: valid IFSC codes (regex-conformant), valid PIN codes, fund flows of 2–7 hops with decreasing amounts, IP geolocation clusters within Indian bounds, empty `cell_tower_cluster` (MVP default), correct `account_type` and `linked_card_number_hash`, and timestamps within Golden Hour window. Must generate the 3 demo payloads (Pune, Bengaluru, Delhi). |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4A]` **`complaint_timestamp` MUST be AFTER the last hop's `txn_timestamp`**. The v1.0-v1.2 Pune example had complaint_timestamp 39 seconds *before* the first fraud transaction — a temporal paradox. Recommended: complaint = last hop + 1–5 minutes (victim notices, calls 1930).
+- Transaction timestamps must be sequential (each hop after the previous).
+- `amount_inr` should decrease slightly per hop (mule keeps a cut).
+- `daily_withdrawal_limit_inr` should vary by bank (SBI/PNB/BoB: ₹1,00,000; HDFC/ICICI/Axis: ₹2,00,000).
+- Generated payloads must pass the Pydantic schema validation from Module 1.
+- Generated payloads must pass both Golden Hour gates: `max(txn_timestamp)` within 120 min of NOW, `complaint_timestamp` within 240 min of NOW.
+
+---
+
+### Module 4: Stage 1 — Graph DAG & Viability Filter
+
+| Field | Value |
+|---|---|
+| **File** | `/core/graph.py` |
+| **PRD Reference** | §4.2 Terminal Mule Isolation (v1.2 MPS formula) |
+| **Description** | NetworkX DiGraph construction from `fund_flow.transactions`. Leaf node identification (out-degree 0). Mule Probability Score (MPS) ranking for fan-out cases. Cross-reference validation against `terminal_mule.mule_account_number` with `MULE_MISMATCH_WARNING`. Mule viability filter. Returns terminal mule node or `NO_VIABLE_ATM_MULE` status. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.2 requirements for this module:**
+
+- `[v1.2 FIX 1D]` **MPS recency term uses bounded exponential decay**, NOT the v1.1 reciprocal:
+
+  ```
+  MPS(v) = w1 × (A_v / A_max) + w2 × exp(-μ × (T_now - T_v)) + w3 × 𝟙[match]
+  ```
+
+  Where `μ = 0.1 min⁻¹` (half-life ≈ 7 min). All three components map to [0, 1]. **Do NOT use `1/max(Δt, ε)` — that was v1.1 and is SUPERSEDED.** The reciprocal spikes to 60.0 at Δt≈0, making w3 (the intended dominant weight) meaningless.
+- Weights: `w1=0.30` (amount ratio), `w2=0.30` (recency), `w3=0.40` (CFCFRMS match).
+- **Viability filter** checks: (1) `linked_card_number_hash IS NOT NULL`, (2) `account_type IN ('SAVINGS', 'BASIC_SAVINGS_BD', 'UNKNOWN')`, (3) `mule_bank NOT IN NON_ATM_BANKS`.
+- NON_ATM_BANKS: Paytm Payments Bank, Fino Payments Bank, Airtel Payments Bank, Jio Payments Bank, India Post Payments Bank.
+- Must handle: single-hop flows, fan-out at terminal layer, mismatch between DAG-derived and payload-declared mule.
+
+---
+
+### Module 5: Stage 2 — Capped Drain Time Engine
+
+| Field | Value |
+|---|---|
+| **File** | `/core/temporal.py` |
+| **PRD Reference** | §4.3 Drain Time Regression (v1.3 formula) |
+| **Description** | Computes `B_accessible = min(B, W_limit − W_today)`. If `B_accessible ≤ 0`, returns `drain_time=0` with `DAILY_LIMIT_EXHAUSTED` flag. Otherwise computes remaining drain time with τ subtraction. Returns `drain_time_remaining_minutes` (float) and `drainable_today_inr` (float). |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4B]` **Baseline formula subtracts elapsed time τ:**
+
+  ```
+  D̂ = max(0.0, ceil(B_accessible / W_txn) × Δt_mean − τ)
+  ```
+
+  Where `τ = T_now − T_last_txn` (minutes since mule received funds). The old formula (`N_w × Δt_mean`) computed total session duration, not remaining time. **Do NOT omit τ.**
+- Defaults: `W_txn = 20000`, `Δt_mean = 4.5 min`.
+- `[v1.3 FIX 4C]` When `DAILY_LIMIT_EXHAUSTED`, the `drain_time=0` output must be paired with a flag that the urgency component in §4.5 reads. The urgency term must evaluate to **0.0** (not 1.0) for these cases. See Module 7.
+- **Validation target:** B=241350, W_limit=100000, W_today=0, τ=3.88 min → B_accessible=100000, N_w=5, total=22.5, D̂=22.5−3.88 = **18.6 min** (the PRD worked example).
+- Must handle `B_accessible=0` gracefully (no division errors, returns 0 with flag).
+
+---
+
+### Module 6: Stage 3 — Haversine Spatial Ranker
+
+| Field | Value |
+|---|---|
+| **File** | `/core/cluster.py` |
+| **PRD Reference** | §4.4 ATM Identification & Ranking (v1.3 D_norm formula) |
+| **Description** | Three sub-steps: (3a) Mule position estimation via priority cascade. (3b) Haversine radius query against in-memory ATM registry. (3c) Multi-factor ATM risk scoring with five components. Returns Top 3 ATMs sorted by descending RiskScore. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4E]` **Proximity D_norm must use r_active (the actual search radius), NOT base r_search:**
+
+  ```
+  D_norm = max(0.0, 1 - d(P, a_j) / r_active)
+  ```
+
+  Where `r_active ∈ {r_search, 1.5×r_search, 2.25×r_search}` depending on whether fallback expansion was triggered. **Do NOT use base `r_search` as denominator** — an ATM at 6.2 km found at r_active=7.5 km would score `1 − 6.2/5.0 = −0.24` (negative, corrupts RiskScore).
+- The `max(0.0, ...)` clamp is **defense-in-depth**, not optional.
+- **Position estimation cascade:** (1) COMBINED cell+IP, (2) CELL_TOWER only, (3) IP_GEOLOCATION only, (4) IFSC_BRANCH_FALLBACK.
+- IP centroid: simple mean. Cell tower: signal-strength + temporal-decay weighting (λ=0.05). Blend α=0.7.
+- Search radius: 5 km urban, 15 km rural. Expansion: 1.5× up to 2 times if < 3 ATMs found. **Track r_active and pass to scoring.**
+- RiskScore weights: β1=0.30 proximity, β2=0.25 bank match, β3=0.20 cash status, β4=0.15 offsite, β5=0.10 traffic (log-normalized).
+- Cash status: FULL=1.0, PARTIAL=0.7, LOW=0.3, EMPTY=0.0, UNKNOWN=0.5.
+- Haversine: radians, Earth radius = 6371 km.
+- Must handle: empty cell_tower_cluster → skip to IP, empty ip_cluster → skip to IFSC, < 3 ATMs → expand, 0 ATMs after max expansion → empty list with warning.
+
+---
+
+### Module 7: FastAPI Core & Mock Webhook
+
+| Field | Value |
+|---|---|
+| **File** | `/api/main.py` |
+| **PRD Reference** | §5.1 ADM-01 through ADM-09, §5.2 ML-01 through ML-05, §4.5 Confidence Aggregation (v1.3) |
+| **Description** | FastAPI application with endpoints for ingestion, mock webhook, incident retrieval, and ATM registry. Orchestrates the full pipeline and computes composite confidence with tiered intervention. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4C]` **Urgency guard in confidence aggregation is CRITICAL:**
+
+  ```python
+  if daily_limit_exhausted:
+      urgency = 0.0  # NOT (1 - 0/120) = 1.0
+  else:
+      urgency = max(0.0, 1 - drain_time / 120)
+  ```
+
+  Without this guard, `DAILY_LIMIT_EXHAUSTED` incidents (D̂=0) get maximum urgency (1.0), injecting γ₂ × 1.0 = 0.35 into the composite score — potentially dispatching officers to intercept a mule who **cannot withdraw money**. This is the most dangerous logic bug in the entire pipeline.
+
+- Confidence: `C = γ1(0.20) × MPS_norm + γ2(0.35) × Urgency + γ3(0.45) × RiskScore_top1`.
+- IFSC fallback caps composite at 0.75.
+- Intervention tiers: C < 0.70 → log only, 0.70 ≤ C < 0.85 → PRIMARY_DIGITAL (webhook), C ≥ 0.85 → SECONDARY_PHYSICAL (webhook + tactical dispatch).
+- Loads ATM registry from `/data/atm_registry.json` at startup.
+- All pipeline stages run synchronously for MVP (no task queue).
+- Must return structured error responses for: schema validation failure, Golden Hour gate failure (which gate + time delta), viability filter failure.
+- Webhook: exponential backoff, max 3 retries, base 5s. Log full payload to stdout for demo visibility.
+
+**Endpoints:**
+- `POST /api/v1/ingest` — accepts Incident_Payload, runs dual-gate → Stage 1 → Stage 2 → Stage 3 → confidence → webhook
+- `POST /api/v1/freeze-card-atm` — mock bank webhook (logs received payload, returns 200 OK)
+- `GET /api/v1/incidents` — returns all processed incidents for UI
+- `GET /api/v1/atm-registry` — returns loaded ATM registry
+
+---
+
+### Module 8: Barebones Verification Interface
+
+| Field | Value |
+|---|---|
+| **File** | `/ui/index.html` |
+| **PRD Reference** | §5.3 View A (Strategic Command), §5.4 View B (Tactical Interception), §8.2 Demo Script (v1.3) |
+| **Description** | Single-page HTML/JS interface (no build tooling required) with three sections: Admin panel, Strategic view, Tactical view. Frontend teammate will restyle; priority is functional data flow. |
+| **Status** | `Not Started` |
+| **Verification Date** | — |
+| **Notes** | |
+
+**Critical v1.3 requirements for this module:**
+
+- `[v1.3 FIX 4A]` Demo flow dual-gate narration must say *"Complaint filed 3 minutes ago"* (not 17 — complaint_timestamp is now 01:19:15, ingestion at 01:22:00).
+- `[v1.3 FIX 4B]` Drain time countdown must show **18 minutes remaining** (not 22). Should display: *"18 minutes remaining — 4 minutes already elapsed since funds landed."*
+- `[v1.3 FIX 4D]` Rank 1 ATM card must display *"Offsite ATM"* for CNRB-ATM-PNE-0042 (consistent with `is_onsite: false` in registry).
+- Must consume `/api/v1/ingest` (POST), `/api/v1/incidents` (GET).
+- No React/Vite build for MVP — plain HTML + vanilla JS + fetch API is acceptable.
+- Leaflet CDN for maps. Tailwind CDN for minimal styling.
+- "Acknowledge & Dispatch" button must POST back to the API and visually update status.
+- Map: pulsing blue dot (mule IP estimate) with 2 km accuracy ring + 3 numbered ATM markers.
+
+---
+
+## Verification Audit Log
+
+All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
+
+| Date | Module | Verification Script | Result | Approved By |
+|---|---|---|---|---|
+| — | — | No tasks verified yet. | — | — |
+
+---
+
+## Phase Roadmap (Reference)
+
+| Phase | Scope | Status |
+|---|---|---|
+| **Phase 0** | Initialization & Scaffolding (schemas, ATM registry, project structure) | **Active** |
+| **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | Not Started |
+| **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Not Started |
+| **Phase 3** | Verification Interface (UI, maps, demo flow) | Not Started |
+| **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Not Started |
+
+---
+
+## Critical Fix Quick-Reference (for session bootstrap)
+
+This table summarizes the fixes most likely to cause implementation bugs if missed. Every fix listed here overrides an earlier version of the PRD — if you recall an older formulation, it is wrong.
+
+| Fix ID | What Was Wrong | What To Do Instead | Module(s) Affected |
+|---|---|---|---|
+| **1D** | MPS recency `1/Δt` spiked to 60.0, drowning other features | Use `exp(-0.1 × Δt)`, bounded [0, 1] | Module 4 |
+| **3D** | `transactions[-1]` not guaranteed temporally latest | Use `max(txn_timestamp)` across all transactions | Module 1, 7 |
+| **4A** | complaint_timestamp was BEFORE first fraud txn | Set complaint AFTER last hop | Module 3 |
+| **4B** | Drain time was total duration, not remaining | Subtract τ: `max(0, N_w×Δt − τ)` | Module 5, 7, 8 |
+| **4C** | D̂=0 → urgency=1.0 (inverted for exhausted limits) | Guard: if `DAILY_LIMIT_EXHAUSTED` → urgency=0.0 | Module 5, 7 |
+| **4D** | Onsite ATM can't score 0.91 (max is 0.85) | CNRB-ATM-PNE-0042 is `is_onsite: false` | Module 2 |
+| **4E** | D_norm goes negative on radius expansion | Use `r_active` not `r_search`, clamp `max(0,...)` | Module 6 |
+
+---
+
+> **Reminder:** Per `instructions.md` §3, writing code is NOT completing a task. No module may transition to `Verified & Approved` without: (1) a standalone verification script, (2) terminal execution output presented in chat, and (3) explicit user sign-off.
