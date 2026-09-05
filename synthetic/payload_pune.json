@@ -1,0 +1,102 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "1395deac-1c48-4ae2-959e-bc48c3d8dfb5",
+  "ingestion_timestamp": "2026-09-05T03:09:27.691205+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-5660180",
+    "complaint_timestamp": "2026-09-05T02:41:27.691205+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "fraud_type": "VISHING",
+    "amount_inr": 182857.41,
+    "source_account": {
+      "account_number": "7152250442071",
+      "ifsc": "PUNB0187600",
+      "bank_name": "Punjab National Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 4,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609059530",
+        "txn_timestamp": "2026-09-05T02:09:27.691205+00:00",
+        "sender_account": "7152250442071",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "25634589012598",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 182857.41,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609051431",
+        "txn_timestamp": "2026-09-05T02:19:27.691205+00:00",
+        "sender_account": "25634589012598",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "88923045250712",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 180289.35,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "RTGS202609058792",
+        "txn_timestamp": "2026-09-05T02:29:27.691205+00:00",
+        "sender_account": "88923045250712",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "29555963532241",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 177673.77,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609057965",
+        "txn_timestamp": "2026-09-05T02:39:27.691205+00:00",
+        "sender_account": "29555963532241",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "54764655237339",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 170273.3,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "54764655237339",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 201972.27,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "fbb2473dac586aa42a335d1eb32693125c5933503c4ecd2a6b9d32211670d0ac",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "245.193.13.111",
+        "geo_lat": 18.59331662311417,
+        "geo_lon": 73.91545809562749,
+        "asn": "AS4122",
+        "last_seen": "2026-09-05T02:45:27.691205+00:00"
+      },
+      {
+        "ip_address": "79.122.2.50",
+        "geo_lat": 18.67227739941543,
+        "geo_lon": 73.93973698823855,
+        "asn": "AS3274",
+        "last_seen": "2026-09-05T02:41:27.691205+00:00"
+      }
+    ]
+  }
+}

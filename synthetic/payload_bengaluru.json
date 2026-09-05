@@ -1,0 +1,89 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "be061cff-9c8c-4980-a1fa-957581183060",
+  "ingestion_timestamp": "2026-09-05T03:09:27.691205+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-6263051",
+    "complaint_timestamp": "2026-09-05T02:43:27.691205+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "fraud_type": "VISHING",
+    "amount_inr": 121115.56,
+    "source_account": {
+      "account_number": "55311096730422",
+      "ifsc": "CNRB0002341",
+      "bank_name": "Canara Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609059303",
+        "txn_timestamp": "2026-09-05T02:19:27.691205+00:00",
+        "sender_account": "55311096730422",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "53786544692070",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 121115.56,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609053512",
+        "txn_timestamp": "2026-09-05T02:29:27.691205+00:00",
+        "sender_account": "53786544692070",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "24310362388797",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 117633.0,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609059742",
+        "txn_timestamp": "2026-09-05T02:39:27.691205+00:00",
+        "sender_account": "24310362388797",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "84542071726385",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 115180.76,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "84542071726385",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 137830.45,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "3c2d4640e6bb12c9c6932072aa8506d170c316d6bcc9e23d31c395758b51a794",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "195.247.36.2",
+        "geo_lat": 13.048884824979282,
+        "geo_lon": 77.51481987015315,
+        "asn": "AS1183",
+        "last_seen": "2026-09-05T02:58:27.691205+00:00"
+      },
+      {
+        "ip_address": "91.239.83.94",
+        "geo_lat": 12.834723325247607,
+        "geo_lon": 77.59174785548245,
+        "asn": "AS5930",
+        "last_seen": "2026-09-05T03:03:27.691205+00:00"
+      }
+    ]
+  }
+}
