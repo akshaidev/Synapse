@@ -1,0 +1,938 @@
+"""
+api/main.py — Module 7: FastAPI Core & Mock Webhook Orchestrator
+
+PRD Reference:
+- §5.1 ADM-01 through ADM-09
+- §4.5 Confidence Aggregation & Tiered Intervention Decision
+- §3.2 Bank Webhook Payload Schema
+
+Pipeline Flow:
+    POST /api/v1/ingest
+        └─ Dual-Gate Golden Hour Check (Gate 1: Fraud Recency, Gate 2: Payload Freshness)
+            └─ Stage 1: graph.isolate_terminal_mule()  → mule account + MPS
+                └─ Viability Filter → NO_VIABLE_ATM_MULE guard
+                    └─ Stage 2: temporal.compute_drain_time()  → drain_time + urgency
+                        └─ Stage 3: cluster.rank_atms()  → Top 3 ATMs + RiskScore
+                            └─ Confidence Aggregation [v1.3 FIX 4C] + Tier Assignment
+                                └─ Webhook Dispatch (PRIMARY_DIGITAL / SECONDARY_PHYSICAL)
+
+Simulation Mode:
+    Pass header  X-Simulation-Mode: true  (or query param ?simulate=true) to use
+    payload.ingestion_timestamp as the Golden Hour reference clock instead of datetime.now().
+    This lets static demo payloads pass Gate 1 during automated testing without altering timestamps.
+
+Webhook Retry:
+    Configurable BASE_RETRY_DELAY_SECONDS (default 5.0s).  Tests inject
+    SYNAPSE_WEBHOOK_DELAY env-var (or call _set_retry_delay()) to use 0.01s
+    so the retry suite doesn't block for 35+ seconds.
+"""
+
+import json
+import logging
+import os
+import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from typing import Any, Dict, List, Optional
+
+import httpx
+import pathlib
+from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+from api.schemas import (
+    FreezeCardATMRequest,
+    IncidentPayload,
+    InterventionTier,
+    LocationMethod,
+    ATMBlock,
+    ATMBlockType,
+    CardHold,
+    HoldType,
+    Justification,
+    RequestingAuthority,
+    validate_golden_hour,
+)
+from core.cluster import rank_atms, Stage3Result
+from core.graph import isolate_terminal_mule, Stage1Result
+from core.temporal import compute_drain_time, DrainTimeResult
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Logging & Constants
+# ─────────────────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+logger = logging.getLogger("synapse.api")
+
+# Confidence Aggregation weights per PRD §4.5
+GAMMA_MPS: float = 0.20         # γ1  — mule identification certainty
+GAMMA_URGENCY: float = 0.35     # γ2  — temporal urgency
+GAMMA_SPATIAL: float = 0.45     # γ3  — spatial targeting confidence
+
+# Intervention Tier Thresholds per PRD §4.5 & Assumptions.MD
+THRESHOLD_PRIMARY_DIGITAL: float = 0.70
+THRESHOLD_SECONDARY_PHYSICAL: float = 0.85
+
+# IFSC Fallback confidence cap per PRD §4.5 & Assumptions.MD
+IFSC_FALLBACK_CONFIDENCE_CAP: float = 0.75
+
+# Webhook retry policy per Assumptions.MD [Engineering Trade-off]
+MAX_WEBHOOK_RETRIES: int = 3
+_RETRY_DELAY_SECONDS: float = float(os.environ.get("SYNAPSE_WEBHOOK_DELAY", 5.0))
+
+# ATM Registry (in-memory, populated at startup)
+_ATM_REGISTRY: List[Dict[str, Any]] = []
+
+# In-memory incident log (serves GET /api/v1/incidents)
+_incidents: List[Dict[str, Any]] = []
+
+# Mock webhook endpoint (self-referential — receiver on the same server)
+MOCK_WEBHOOK_BASE_URL = os.environ.get("SYNAPSE_BASE_URL", "http://localhost:8000")
+MOCK_WEBHOOK_PATH = "/api/v1/freeze-card-atm"
+
+# Injectable HTTP client for webhook dispatch.
+# Tests override this with the FastAPI TestClient so webhooks stay in-process.
+# Default: None → _dispatch_webhook uses a real httpx.Client.
+_WEBHOOK_HTTP_CLIENT: Any = None
+
+
+def _set_webhook_client(client: Any) -> None:
+    """Inject a test HTTP client for webhook dispatch (test use only)."""
+    global _WEBHOOK_HTTP_CLIENT
+    _WEBHOOK_HTTP_CLIENT = client
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Configurable delay helper (tests call this to use 0.01 s)
+# ─────────────────────────────────────────────────────────────────────────────
+def _set_retry_delay(seconds: float) -> None:
+    """Override the webhook backoff base delay (intended for test use)."""
+    global _RETRY_DELAY_SECONDS
+    _RETRY_DELAY_SECONDS = seconds
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FastAPI App
+# ─────────────────────────────────────────────────────────────────────────────
+app = FastAPI(
+    title="Project Synapse — Fraud Interception API",
+    description=(
+        "Automated spatial-temporal cyber fraud interception framework. "
+        "Ingests NCRP/CFCFRMS incident payloads, runs the Stage 1–3 pipeline, "
+        "and dispatches card-hold webhooks to bank switches within the Golden Hour."
+    ),
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Static file paths ─────────────────────────────────────────────────────────
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+_UI_INDEX = _PROJECT_ROOT / "ui" / "index.html"
+_SYNTHETIC_DIR = _PROJECT_ROOT / "synthetic"
+
+# Mount /synthetic so the UI's Quick Demo buttons can fetch JSON payloads directly
+if _SYNTHETIC_DIR.exists():
+    app.mount("/synthetic", StaticFiles(directory=str(_SYNTHETIC_DIR)), name="synthetic")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET / — Serve Dashboard UI
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/", include_in_schema=False)
+async def serve_ui() -> FileResponse:
+    """
+    Serves the Project Synapse verification dashboard (ui/index.html).
+    Run `uvicorn api.main:app --reload` and open http://localhost:8000.
+    """
+    if _UI_INDEX.exists():
+        return FileResponse(str(_UI_INDEX), media_type="text/html")
+    return JSONResponse(
+        {"error": "UI not found. Place ui/index.html in the ui/ directory."},
+        status_code=404,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Startup — Load ATM Registry
+# ─────────────────────────────────────────────────────────────────────────────
+@app.on_event("startup")
+def load_atm_registry() -> None:
+    """Load the internal ATM registry from JSON into memory at server startup."""
+    global _ATM_REGISTRY
+    registry_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "atm_registry.json"
+    )
+    if not os.path.exists(registry_path):
+        logger.error(f"ATM registry not found at {registry_path}. Spatial pipeline will fail.")
+        return
+
+    with open(registry_path, "r", encoding="utf-8") as f:
+        _ATM_REGISTRY = json.load(f)
+
+    logger.info(f"[STARTUP] ATM registry loaded: {len(_ATM_REGISTRY)} records from {registry_path}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Response Models
+# ─────────────────────────────────────────────────────────────────────────────
+class PipelineStageStatus(BaseModel):
+    """Per-stage execution summary returned in the ingest response."""
+    stage: str
+    status: str
+    detail: Optional[str] = None
+
+
+class IngestResponse(BaseModel):
+    """Structured response for POST /api/v1/ingest."""
+    synapse_incident_id: str
+    ncrp_ticket_id: str
+    status: str                         # PROCESSED | GOLDEN_HOUR_EXPIRED | STALE_PAYLOAD | NO_VIABLE_ATM_MULE | PIPELINE_ERROR
+    intervention_tier: Optional[str] = None   # TIER_1_LOG_ONLY | PRIMARY_DIGITAL | SECONDARY_PHYSICAL
+    confidence_score: Optional[float] = None
+    mps_score: Optional[float] = None
+    urgency_score: Optional[float] = None
+    top_atm_risk_score: Optional[float] = None
+    drain_time_remaining_minutes: Optional[float] = None
+    drainable_today_inr: Optional[float] = None
+    mule_location_method: Optional[str] = None
+    mule_estimated_lat: Optional[float] = None   # Mule estimated position for UI map
+    mule_estimated_lon: Optional[float] = None   # Mule estimated position for UI map
+    ifsc_fallback_cap_applied: Optional[bool] = None
+    top_atms: Optional[List[Dict[str, Any]]] = None
+    webhook_dispatched: bool = False
+    webhook_status: Optional[str] = None    # SUCCESS | FAILED | NOT_APPLICABLE
+    stages: List[PipelineStageStatus] = Field(default_factory=list)
+    simulation_mode: bool = False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Confidence Aggregation (§4.5)
+# ─────────────────────────────────────────────────────────────────────────────
+def _compute_confidence(
+    mps_score: float,
+    urgency_score: float,
+    top_atm_risk_score: float,
+    daily_limit_exhausted: bool,
+    confidence_cap_applied: bool,
+) -> float:
+    """
+    Composite Confidence: C = γ1×MPS + γ2×Urgency + γ3×RiskScore_top1
+
+    [v1.3 FIX 4C] Urgency Guard:
+        - If daily_limit_exhausted: urgency_score MUST be 0.0 (passed in from temporal.py)
+    IFSC Fallback Cap:
+        - If confidence_cap_applied: C = min(C, 0.75)
+    """
+    # Urgency is already guarded to 0.0 by temporal.py when daily_limit_exhausted.
+    # We enforce the guard again here as a defense-in-depth safety net.
+    effective_urgency = 0.0 if daily_limit_exhausted else urgency_score
+
+    raw_confidence = (
+        GAMMA_MPS * mps_score
+        + GAMMA_URGENCY * effective_urgency
+        + GAMMA_SPATIAL * top_atm_risk_score
+    )
+    # Clamp to [0.0, 1.0]
+    confidence = min(1.0, max(0.0, raw_confidence))
+
+    # IFSC Fallback confidence cap (max 0.75 → PRIMARY_DIGITAL only, never SECONDARY_PHYSICAL)
+    if confidence_cap_applied:
+        confidence = min(confidence, IFSC_FALLBACK_CONFIDENCE_CAP)
+
+    return round(confidence, 4)
+
+
+def _assign_tier(confidence: float) -> str:
+    """Assign intervention tier based on composite confidence per PRD §4.5."""
+    if confidence >= THRESHOLD_SECONDARY_PHYSICAL:
+        return "SECONDARY_PHYSICAL"
+    elif confidence >= THRESHOLD_PRIMARY_DIGITAL:
+        return "PRIMARY_DIGITAL"
+    else:
+        return "TIER_1_LOG_ONLY"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Webhook Dispatcher
+# ─────────────────────────────────────────────────────────────────────────────
+def _build_webhook_payload(
+    incident_id: str,
+    payload: IncidentPayload,
+    stage1: Stage1Result,
+    stage2: DrainTimeResult,
+    stage3: Stage3Result,
+    confidence: float,
+    tier: str,
+    reference_time: datetime,
+) -> FreezeCardATMRequest:
+    """Constructs FreezeCardATMRequest from pipeline outputs per PRD §3.2."""
+    mule = payload.terminal_mule
+    last_txn_ts = max(t.txn_timestamp for t in payload.fund_flow.transactions)
+    golden_hour_expiry = last_txn_ts + timedelta(minutes=120)
+
+    atm_blocks = [
+        ATMBlock(
+            atm_id=atm.atm_id,
+            bank_name=atm.bank_name,
+            block_type=ATMBlockType.CARD_SPECIFIC_BLOCK,
+            risk_rank=atm.risk_rank,
+            risk_score=atm.risk_score,
+        )
+        for atm in stage3.top_atms
+    ]
+
+    return FreezeCardATMRequest(
+        webhook_version="1.1.0",
+        request_id=uuid.uuid4(),
+        synapse_incident_id=uuid.UUID(incident_id),
+        ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+        request_timestamp=reference_time,
+        requesting_authority=RequestingAuthority(
+            authorized_officer_id="I4C-SYS-AUTO-001"
+        ),
+        golden_hour_expiry=golden_hour_expiry,
+        confidence_score=confidence,
+        intervention_tier=InterventionTier(tier),
+        card_hold=CardHold(
+            card_number_hash=mule.linked_card_number_hash,
+            hold_type=HoldType.ATM_WITHDRAWAL_BLOCK,
+            hold_duration_minutes=120,
+            mule_account_number=mule.mule_account_number,
+            mule_ifsc=mule.mule_ifsc,
+        ),
+        atm_blocks=atm_blocks,
+        justification=Justification(
+            drain_time_remaining_minutes=stage2.drain_time_remaining_minutes,
+            drainable_today_inr=stage2.drainable_today_inr,
+            fund_flow_depth=payload.fund_flow.total_hops,
+            total_amount_inr=payload.ncrp_ticket.amount_inr,
+            mule_location_method=stage3.location_method,
+        ),
+        callback_url=f"{MOCK_WEBHOOK_BASE_URL}/api/v1/webhook-callback/{incident_id}",
+    )
+
+
+def _handle_mock_freeze(payload_dict: dict) -> dict:
+    """
+    Core handler for the mock bank switch webhook.
+    Logs the full incoming freeze request payload to stdout for demo visibility
+    and returns the standard acknowledgement body.
+    """
+    incident_id = payload_dict.get("synapse_incident_id", "UNKNOWN")
+    ncrp_id = payload_dict.get("ncrp_ticket_id", "UNKNOWN")
+    confidence = payload_dict.get("confidence_score", "N/A")
+    tier = payload_dict.get("intervention_tier", "N/A")
+    atm_count = len(payload_dict.get("atm_blocks", []))
+
+    logger.info(
+        f"[MOCK WEBHOOK RECEIVER] ✅ Received freeze request:\n"
+        f"  incident_id   = {incident_id}\n"
+        f"  ncrp_ticket   = {ncrp_id}\n"
+        f"  confidence    = {confidence}\n"
+        f"  tier          = {tier}\n"
+        f"  atm_blocks    = {atm_count} ATM(s) targeted\n"
+        f"  raw_payload   = {json.dumps(payload_dict, indent=2, default=str)}"
+    )
+    return {
+        "status": "ACKNOWLEDGED",
+        "message": "Card hold request received and queued for processing.",
+        "synapse_incident_id": incident_id,
+        "ncrp_ticket_id": ncrp_id,
+        "ack_timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _dispatch_webhook(webhook_payload: FreezeCardATMRequest) -> str:
+    """
+    Dispatches webhook to the mock /api/v1/freeze-card-atm endpoint.
+    Uses exponential backoff: base_delay → 2×base_delay → 4×base_delay (max 3 retries).
+    Returns: "SUCCESS" | "FAILED"
+
+    [Engineering Trade-off] Retry Policy per Assumptions.MD:
+        Max 3 retries, base 5s (5 → 10 → 20). Configurable via _RETRY_DELAY_SECONDS for testing.
+
+    In-process Direct Dispatch (Single-worker Loopback Deadlock Prevention):
+        When running as a live single-worker Uvicorn process, making a synchronous HTTP POST
+        back to localhost:8000 causes Uvicorn to deadlock waiting on itself. If target_url
+        points to the local mock switch, we invoke _handle_mock_freeze directly in-process.
+
+    Injectable client:
+        If _WEBHOOK_HTTP_CLIENT is set (e.g. FastAPI TestClient in tests), it is used
+        for testing retry backoff logic without hitting real network sockets.
+    """
+    target_url = f"{MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
+    payload_dict = webhook_payload.model_dump(mode="json", exclude_none=True)
+
+    # 1. Injected test client (e.g. FastAPI TestClient or MockClient in tests)
+    if _WEBHOOK_HTTP_CLIENT is not None:
+        for attempt in range(1, MAX_WEBHOOK_RETRIES + 2):
+            try:
+                logger.info(
+                    f"[WEBHOOK] Attempt {attempt}/{MAX_WEBHOOK_RETRIES + 1} → POST {MOCK_WEBHOOK_PATH} "
+                    f"(incident: {webhook_payload.synapse_incident_id})"
+                )
+                response = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=payload_dict)
+                if response.status_code == 200:
+                    logger.info(
+                        f"[WEBHOOK] SUCCESS on attempt {attempt} — "
+                        f"ncrp={webhook_payload.ncrp_ticket_id}, "
+                        f"confidence={webhook_payload.confidence_score:.4f}, "
+                        f"tier={webhook_payload.intervention_tier}"
+                    )
+                    return "SUCCESS"
+                else:
+                    logger.warning(
+                        f"[WEBHOOK] Attempt {attempt} returned HTTP {response.status_code}. "
+                        f"Body: {response.text[:200]}"
+                    )
+            except Exception as exc:
+                logger.warning(f"[WEBHOOK] Attempt {attempt} raised exception: {exc}")
+
+            if attempt <= MAX_WEBHOOK_RETRIES:
+                delay = _RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+                logger.info(f"[WEBHOOK] Backing off {delay:.2f}s before retry {attempt + 1}…")
+                time.sleep(delay)
+
+        logger.error(
+            f"[WEBHOOK] All {MAX_WEBHOOK_RETRIES + 1} attempts FAILED for incident "
+            f"{webhook_payload.synapse_incident_id}. Marking WEBHOOK_FAILED."
+        )
+        return "FAILED"
+
+    # 2. Live server: In-process dispatch if target is local mock switch (prevents Uvicorn loopback deadlock)
+    is_local_mock = (
+        MOCK_WEBHOOK_PATH in target_url
+        or "localhost" in target_url
+        or "127.0.0.1" in target_url
+    )
+    if is_local_mock:
+        logger.info(
+            f"[WEBHOOK] Direct in-process dispatch to mock switch ({MOCK_WEBHOOK_PATH}) "
+            f"for incident {webhook_payload.synapse_incident_id} (single-worker loopback optimization)."
+        )
+        _handle_mock_freeze(payload_dict)
+        logger.info(
+            f"[WEBHOOK] SUCCESS on attempt 1 — "
+            f"ncrp={webhook_payload.ncrp_ticket_id}, "
+            f"confidence={webhook_payload.confidence_score:.4f}, "
+            f"tier={webhook_payload.intervention_tier}"
+        )
+        return "SUCCESS"
+
+    # 3. External target: HTTP POST with exponential backoff
+    for attempt in range(1, MAX_WEBHOOK_RETRIES + 2):
+        try:
+            logger.info(
+                f"[WEBHOOK] Attempt {attempt}/{MAX_WEBHOOK_RETRIES + 1} → POST {target_url} "
+                f"(incident: {webhook_payload.synapse_incident_id})"
+            )
+            with httpx.Client(timeout=10.0) as http:
+                response = http.post(target_url, json=payload_dict)
+
+            if response.status_code == 200:
+                logger.info(
+                    f"[WEBHOOK] SUCCESS on attempt {attempt} — "
+                    f"ncrp={webhook_payload.ncrp_ticket_id}, "
+                    f"confidence={webhook_payload.confidence_score:.4f}, "
+                    f"tier={webhook_payload.intervention_tier}"
+                )
+                return "SUCCESS"
+            else:
+                logger.warning(
+                    f"[WEBHOOK] Attempt {attempt} returned HTTP {response.status_code}. "
+                    f"Body: {response.text[:200]}"
+                )
+        except Exception as exc:
+            logger.warning(f"[WEBHOOK] Attempt {attempt} raised exception: {exc}")
+
+        if attempt <= MAX_WEBHOOK_RETRIES:
+            delay = _RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+            logger.info(f"[WEBHOOK] Backing off {delay:.2f}s before retry {attempt + 1}…")
+            time.sleep(delay)
+
+    logger.error(
+        f"[WEBHOOK] All {MAX_WEBHOOK_RETRIES + 1} attempts FAILED for incident "
+        f"{webhook_payload.synapse_incident_id}. Marking WEBHOOK_FAILED."
+    )
+    return "FAILED"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/ingest — Pipeline Orchestrator
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/ingest",
+    response_model=IngestResponse,
+    summary="Ingest Incident Payload & Run Full Pipeline",
+    tags=["Core Pipeline"],
+)
+async def ingest_incident(
+    payload: IncidentPayload,
+    x_simulation_mode: Optional[str] = Header(
+        default=None,
+        alias="X-Simulation-Mode",
+        description="Set to 'true' to evaluate Golden Hour gates against ingestion_timestamp instead of NOW().",
+    ),
+    simulate: Optional[bool] = Query(
+        default=False,
+        description="Alias for X-Simulation-Mode header. Evaluate Golden Hour against ingestion_timestamp.",
+    ),
+) -> IngestResponse:
+    """
+    Main ingestion endpoint. Runs the full Synapse pipeline synchronously:
+
+    1. Dual-Gate Golden Hour validation.
+    2. Stage 1 — Terminal Mule Isolation & Viability Filter.
+    3. Stage 2 — Capped Drain Time Engine.
+    4. Stage 3 — Haversine Spatial Ranker.
+    5. Confidence Aggregation + Tiered Intervention Decision.
+    6. Webhook Dispatch (if C ≥ 0.70).
+
+    Simulation Mode: Header `X-Simulation-Mode: true` or `?simulate=true` sets reference clock
+    to `payload.ingestion_timestamp` so static demo payloads always pass Gate 1.
+    """
+    incident_id = str(uuid.uuid4())
+    simulation_active = (x_simulation_mode or "").strip().lower() == "true" or (simulate is True)
+    stages: List[PipelineStageStatus] = []
+
+    if simulation_active:
+        logger.info(f"[INGEST {incident_id}] Simulation mode ACTIVE — using ingestion_timestamp as reference clock.")
+
+    # ── Reference clock & Strict Simulation Gating ────────────────────────────
+    # When Simulation Mode is OFF: The reference clock strictly anchors to wall-clock time
+    # (datetime.now(timezone.utc)). Historical/test payloads will fail Gate 1 (GOLDEN_HOUR_EXPIRED).
+    # When Simulation Mode is ON: The reference clock anchors to payload.ingestion_timestamp.
+    if simulation_active:
+        reference_time = payload.ingestion_timestamp
+    else:
+        reference_time = datetime.now(timezone.utc)
+
+    # Ensure timezone-aware
+    if reference_time.tzinfo is None:
+        reference_time = reference_time.replace(tzinfo=timezone.utc)
+
+    # ── Strict Dual-Gate Golden Hour Enforcement ──────────────────────────────
+    try:
+        validate_golden_hour(payload, reference_time=reference_time)
+    except ValueError as exc:
+        logger.warning(
+            f"[INGEST {incident_id}] Golden Hour validation failed: {exc} "
+            f"(simulation_mode={simulation_active}, reference_time={reference_time.isoformat()})"
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        )
+
+    stages.append(PipelineStageStatus(
+        stage="DUAL_GATE_GOLDEN_HOUR",
+        status="PASS",
+        detail=(
+            f"Gate 1 and Gate 2 passed against reference clock "
+            f"({'SIMULATION' if simulation_active else 'WALL_CLOCK'}): {reference_time.isoformat()}"
+        ),
+    ))
+    logger.info(
+        f"[INGEST {incident_id}] ncrp={payload.ncrp_ticket.ticket_id} — "
+        f"Gates passed. Reference clock ({'SIMULATION' if simulation_active else 'WALL_CLOCK'}): {reference_time.isoformat()}"
+    )
+
+    # ── Stage 1: Terminal Mule Isolation ─────────────────────────────────────
+    try:
+        stage1: Stage1Result = isolate_terminal_mule(
+            fund_flow=payload.fund_flow,
+            terminal_mule=payload.terminal_mule,
+            current_time=reference_time,
+        )
+    except Exception as exc:
+        stages.append(PipelineStageStatus(stage="STAGE_1_GRAPH", status="ERROR", detail=str(exc)))
+        logger.error(f"[INGEST {incident_id}] Stage 1 EXCEPTION: {exc}")
+        result = IngestResponse(
+            synapse_incident_id=incident_id,
+            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+            status="PIPELINE_ERROR",
+            stages=stages,
+            simulation_mode=simulation_active,
+        )
+        _incidents.append(result.model_dump())
+        return result
+
+    if not stage1.is_viable:
+        stages.append(PipelineStageStatus(
+            stage="STAGE_1_GRAPH",
+            status="NO_VIABLE_ATM_MULE",
+            detail=stage1.disqualification_reason,
+        ))
+        logger.warning(f"[INGEST {incident_id}] {stage1.disqualification_reason}")
+        result = IngestResponse(
+            synapse_incident_id=incident_id,
+            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+            status="NO_VIABLE_ATM_MULE",
+            mps_score=stage1.mps_score,
+            stages=stages,
+            simulation_mode=simulation_active,
+        )
+        _incidents.append(result.model_dump())
+        return result
+
+    stages.append(PipelineStageStatus(
+        stage="STAGE_1_GRAPH",
+        status="VIABLE_ATM_MULE",
+        detail=(
+            f"Selected mule: {stage1.selected_mule_account} ({stage1.selected_mule_bank}) | "
+            f"MPS={stage1.mps_score:.4f}"
+            + (f" | ⚠ MISMATCH: {stage1.warning_message}" if stage1.mismatch_warning else "")
+        ),
+    ))
+    logger.info(
+        f"[INGEST {incident_id}] Stage 1 ✓ — Mule={stage1.selected_mule_account} "
+        f"({stage1.selected_mule_bank}) MPS={stage1.mps_score:.4f}"
+    )
+
+    # ── Stage 2: Drain Time Engine ───────────────────────────────────────────
+    try:
+        stage2: DrainTimeResult = compute_drain_time(
+            terminal_mule=payload.terminal_mule,
+            fund_flow=payload.fund_flow,
+            current_time=reference_time,
+        )
+    except Exception as exc:
+        stages.append(PipelineStageStatus(stage="STAGE_2_TEMPORAL", status="ERROR", detail=str(exc)))
+        logger.error(f"[INGEST {incident_id}] Stage 2 EXCEPTION: {exc}")
+        result = IngestResponse(
+            synapse_incident_id=incident_id,
+            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+            status="PIPELINE_ERROR",
+            mps_score=stage1.mps_score,
+            stages=stages,
+            simulation_mode=simulation_active,
+        )
+        _incidents.append(result.model_dump())
+        return result
+
+    drain_tag = "DAILY_LIMIT_EXHAUSTED" if stage2.daily_limit_exhausted else f"{stage2.drain_time_remaining_minutes:.1f} min remaining"
+    stages.append(PipelineStageStatus(
+        stage="STAGE_2_TEMPORAL",
+        status="COMPLETE",
+        detail=(
+            f"Drainable: ₹{stage2.drainable_today_inr:,.2f} | "
+            f"τ={stage2.elapsed_minutes_tau:.2f} min | {drain_tag} | "
+            f"Urgency={stage2.urgency_score:.4f}"
+        ),
+    ))
+    logger.info(
+        f"[INGEST {incident_id}] Stage 2 ✓ — Drain={stage2.drain_time_remaining_minutes:.1f}min "
+        f"Urgency={stage2.urgency_score:.4f} Exhausted={stage2.daily_limit_exhausted}"
+    )
+
+    # ── Stage 3: Spatial Ranker ───────────────────────────────────────────────
+    if not _ATM_REGISTRY:
+        stages.append(PipelineStageStatus(
+            stage="STAGE_3_SPATIAL", status="ERROR", detail="ATM registry is empty."
+        ))
+        result = IngestResponse(
+            synapse_incident_id=incident_id,
+            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+            status="PIPELINE_ERROR",
+            mps_score=stage1.mps_score,
+            stages=stages,
+            simulation_mode=simulation_active,
+        )
+        _incidents.append(result.model_dump())
+        return result
+
+    try:
+        stage3: Stage3Result = rank_atms(
+            terminal_mule=payload.terminal_mule,
+            atm_registry=_ATM_REGISTRY,
+            current_time=reference_time,
+            victim_district=payload.ncrp_ticket.victim_district,
+        )
+    except Exception as exc:
+        stages.append(PipelineStageStatus(stage="STAGE_3_SPATIAL", status="ERROR", detail=str(exc)))
+        logger.error(f"[INGEST {incident_id}] Stage 3 EXCEPTION: {exc}")
+        result = IngestResponse(
+            synapse_incident_id=incident_id,
+            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+            status="PIPELINE_ERROR",
+            mps_score=stage1.mps_score,
+            stages=stages,
+            simulation_mode=simulation_active,
+        )
+        _incidents.append(result.model_dump())
+        return result
+
+    top_atm_risk = stage3.top_atms[0].risk_score if stage3.top_atms else 0.0
+    stages.append(PipelineStageStatus(
+        stage="STAGE_3_SPATIAL",
+        status="COMPLETE",
+        detail=(
+            f"Method={stage3.location_method.value} | "
+            f"r_active={stage3.active_search_radius_km:.2f}km | "
+            f"Candidates={stage3.total_candidates_found} | "
+            f"Top ATM={stage3.top_atms[0].atm_id if stage3.top_atms else 'NONE'} "
+            f"(score={top_atm_risk:.4f})"
+            + (" | ⚠ IFSC_CAP_APPLIED" if stage3.confidence_cap_applied else "")
+        ),
+    ))
+    logger.info(
+        f"[INGEST {incident_id}] Stage 3 ✓ — Method={stage3.location_method.value} "
+        f"Candidates={stage3.total_candidates_found} "
+        f"Top1={stage3.top_atms[0].atm_id if stage3.top_atms else 'N/A'} ({top_atm_risk:.4f})"
+    )
+
+    # ── Confidence Aggregation & Tier Assignment ─────────────────────────────
+    confidence = _compute_confidence(
+        mps_score=stage1.mps_score,
+        urgency_score=stage2.urgency_score,
+        top_atm_risk_score=top_atm_risk,
+        daily_limit_exhausted=stage2.daily_limit_exhausted,
+        confidence_cap_applied=stage3.confidence_cap_applied,
+    )
+    tier = _assign_tier(confidence)
+
+    stages.append(PipelineStageStatus(
+        stage="CONFIDENCE_AGGREGATION",
+        status="COMPLETE",
+        detail=(
+            f"C = γ1({GAMMA_MPS})×MPS({stage1.mps_score:.4f}) + "
+            f"γ2({GAMMA_URGENCY})×Urgency({stage2.urgency_score:.4f}) + "
+            f"γ3({GAMMA_SPATIAL})×RiskScore({top_atm_risk:.4f}) = {confidence:.4f} → {tier}"
+            + (f" [IFSC_CAP @ {IFSC_FALLBACK_CONFIDENCE_CAP}]" if stage3.confidence_cap_applied else "")
+        ),
+    ))
+    logger.info(
+        f"[INGEST {incident_id}] Confidence={confidence:.4f} → Tier={tier}"
+    )
+
+    # ── Webhook Dispatch ──────────────────────────────────────────────────────
+    webhook_dispatched = False
+    webhook_status: Optional[str] = None
+
+    if tier in ("PRIMARY_DIGITAL", "SECONDARY_PHYSICAL"):
+        try:
+            wh_payload = _build_webhook_payload(
+                incident_id=incident_id,
+                payload=payload,
+                stage1=stage1,
+                stage2=stage2,
+                stage3=stage3,
+                confidence=confidence,
+                tier=tier,
+                reference_time=reference_time,
+            )
+            logger.info(
+                f"[INGEST {incident_id}] Dispatching webhook for tier={tier} "
+                f"to {MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
+            )
+            wh_result = _dispatch_webhook(wh_payload)
+            webhook_dispatched = True
+            webhook_status = wh_result
+        except Exception as exc:
+            webhook_status = "FAILED"
+            logger.error(f"[INGEST {incident_id}] Webhook build/dispatch error: {exc}")
+
+        stages.append(PipelineStageStatus(
+            stage="WEBHOOK_DISPATCH",
+            status=webhook_status or "UNKNOWN",
+            detail=f"Tier={tier} | URL={MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}",
+        ))
+    else:
+        webhook_status = "NOT_APPLICABLE"
+        stages.append(PipelineStageStatus(
+            stage="WEBHOOK_DISPATCH",
+            status="NOT_APPLICABLE",
+            detail=f"Confidence {confidence:.4f} < {THRESHOLD_PRIMARY_DIGITAL} threshold. Logged only.",
+        ))
+        logger.info(f"[INGEST {incident_id}] Confidence below intervention threshold — TIER_1_LOG_ONLY.")
+
+    # ── Build & Store Final Response ─────────────────────────────────────────
+    top_atms_summary = [
+        {
+            "rank": atm.risk_rank,
+            "atm_id": atm.atm_id,
+            "bank_name": atm.bank_name,
+            "address": atm.address,
+            "lat": atm.lat,
+            "lon": atm.lon,
+            "distance_km": atm.distance_km,
+            "risk_score": atm.risk_score,
+            "is_onsite": atm.is_onsite,
+            "cash_status": atm.cash_replenishment_status,
+        }
+        for atm in stage3.top_atms
+    ]
+
+    result = IngestResponse(
+        synapse_incident_id=incident_id,
+        ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
+        status="PROCESSED",
+        intervention_tier=tier,
+        confidence_score=confidence,
+        mps_score=stage1.mps_score,
+        urgency_score=stage2.urgency_score,
+        top_atm_risk_score=top_atm_risk,
+        drain_time_remaining_minutes=stage2.drain_time_remaining_minutes,
+        drainable_today_inr=stage2.drainable_today_inr,
+        mule_location_method=stage3.location_method.value,
+        mule_estimated_lat=stage3.estimated_position[0],
+        mule_estimated_lon=stage3.estimated_position[1],
+        ifsc_fallback_cap_applied=stage3.confidence_cap_applied,
+        top_atms=top_atms_summary,
+        webhook_dispatched=webhook_dispatched,
+        webhook_status=webhook_status,
+        stages=stages,
+        simulation_mode=simulation_active,
+    )
+    _incidents.append(result.model_dump())
+
+    logger.info(
+        f"[INGEST {incident_id}] ✅ COMPLETE — "
+        f"ncrp={payload.ncrp_ticket.ticket_id} | tier={tier} | C={confidence:.4f} | "
+        f"webhook={webhook_status}"
+    )
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/freeze-card-atm — Mock Bank Webhook Receiver
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/freeze-card-atm",
+    summary="Mock Bank Switch Webhook Receiver",
+    tags=["Webhook"],
+)
+async def mock_freeze_card_atm(request: Request) -> JSONResponse:
+    """
+    Mock implementation of the bank card management switch webhook endpoint.
+    Logs the full incoming freeze request payload to stdout for demo visibility
+    and returns HTTP 200 OK with an acknowledgement body.
+
+    In production, this endpoint would be hosted by the participating bank's
+    card management system, not by Synapse itself.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    content = _handle_mock_freeze(body)
+    return JSONResponse(status_code=200, content=content)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/incidents — Incident Log for UI
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get(
+    "/api/v1/incidents",
+    summary="Retrieve All Processed Incidents",
+    tags=["UI Support"],
+)
+async def get_incidents() -> JSONResponse:
+    """
+    Returns the in-memory list of all processed incidents in reverse chronological order.
+    Consumed by the View A (Strategic Command) and View B (Tactical Interception) dashboard.
+    """
+    return JSONResponse(
+        content={
+            "total": len(_incidents),
+            "incidents": list(reversed(_incidents)),
+        }
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/incidents/reset — Clear In-Memory Incident Queue
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/incidents/reset",
+    summary="Reset In-Memory Incident Queue",
+    tags=["UI Support"],
+)
+async def reset_incidents() -> JSONResponse:
+    """
+    Clears all in-memory processed incidents to eliminate duplicate ticket clutter across re-runs.
+    """
+    purged_count = len(_incidents)
+    _incidents.clear()
+    logger.info(f"[INCIDENTS] Reset requested — cleared {purged_count} incident(s).")
+    return JSONResponse(
+        status_code=200,
+        content={"status": "CLEARED", "count": 0, "purged": purged_count},
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/atm-registry — ATM Registry for UI
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get(
+    "/api/v1/atm-registry",
+    summary="Retrieve Internal ATM Registry",
+    tags=["UI Support"],
+)
+async def get_atm_registry() -> JSONResponse:
+    """
+    Returns the loaded internal ATM registry for inspection.
+    Consumed by the admin panel and map visualization components in the dashboard.
+    """
+    return JSONResponse(
+        content={
+            "total": len(_ATM_REGISTRY),
+            "atms": _ATM_REGISTRY,
+        }
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/webhook-callback/{request_id} — Placeholder callback receiver
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/webhook-callback/{request_id}",
+    summary="Bank Webhook Callback Receiver (Placeholder)",
+    tags=["Webhook"],
+)
+async def webhook_callback(request_id: str, request: Request) -> JSONResponse:
+    """
+    Placeholder endpoint where banks POST hold confirmation/rejection callbacks.
+    Logs the callback and returns 200 OK.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    logger.info(f"[WEBHOOK CALLBACK] request_id={request_id} body={json.dumps(body, default=str)}")
+    return JSONResponse(
+        status_code=200,
+        content={"status": "CALLBACK_RECEIVED", "request_id": request_id},
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Health Check
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/health", tags=["System"])
+async def health_check() -> JSONResponse:
+    """Quick health check — returns server status and ATM registry size."""
+    return JSONResponse(
+        content={
+            "status": "OK",
+            "atm_registry_loaded": len(_ATM_REGISTRY),
+            "incidents_processed": len(_incidents),
+            "server_time_utc": datetime.now(timezone.utc).isoformat(),
+        }
+    )

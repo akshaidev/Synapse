@@ -260,4 +260,25 @@
 
 ---
 
+### [Architectural & Design Choice] Simulation Mode Reference Clock & Strict Wall-Clock Gating (`X-Simulation-Mode`)
+* **Context / Decision:** `POST /api/v1/ingest` accepts an optional `X-Simulation-Mode: true` header (or `?simulate=true` query param). When Simulation Mode is OFF, Gate 1 and Gate 2 strictly evaluate against `datetime.now(timezone.utc)`. Because historical/test payloads (e.g. `payload_pune.json`) have transaction timestamps hours/days old, Gate 1 correctly fails and the API returns HTTP 422 (`GOLDEN_HOUR_EXPIRED`). When Simulation Mode is ON, the reference clock anchors to `payload.ingestion_timestamp`.
+* **Why This Over Alternatives:** Without strict wall-clock enforcement when Simulation Mode is OFF, the system would fail to simulate real production behavior where victims reporting fraud past the 120-minute window must be rejected from emergency interception. Decoupling the toggle allows evaluators to demonstrate both production-grade gate rejection (Simulation Mode: OFF $\to$ 422 rejection) and synthetic demo scenario traversal (Simulation Mode: ON $\to$ 200 PROCESSED) on demand.
+* **System Impact:** Guarantees strict production security boundaries while maintaining full determinism during simulated testing. The frontend surfaces explicit guidance on 422 rejection advising users to toggle Simulation Mode to evaluate historical payloads.
+
+---
+
+### [Engineering Trade-off] Injectable Webhook HTTP Client (`_set_webhook_client`)
+* **Context / Decision:** `_dispatch_webhook()` checks a module-level `_WEBHOOK_HTTP_CLIENT` variable. If non-None, it uses that client's `.post()` for webhook calls instead of creating a real `httpx.Client`. The FastAPI `TestClient` is injected during `verify_api.py` bootstrap so webhook calls route in-process rather than hitting `localhost:8000`.
+* **Why This Over Alternatives:** Without injection, `_dispatch_webhook` calls `httpx.Client.post("http://localhost:8000/api/v1/freeze-card-atm")`. During testing, no live server is running, so this raises `[Errno 61] Connection Refused` after 4 attempts, marking every webhook as `FAILED`. Monkey-patching `httpx.Client.post` at the class level was the first alternative tried but is fragile (affects all httpx calls globally, including TestClient internals). Dependency-injecting the client into the endpoint function was considered but would require changing the FastAPI route signature and break the PRD's clean pipeline orchestration model. The module-level injectable is the least invasive option: zero impact on production code paths (default is `None`), and the injection is limited to explicit test setup in `_bootstrap()`.
+* **System Impact:** In production (no injection), `_WEBHOOK_HTTP_CLIENT` is `None` and real `httpx.Client` is used. In tests, `TestClient` is injected and webhook calls stay in-process with zero network overhead. The retry mock test (`test_webhook_retry_backoff`) further substitutes a `_MockClient` that returns HTTP 500 twice then 200, proving the exponential backoff logic without any actual HTTP calls.
+
+---
+
+### [Engineering Trade-off] In-Process Direct Mock Webhook Dispatch (Loopback Deadlock Prevention)
+* **Context / Decision:** In `_dispatch_webhook()` (`/api/main.py`), when no external test client is injected and the target URL points to the local mock banking switch (`/api/v1/freeze-card-atm` on localhost/127.0.0.1), the system directly invokes `_handle_mock_freeze()` in-process rather than initiating a loopback network socket call via `httpx.Client`.
+* **Why This Over Alternatives:** Single-worker Uvicorn processes run a single event loop. Making a synchronous HTTP request from inside an active request handler (`POST /api/v1/ingest`) back to the same server (`http://localhost:8000/api/v1/freeze-card-atm`) deadlocks the process — the server cannot accept the incoming webhook request while it is blocked waiting for the outbound response, resulting in 4 timeouts (35+ seconds) and a `FAILED` webhook status. Alternatives considered: (1) Running Uvicorn with `--workers 2+`: rejected because multi-worker mode complicates in-memory state synchronization for `_incidents` and `_ATM_REGISTRY` in MVP. (2) Asynchronous background tasks: rejected because the synchronous pipeline contract requires returning `webhook_status` in the immediate `IngestResponse`. In-process direct dispatch executes instantaneously (< 1 ms), logs the full payload to stdout for live evaluation visibility, and sets `webhook_status="SUCCESS"`.
+* **System Impact:** Completely eliminates loopback deadlocks in single-worker server deployments. Webhooks dispatched to the local mock receiver succeed immediately and print cleanly in terminal logs during demonstrations.
+
+---
+
 > **Note:** This document is a living log. Every new session that makes a technical decision must append to the relevant category following the schema above. Do not delete or modify existing entries — append corrections as new entries referencing the original.

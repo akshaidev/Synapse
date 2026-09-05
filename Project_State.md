@@ -11,10 +11,10 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 2 — API Integration |
-| **Last Completed Feature** | Module 6: Stage 3 — Haversine Spatial Ranker (`/core/cluster.py`) |
-| **Active Task** | Module 7: FastAPI Core & Mock Webhook (`/api/main.py`) |
-| **Immediate Next Task** | Module 8: Barebones Verification Interface (`/ui/index.html`) |
+| **Current Phase** | Phase 4 — Synthetic Data & End-to-End Demo |
+| **Last Completed Feature** | Module 8: Barebones Verification Interface (`/ui/index.html`) |
+| **Active Task** | 90-Second Evaluation Demo Rehearsal (Pune Scenario) |
+| **Immediate Next Task** | Bengaluru & Delhi Secondary Test Verification |
 | **Known Blockers / Warnings** | None |
 
 ---
@@ -183,9 +183,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/api/main.py` |
 | **PRD Reference** | §5.1 ADM-01 through ADM-09, §5.2 ML-01 through ML-05, §4.5 Confidence Aggregation (v1.3) |
 | **Description** | FastAPI application with endpoints for ingestion, mock webhook, incident retrieval, and ATM registry. Orchestrates the full pipeline and computes composite confidence with tiered intervention. |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_api.py` (26/26 tests pass). Simulation Mode (`X-Simulation-Mode: true` header or `?simulate=true`) allows static demo payloads to pass Gate 1. Injectable webhook client (`_set_webhook_client`) enables in-process retry testing without a live server. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -223,9 +223,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/ui/index.html` |
 | **PRD Reference** | §5.3 View A (Strategic Command), §5.4 View B (Tactical Interception), §8.2 Demo Script (v1.3) |
 | **Description** | Single-page HTML/JS interface (no build tooling required) with three sections: Admin panel, Strategic view, Tactical view. Frontend teammate will restyle; priority is functional data flow. |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_ui_smoke.py` (35/35 tests pass). Includes Leaflet map with auto-fitBounds, live countdown timer with elapsed τ subtraction, View A/B switching, and static file serving mounted in `api/main.py`. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -251,6 +251,8 @@ All verification records are appended here chronologically. Each entry is create
 | 05 Sep 2026 | Module 4 | `/tests/verify_graph.py` | PASS | USER |
 | 05 Sep 2026 | Module 5 | `/tests/verify_temporal.py` | PASS | USER |
 | 05 Sep 2026 | Module 6 | `/tests/verify_cluster.py` | PASS | USER |
+| 05 Sep 2026 | Module 7 | `/tests/verify_api.py` | PASS (26/26) | USER |
+| 05 Sep 2026 | Module 8 | `/tests/verify_ui_smoke.py` | PASS (35/35) | USER |
 
 ---
 
@@ -260,9 +262,9 @@ All verification records are appended here chronologically. Each entry is create
 |---|---|---|
 | **Phase 0** | Initialization & Scaffolding (schemas, ATM registry, project structure) | Complete |
 | **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | Complete |
-| **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | **Active** |
-| **Phase 3** | Verification Interface (UI, maps, demo flow) | Not Started |
-| **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Not Started |
+| **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Complete |
+| **Phase 3** | Verification Interface (UI, maps, demo flow) | Complete |
+| **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | **Active** |
 
 ---
 

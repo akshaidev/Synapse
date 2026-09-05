@@ -1,84 +1,107 @@
 # HANDOVER.md — Project Synapse Session Briefing
 
-> **Target Model:** Claude Sonnet / Incoming Pair Programmer  
 > **Project:** Synapse (SIH26184) — Automated Spatial-Temporal Cyber Fraud Interception  
+> **PRD Version:** v1.3.0 (16 fixes across 3 review rounds)  
 > **Date:** 05 September 2026  
-> **Repository State:** Clean, all test suites passing 100%, Phase 1 Complete, Phase 2 Active.
+> **Repository State:** Clean, all 7 test suites passing 100%, Phases 0–3 Complete, Phase 4 Active.
 
 ---
 
-## 1. What Was Accomplished in This Session
+## 1. Project Overview & Architectural Milestones
 
-In this session, the **entire algorithmic core pipeline (Phase 1)** was built, integrated, mathematically verified against PRD v1.3.0, and logged in `PROJECT_STATE.md` and `ASSUMPTIONS.md`:
+Synapse transforms the reactive I4C fraud response model (*log → investigate → freeze*) into a proactive interception pipeline (*detect → predict → intercept*) operating within the **Golden Hour** (120 minutes from fraud recency).
 
-1. **Module 4: Stage 1 — Graph DAG & Viability Filter ([`/core/graph.py`](file:///Users/akshai/Developer/Synapse/core/graph.py))**
-   - Built NetworkX `DiGraph` from `fund_flow.transactions` and isolated terminal leaf nodes (`out_degree == 0`).
-   - Implemented `[v1.2 FIX 1D]` **Bounded Exponential Decay** for Mule Probability Score:
+### Completed & Verified Modules (Phases 0–3):
+
+1. **Module 1 & 2: Schemas & ATM Registry ([`/api/schemas.py`](file:///Users/akshai/Developer/Synapse/api/schemas.py), [`/data/atm_registry.json`](file:///Users/akshai/Developer/Synapse/data/atm_registry.json))**
+   - Pydantic v2 schemas for `Incident_Payload` and `FreezeCardATM` webhook.
+   - Dual-Gate Golden Hour validation: Gate 1 (`NOW() - max(txn_timestamp) <= 120m`) & Gate 2 (`NOW() - complaint <= 240m`).
+   - 200 synthetic ATM records across Pune, Bengaluru, and Delhi.
+   - `CNRB-ATM-PNE-0042` set to `is_onsite: false` (`[v1.3 FIX 4D]`).
+   - Verified via [`/tests/verify_schemas_and_registry.py`](file:///Users/akshai/Developer/Synapse/tests/verify_schemas_and_registry.py).
+
+2. **Module 3: Synthetic Data Generator ([`/synthetic/generator.py`](file:///Users/akshai/Developer/Synapse/synthetic/generator.py))**
+   - Generates valid demo payloads: Pune (`payload_pune.json`), Bengaluru (`payload_bengaluru.json`), and Delhi (`payload_delhi.json`).
+   - Fixed temporal paradox: complaint filed 1 min after last hop (`[v1.3 FIX 4A]`).
+   - Verified via [`/tests/verify_generator.py`](file:///Users/akshai/Developer/Synapse/tests/verify_generator.py).
+
+3. **Module 4: Stage 1 — Graph DAG & Viability Filter ([`/core/graph.py`](file:///Users/akshai/Developer/Synapse/core/graph.py))**
+   - NetworkX `DiGraph` leaf isolation with `[v1.2 FIX 1D]` bounded exponential decay MPS:
      $$\text{MPS}(v) = 0.30 \cdot (A_v / A_{\max}) + 0.30 \cdot e^{-0.1 \cdot \Delta t} + 0.40 \cdot \mathbb{I}[\text{match}]$$
-   - Implemented CFCFRMS cross-validation with `MULE_MISMATCH_WARNING` trigger.
-   - Implemented 3-point ATM Viability Filter: checks non-null debit card hash, eligible account types (`SAVINGS`, `BASIC_SAVINGS_BD`, `UNKNOWN`), and bank exclusions against `NON_ATM_BANKS` (Paytm, Fino, Airtel, Jio, IPPB checked via bank name and IFSC prefixes `PYTM`, `FINO`, `AIRP`, `JIOP`, `IPOS`).
+   - 3-point ATM viability filter (debit card present, eligible account type, non-payment bank).
+   - Verified via [`/tests/verify_graph.py`](file:///Users/akshai/Developer/Synapse/tests/verify_graph.py).
 
-2. **Module 5: Stage 2 — Capped Drain Time Engine ([`/core/temporal.py`](file:///Users/akshai/Developer/Synapse/core/temporal.py))**
-   - Implemented `[v1.1 FIX 1B]` accessible daily amount: $B_{\text{accessible}} = \min(B, W_{\text{limit}} - W_{\text{today}})$.
-   - Implemented `[v1.3 FIX 4B]` analytical baseline with elapsed time $\tau$ subtraction:
+4. **Module 5: Stage 2 — Capped Drain Time Engine ([`/core/temporal.py`](file:///Users/akshai/Developer/Synapse/core/temporal.py))**
+   - $B_{\text{accessible}} = \min(B, W_{\text{limit}} - W_{\text{today}})$ with `[v1.3 FIX 4B]` elapsed $\tau$ subtraction:
      $$\hat{D} = \max(0.0, \; \lceil B_{\text{accessible}} / W_{\text{txn}} \rceil \times \bar{\Delta t} - \tau)$$
-     where $W_{\text{txn}} = ₹20,000$, $\bar{\Delta t} = 4.5\text{ min}$, and $\tau = T_{\text{now}} - T_{\text{last\_txn}}$.
-   - **PRD Worked Example verified**: $₹241,350$ balance, $₹100,000$ limit, $\tau = 3.88\text{ min} \implies \mathbf{18.6\text{ min}}$ remaining!
-   - Implemented `[v1.3 FIX 4C]` **Critical Urgency Guard**: If `DAILY_LIMIT_EXHAUSTED` ($B_{\text{accessible}} \le 0$), urgency is hard-clamped to **0.0** (preventing the dangerous $D̂=0 \to \text{urgency}=1.0$ inversion).
+   - Exactly matches PRD worked example: $₹241,350$ balance $\to \mathbf{18.6\text{ min}}$ remaining.
+   - `[v1.3 FIX 4C]` Urgency guard clamps to $0.0$ when `DAILY_LIMIT_EXHAUSTED`.
+   - Verified via [`/tests/verify_temporal.py`](file:///Users/akshai/Developer/Synapse/tests/verify_temporal.py).
 
-3. **Module 6: Stage 3 — Haversine Spatial Ranker ([`/core/cluster.py`](file:///Users/akshai/Developer/Synapse/core/cluster.py))**
-   - Implemented Step 3a Priority Cascade mule positioning: `COMBINED` (70% decayed cell + 30% IP) $\to$ `CELL_TOWER_TRILATERATION` ($\lambda=0.05\text{ min}^{-1}$) $\to$ `IP_GEOLOCATION` (mean) $\to$ `IFSC_BRANCH_FALLBACK` (with confidence cap flag).
-   - Implemented Step 3b Haversine candidate retrieval from internal 200-ATM registry with $1.5\times$ radius expansion up to 2 times ($r_{\text{active}} \in \{5.0, 7.5, 11.25\}\text{ km}$).
-   - Implemented Step 3c Multi-Factor ATM Risk Scoring per `[v1.3 FIX 4E]`:
-     $$\text{RiskScore}(a_j) = 0.30 \cdot D_{\text{norm}} + 0.25 \cdot B_{\text{match}} + 0.20 \cdot C_{\text{status}} + 0.15 \cdot O_{\text{site}} + 0.10 \cdot T_{\text{traffic}}$$
-     where $D_{\text{norm}} = \max(0.0, 1.0 - d / r_{\text{active}})$ normalizes strictly against active radius, preventing negative scores.
-   - **Defensive Guards**:
-     - *Guard 1*: Zero-traffic candidate pool safely evaluates $T_{\text{traffic}} = 0.0$ (no $\log(1)$ division by zero).
-     - *Guard 2*: Unrecognized mock IFSCs fall back to district coordinates without `KeyError`.
-   - Verified that the Pune demo payload ranks offsite **`CNRB-ATM-PNE-0042` as Rank 1** (Score: $0.9738$).
+5. **Module 6: Stage 3 — Haversine Spatial Ranker ([`/core/cluster.py`](file:///Users/akshai/Developer/Synapse/core/cluster.py))**
+   - Priority cascade positioning: `COMBINED` $\to$ `CELL_TOWER` $\to$ `IP_GEOLOCATION` $\to$ `IFSC_BRANCH_FALLBACK`.
+   - Haversine candidate retrieval with $1.5\times$ radius expansion ($r_{\text{active}} \in \{5.0, 7.5, 11.25\}\text{ km}$).
+   - Multi-factor scoring with $r_{\text{active}}$ normalization (`[v1.3 FIX 4E]`) and offsite preference (`[v1.3 FIX 4D]`).
+   - Ranks `CNRB-ATM-PNE-0042` as Rank 1 (Score: $0.9738$).
+   - Verified via [`/tests/verify_cluster.py`](file:///Users/akshai/Developer/Synapse/tests/verify_cluster.py).
+
+6. **Module 7: FastAPI Core & Mock Webhook ([`/api/main.py`](file:///Users/akshai/Developer/Synapse/api/main.py))**
+   - Endpoints: `POST /api/v1/ingest`, `POST /api/v1/freeze-card-atm`, `GET /api/v1/incidents`, `GET /api/v1/atm-registry`.
+   - Composite confidence calculation with `[v1.3 FIX 4C]` urgency guard and IFSC fallback cap ($C \le 0.75$).
+   - Tiered intervention: $C \ge 0.85 \implies \text{SECONDARY\_PHYSICAL}$, $0.70 \le C < 0.85 \implies \text{PRIMARY\_DIGITAL}$.
+   - Simulation Mode (`X-Simulation-Mode: true` or `?simulate=true`) anchors reference clock to `ingestion_timestamp`.
+   - Verified via [`/tests/verify_api.py`](file:///Users/akshai/Developer/Synapse/tests/verify_api.py) (26/26 PASS).
+
+7. **Module 8: Barebones Verification Interface ([`/ui/index.html`](file:///Users/akshai/Developer/Synapse/ui/index.html))**
+   - Single-page interface with Admin Drawer, View A (Strategic Command), and View B (Tactical Interception).
+   - Leaflet map with pulsing blue mule dot, 2 km accuracy ring, 3 numbered ATM pins, and auto-`fitBounds`.
+   - Live JavaScript countdown timer ($mm:ss$) updating remaining drain time each second.
+   - Mounted directly via FastAPI (`GET /` serves [`ui/index.html`](file:///Users/akshai/Developer/Synapse/ui/index.html), `/synthetic` mounts demo payloads).
+   - Verified via [`/tests/verify_ui_smoke.py`](file:///Users/akshai/Developer/Synapse/tests/verify_ui_smoke.py) (35/35 PASS).
 
 ---
 
-## 2. Regression Test Command
+## 2. Complete Regression Test Command
 
-To verify the entire system end-to-end, execute this single unified command:
+To independently verify repository health across all modules in one pass:
 
 ```bash
-python3 tests/verify_schemas_and_registry.py && python3 tests/verify_generator.py && python3 tests/verify_graph.py && python3 tests/verify_temporal.py && python3 tests/verify_cluster.py
+python3 tests/verify_schemas_and_registry.py && \
+python3 tests/verify_generator.py && \
+python3 tests/verify_graph.py && \
+python3 tests/verify_temporal.py && \
+python3 tests/verify_cluster.py && \
+python3 tests/verify_api.py && \
+python3 tests/verify_ui_smoke.py
 ```
 
-*Expected Result:* All 5 standalone test suites pass with **100% exit code 0**.
+*Expected Result:* All 7 standalone test suites exit with code 0.
 
 ---
 
-## 3. Immediate Next Milestone: Module 7 (API Integration)
+## 3. Active Milestone: Phase 4 (Synthetic Data & End-to-End Demo)
 
-The next active task is **Module 7: FastAPI Core & Mock Webhook ([`/api/main.py`](file:///Users/akshai/Developer/Synapse/api/main.py))**.
+### Live Server Command:
+```bash
+uvicorn api.main:app --reload --port 8000
+```
+- Dashboard UI: `http://localhost:8000`
+- API Documentation: `http://localhost:8000/docs`
 
-### Key Requirements for Module 7:
-1. **Pipeline Orchestration**:
-   - Ingest `Incident_Payload` $\to$ validate Golden Hour dual-gate $\to$ Stage 1 (`isolate_terminal_mule`) $\to$ Viability Check $\to$ Stage 2 (`compute_drain_time`) $\to$ Stage 3 (`rank_atms`) $\to$ Confidence Aggregation $\to$ Webhook Dispatch.
-2. **Confidence Aggregation & Urgency Guard (`[v1.3 FIX 4C]`)**:
-   $$C = \gamma_1(0.20) \times \text{MPS} + \gamma_2(0.35) \times \text{Urgency} + \gamma_3(0.45) \times \text{RiskScore}_{\text{top1}}$$
-   - If `daily_limit_exhausted` is True: `Urgency = 0.0` (NOT $1.0$).
-   - If location method was `IFSC_BRANCH_FALLBACK`: cap composite confidence $C \le 0.75$.
-3. **Intervention Decision Matrix**:
-   - $C < 0.70 \implies$ Log only (`TIER_1_LOG_ONLY`).
-   - $0.70 \le C < 0.85 \implies$ `PRIMARY_DIGITAL` (automated webhook card hold).
-   - $C \ge 0.85 \implies$ `SECONDARY_PHYSICAL` (webhook card hold + tactical LEA dispatch recommendation).
-4. **Endpoints to Expose**:
-   - `POST /api/v1/ingest`: Full pipeline ingestion.
-   - `POST /api/v1/freeze-card-atm`: Mock bank switch webhook receiver (logs payload, returns 200 OK).
-   - `GET /api/v1/incidents`: Retrieves in-memory processed incidents list.
-   - `GET /api/v1/atm-registry`: Returns loaded ATM records.
-5. **Webhook Dispatching**:
-   - Dispatches `FreezeCardATM` payload to `/api/v1/freeze-card-atm` with exponential backoff (max 3 retries, base 5s).
+### Active Tasks:
+1. **90-Second Evaluation Demo Rehearsal (Pune Scenario)**: Run end-to-end rehearsal per PRD §8.2:
+   - Ingest `payload_pune.json` via Admin Drawer
+   - Inspect Strategic Command (View A)
+   - Inspect Tactical Interception (View B): Leaflet pins, live drain countdown, Rank 1 `CNRB-ATM-PNE-0042` (Offsite ATM, 0.97 RiskScore)
+   - Trigger "Acknowledge & Dispatch"
+   - Confirm terminal webhook receipt log
+2. **Secondary Scenarios**: Verify Bengaluru and Delhi demo payloads through the pipeline.
 
 ---
 
-## 4. Operational Protocol Reminder
+## 4. Operational Protocols
 
 Per `Instructions.MD`:
-- **Gatekeeper Protocol**: Present a 3–5 bullet point plan and await user confirmation ("Proceed") before creating or editing files.
-- **Verification Gate**: Author standalone verification script `tests/verify_api.py`, run via terminal, present output in chat, obtain explicit sign-off, and only then update `PROJECT_STATE.md`.
-- **Living Rationale**: Log any new architectural or technical trade-offs in `ASSUMPTIONS.md`.
+- **Gatekeeper Protocol**: Always present a clear 3–5 bullet point plan and await explicit user confirmation ("Proceed" / "Approved") before modifying any code.
+- **Verification Gate**: Before marking any task completed in `PROJECT_STATE.md`, run a standalone verification script, print terminal output proof, and obtain explicit sign-off.
+- **Living Rationale**: Log any technical, algorithmic, or architectural decisions in `ASSUMPTIONS.md`.

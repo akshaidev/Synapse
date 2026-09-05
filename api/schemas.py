@@ -123,43 +123,51 @@ class IncidentPayload(BaseModel):
 
     @model_validator(mode='after')
     def validate_golden_hour_gates(self):
-        now = datetime.now(timezone.utc)
-        
-        txns = self.fund_flow.transactions
-        max_txn_timestamp = max(t.txn_timestamp for t in txns)
-        
-        # Gate 1: NOW() - max(txn_timestamp) <= 120 min
-        ref_now_1 = now
-        if ref_now_1.tzinfo and not max_txn_timestamp.tzinfo:
-            ref_now_1 = ref_now_1.replace(tzinfo=None)
-        elif not ref_now_1.tzinfo and max_txn_timestamp.tzinfo:
-            ref_now_1 = ref_now_1.astimezone(max_txn_timestamp.tzinfo)
-
-        gate1_delta = ref_now_1 - max_txn_timestamp
-        
-        # We also need to consider if timestamps are in the future by a few seconds due to clock skew,
-        # but the constraint is mainly about being too old.
-        # Wait, if we are testing with mock payloads, `now` will be the current system time,
-        # but the mock payloads might have hardcoded timestamps from 2026.
-        # We should use the ingestion_timestamp as the "NOW" reference instead of datetime.now()
-        # to make validation deterministic and independent of the system clock!
-        # This is a critical insight for the testing and production behavior.
-        # The ingestion_timestamp represents when the payload hit the system.
-        
-        ref_now = self.ingestion_timestamp
-        
-        # Recalculate Gate 1 using ingestion_timestamp
-        gate1_delta = ref_now - max_txn_timestamp
-        if gate1_delta.total_seconds() > 120 * 60:
-            raise ValueError(f"GOLDEN_HOUR_EXPIRED: Fraud recency exceeds 120 mins (Delta: {gate1_delta.total_seconds() / 60:.1f} mins)")
-        
-        # Gate 2: NOW() - complaint_timestamp <= 240 min
-        complaint_ts = self.ncrp_ticket.complaint_timestamp
-        gate2_delta = ref_now - complaint_ts
-        if gate2_delta.total_seconds() > 240 * 60:
-            raise ValueError(f"STALE_PAYLOAD: Complaint is older than 240 mins (Delta: {gate2_delta.total_seconds() / 60:.1f} mins)")
-
+        # Validate self-consistency relative to the declared ingestion_timestamp.
+        # Strict wall-clock validation is enforced at the API layer based on Simulation Mode.
+        validate_golden_hour(self, reference_time=self.ingestion_timestamp)
         return self
+
+
+def validate_golden_hour(payload: "IncidentPayload", reference_time: Optional[datetime] = None) -> None:
+    """
+    Validates Gate 1 (Fraud Recency <= 120 min) and Gate 2 (Payload Freshness <= 240 min).
+    If reference_time is None, defaults to datetime.now(timezone.utc).
+    Raises ValueError on violation:
+      - GOLDEN_HOUR_EXPIRED if Gate 1 fails
+      - STALE_PAYLOAD if Gate 2 fails
+    """
+    ref_now = reference_time or datetime.now(timezone.utc)
+
+    txns = payload.fund_flow.transactions
+    max_txn_timestamp = max(t.txn_timestamp for t in txns)
+
+    # Normalize timezone awareness for Gate 1
+    ref_1 = ref_now
+    if ref_1.tzinfo and not max_txn_timestamp.tzinfo:
+        ref_1 = ref_1.replace(tzinfo=None)
+    elif not ref_1.tzinfo and max_txn_timestamp.tzinfo:
+        ref_1 = ref_1.astimezone(max_txn_timestamp.tzinfo)
+
+    gate1_delta = ref_1 - max_txn_timestamp
+    if gate1_delta.total_seconds() > 120 * 60:
+        raise ValueError(
+            f"GOLDEN_HOUR_EXPIRED: Fraud recency exceeds 120 mins (Delta: {gate1_delta.total_seconds() / 60:.1f} mins)"
+        )
+
+    # Normalize timezone awareness for Gate 2
+    complaint_ts = payload.ncrp_ticket.complaint_timestamp
+    ref_2 = ref_now
+    if ref_2.tzinfo and not complaint_ts.tzinfo:
+        ref_2 = ref_2.replace(tzinfo=None)
+    elif not ref_2.tzinfo and complaint_ts.tzinfo:
+        ref_2 = ref_2.astimezone(complaint_ts.tzinfo)
+
+    gate2_delta = ref_2 - complaint_ts
+    if gate2_delta.total_seconds() > 240 * 60:
+        raise ValueError(
+            f"STALE_PAYLOAD: Complaint is older than 240 mins (Delta: {gate2_delta.total_seconds() / 60:.1f} mins)"
+        )
 
 # Webhook Sub-models
 class RequestingAuthority(BaseModel):
