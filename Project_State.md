@@ -11,10 +11,10 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 1 — Core Pipeline |
-| **Last Completed Feature** | Module 3: Synthetic Ingestion Payload Generator (`/synthetic/generator.py`) |
-| **Active Task** | Module 4: Stage 1 — Graph DAG & Viability Filter (`/core/graph.py`) |
-| **Immediate Next Task** | Module 5: Stage 2 — Capped Drain Time Engine (`/core/temporal.py`) |
+| **Current Phase** | Phase 2 — API Integration |
+| **Last Completed Feature** | Module 6: Stage 3 — Haversine Spatial Ranker (`/core/cluster.py`) |
+| **Active Task** | Module 7: FastAPI Core & Mock Webhook (`/api/main.py`) |
+| **Immediate Next Task** | Module 8: Barebones Verification Interface (`/ui/index.html`) |
 | **Known Blockers / Warnings** | None |
 
 ---
@@ -98,9 +98,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/core/graph.py` |
 | **PRD Reference** | §4.2 Terminal Mule Isolation (v1.2 MPS formula) |
 | **Description** | NetworkX DiGraph construction from `fund_flow.transactions`. Leaf node identification (out-degree 0). Mule Probability Score (MPS) ranking for fan-out cases. Cross-reference validation against `terminal_mule.mule_account_number` with `MULE_MISMATCH_WARNING`. Mule viability filter. Returns terminal mule node or `NO_VIABLE_ATM_MULE` status. |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_graph.py`. Tested with 3 demo payloads, [v1.2 FIX 1D] bounded exponential decay, fan-out branching, mismatch warning, and 3-point viability filter. |
 
 **Critical v1.2 requirements for this module:**
 
@@ -125,9 +125,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/core/temporal.py` |
 | **PRD Reference** | §4.3 Drain Time Regression (v1.3 formula) |
 | **Description** | Computes `B_accessible = min(B, W_limit − W_today)`. If `B_accessible ≤ 0`, returns `drain_time=0` with `DAILY_LIMIT_EXHAUSTED` flag. Otherwise computes remaining drain time with τ subtraction. Returns `drain_time_remaining_minutes` (float) and `drainable_today_inr` (float). |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_temporal.py`. Exact PRD worked example match (18.6 min), [v1.3 FIX 4B] elapsed time τ subtraction, and [v1.3 FIX 4C] urgency guard. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -152,9 +152,9 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **File** | `/core/cluster.py` |
 | **PRD Reference** | §4.4 ATM Identification & Ranking (v1.3 D_norm formula) |
 | **Description** | Three sub-steps: (3a) Mule position estimation via priority cascade. (3b) Haversine radius query against in-memory ATM registry. (3c) Multi-factor ATM risk scoring with five components. Returns Top 3 ATMs sorted by descending RiskScore. |
-| **Status** | `Not Started` |
-| **Verification Date** | — |
-| **Notes** | |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 05 September 2026 |
+| **Notes** | Verified with `/tests/verify_cluster.py`. Validated with haversine radius query, [v1.3 FIX 4E] active radius proximity normalization, 5-component risk scoring, zero-traffic division guard, and static IFSC fallback. Pune demo correctly ranks `CNRB-ATM-PNE-0042` as Rank 1. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -248,6 +248,9 @@ All verification records are appended here chronologically. Each entry is create
 |---|---|---|---|---|
 | 05 Sep 2026 | Module 1 & 2 | `/tests/verify_schemas_and_registry.py` | PASS | USER |
 | 05 Sep 2026 | Module 3 | `/tests/verify_generator.py` | PASS | USER |
+| 05 Sep 2026 | Module 4 | `/tests/verify_graph.py` | PASS | USER |
+| 05 Sep 2026 | Module 5 | `/tests/verify_temporal.py` | PASS | USER |
+| 05 Sep 2026 | Module 6 | `/tests/verify_cluster.py` | PASS | USER |
 
 ---
 
@@ -256,8 +259,8 @@ All verification records are appended here chronologically. Each entry is create
 | Phase | Scope | Status |
 |---|---|---|
 | **Phase 0** | Initialization & Scaffolding (schemas, ATM registry, project structure) | Complete |
-| **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | **Active** |
-| **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Not Started |
+| **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | Complete |
+| **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | **Active** |
 | **Phase 3** | Verification Interface (UI, maps, demo flow) | Not Started |
 | **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Not Started |
 

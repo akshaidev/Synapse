@@ -246,4 +246,18 @@
 
 ---
 
+### [Engineering Trade-off] Traffic Component Zero-Division Guard
+* **Context / Decision:** In Stage 3c (`/core/cluster.py`), if the maximum `daily_avg_txn_count` across candidate ATMs is zero or if the candidate set has zero traffic, `T_traffic` defaults safely to 0.0 rather than evaluating `log(1 + 0) / log(1 + 0)` which produces a divide-by-zero error or NaN.
+* **Why This Over Alternatives:** Real or synthetic registries in newly established or rural areas might occasionally report zero transactions for all nearby ATMs. Unhandled division by zero would crash the entire spatial pipeline. Defaulting to 0.0 is mathematically neutral (the traffic anonymity component contributes nothing).
+* **System Impact:** Prevents 500 runtime errors and guarantees RiskScore $\in [0, 1.0]$ even in completely unpopulated or zero-activity ATM candidate clusters.
+
+---
+
+### [Architectural & Design Choice] Static IFSC & District Location Fallback Dictionary
+* **Context / Decision:** In Stage 3a (`/core/cluster.py`), Priority 4 (`IFSC_BRANCH_FALLBACK`) resolves mule position by first querying a static map of known mock IFSC codes (e.g. `CNRB0002341 -> (18.5204, 73.8567)`), then falling back to district/city centroids (e.g. Pune, Bengaluru, Delhi), and finally defaulting to the geographic center of India.
+* **Why This Over Alternatives:** Without an active external RBI database connection, an unmapped IFSC would raise an unhandled `KeyError` or fail position estimation completely. A hierarchical fallback ensures the spatial pipeline never blocks while correctly asserting the `confidence_cap_applied = True` flag (which caps downstream confidence at 0.75).
+* **System Impact:** Guarantees that payloads lacking both cell tower and IP telemetry degrade gracefully to branch/city level without crashing the pipeline, while safety-capping composite confidence to avoid tactical physical dispatch on coarse coordinates.
+
+---
+
 > **Note:** This document is a living log. Every new session that makes a technical decision must append to the relevant category following the schema above. Do not delete or modify existing entries — append corrections as new entries referencing the original.
