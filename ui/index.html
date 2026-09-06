@@ -1488,6 +1488,27 @@
           </tbody>
         </table>
       </div>
+
+      <!-- ── Resolved Cases Section ── -->
+      <div id="resolved-section" style="display:none;margin-top:1.5rem">
+        <p class="sec-title" style="color:#10b981">✓ Resolved Cases</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>NCRP Ticket</th>
+                <th>Resolution</th>
+                <th>Tier</th>
+                <th>Confidence</th>
+                <th>Resolved At</th>
+                <th>Note</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="resolved-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ── View B ── -->
@@ -1507,7 +1528,10 @@
         <div id="vb-grid">
           <!-- Left col: map + confidence -->
           <div>
-            <p class="sec-title" id="vb-label">Incident</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
+              <p class="sec-title" id="vb-label" style="margin-bottom:0">Incident</p>
+              <button id="resolve-btn" onclick="openResolveModal()" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;border-radius:8px;padding:.3rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.04em;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(16,185,129,.2)'" onmouseout="this.style.background='rgba(16,185,129,.1)'">✓ MARK RESOLVED</button>
+            </div>
             <div class="map-wrap">
               <div id="map"></div>
               <div class="cd-overlay">
@@ -1874,59 +1898,60 @@
     }
 
     // ─── Polling ──────────────────────────────────────────────────────────────────
+    // _selectedNcrp — tracks the NCRP ticket ID of the currently open View B incident.
+    // Used by pollIncidents() to silently refresh the Intel Panel when live-update data
+    // arrives from the Bank Feed Simulator (Phase 10) without restarting the countdown.
+    let _selectedNcrp = null;
+
     async function pollIncidents() {
       try {
         const resp = await fetch('/api/v1/incidents');
         const data = await resp.json();
-        _incidents = data.incidents || [];
+        const fresh = data.incidents || [];
+
+        // Auto-register any newly discovered incident in the drain timer registry.
+        // This runs regardless of dashboard sim mode so that incidents submitted via
+        // the Bank Feed Simulator also get their clock anchored at first-poll time
+        // (within ~5s of upload). Without this, timer was only registered on row-click,
+        // causing page refreshes to reset to full initial drain when sim mode was off.
+        let registryDirty = false;
+        fresh.forEach(inc => {
+          const ncrp = inc.ncrp_ticket_id;
+          const drainMins = inc.drain_time_remaining_minutes;
+          if (ncrp && drainMins != null && !_drainTimerRegistry.has(ncrp)) {
+            _drainTimerRegistry.set(ncrp, {
+              submittedAt: Date.now(),
+              initialDrainSeconds: Math.round(drainMins * 60),
+            });
+            registryDirty = true;
+          }
+        });
+        if (registryDirty) _saveRegistry();
+
+        // Silent live-update refresh: if the active incident has changed data
+        // (e.g. a withdrawal pushed from the Bank Feed Simulator), re-render
+        // the Intel Panel without disturbing the countdown or map.
+        if (_selectedNcrp && _selected) {
+          const updated = fresh.find(i => i.ncrp_ticket_id === _selectedNcrp);
+          if (updated) {
+            const prevDrain  = _selected.drainable_today_inr;
+            const prevWithd  = _selected.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
+            const newDrain   = updated.drainable_today_inr;
+            const newWithd   = updated.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
+            if (prevDrain !== newDrain || prevWithd !== newWithd) {
+              // Data changed — patch local reference and refresh intel panel only.
+              _selected = updated;
+              renderIntelPanel(updated);
+            }
+          }
+        }
+
+        _incidents = fresh;
         renderTable(_incidents);
-        renderKPIs(_incidents);
       } catch (e) { console.warn('Poll error:', e.message); }
     }
     function startPolling() { pollIncidents(); setInterval(pollIncidents, 5000); }
 
-    function renderKPIs(inc) {
-      document.getElementById('k-total').textContent = inc.length;
-      document.getElementById('k-phys').textContent = inc.filter(i => i.intervention_tier === 'SECONDARY_PHYSICAL').length;
-      document.getElementById('k-dig').textContent = inc.filter(i => i.intervention_tier === 'PRIMARY_DIGITAL').length;
-      document.getElementById('k-wh').textContent = inc.filter(i => i.webhook_status === 'SUCCESS').length;
-    }
-
-    function renderTable(inc) {
-      const tbody = document.getElementById('tbody');
-      if (!inc.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <h3>No incidents yet</h3><p>Upload an Incident_Payload.json via the Admin Panel</p>
-    </div></td></tr>`;
-        return;
-      }
-      tbody.innerHTML = inc.map((r, i) => {
-        const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
-        const tierBadge = tier === 'SECONDARY_PHYSICAL'
-          ? `<span class="badge b-phys"><span class="pulse-r"></span>PHYSICAL</span>`
-          : tier === 'PRIMARY_DIGITAL'
-            ? `<span class="badge b-dig">DIGITAL</span>`
-            : `<span class="badge b-log">LOG ONLY</span>`;
-        const wh = r.webhook_status || 'N/A';
-        const whBadge = wh === 'SUCCESS' ? `<span class="badge b-ok">✓ OK</span>`
-          : wh === 'FAILED' ? `<span class="badge b-fail">✗ FAIL</span>`
-            : `<span class="badge b-na">${wh}</span>`;
-        const drain = r.drain_time_remaining_minutes != null ? `${r.drain_time_remaining_minutes} min` : '—';
-        const conf = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
-        return `<tr onclick="selectRow(${i})">
-      <td><span class="mono">${r.ncrp_ticket_id || '—'}</span></td>
-      <td>${tierBadge}</td>
-      <td><span style="font-weight:800;color:var(--primary)">${conf}</span></td>
-      <td><span class="mono">${drain}</span></td>
-      <td><span class="mono" style="font-size:.7rem">${r.mule_location_method || '—'}</span></td>
-      <td>${whBadge}</td>
-      <td><button class="map-link" onclick="event.stopPropagation();selectRow(${i});switchView('B')">Map →</button></td>
-    </tr>`;
-      }).join('');
-    }
 
     // ─── View Switching ───────────────────────────────────────────────────────────
     function switchView(v) {
@@ -1938,7 +1963,11 @@
     }
 
     // ─── Incident Selection ───────────────────────────────────────────────────────
-    function selectRow(i) { _selected = _incidents[i]; renderViewB(_selected); }
+    function selectRow(i) {
+      _selected = _incidents[i];
+      _selectedNcrp = _selected?.ncrp_ticket_id || null;
+      renderViewB(_selected);
+    }
     function selectByNcrp(id) {
       const i = _incidents.findIndex(x => x.ncrp_ticket_id === id);
       if (i >= 0) { selectRow(i); switchView('B'); toggleDrawer(); }
@@ -2331,7 +2360,194 @@
 
       console.log(`[DISPATCH] ✓ Crew sent to Rank #${rank} (${atmId}) for incident ${ncrpId}`);
     }
+
+    // ─── Case Resolution ──────────────────────────────────────────────────────────
+    const RESOLVE_REASONS = {
+      'FUNDS_FROZEN':             '🔒 Funds Frozen — Card / account blocked by bank',
+      'MULE_APPREHENDED':         '🚔 Mule Apprehended — Physical arrest confirmed',
+      'FUNDS_RECOVERED':          '💰 Funds Recovered — Amount reversed to victim',
+      'WINDOW_ELAPSED_CASE_CLOSED': '⏱ Window Elapsed — Case administratively closed',
+      'FALSE_POSITIVE':           '❌ False Positive — Incident not fraud-related',
+    };
+
+    function openResolveModal() {
+      if (!_selected) return;
+      document.getElementById('resolve-modal').style.display = 'flex';
+      document.getElementById('resolve-ncrp-display').textContent = _selected.ncrp_ticket_id;
+      document.getElementById('resolve-note').value = '';
+      document.getElementById('resolve-reason').value = 'FUNDS_FROZEN';
+      document.getElementById('resolve-submit-err').textContent = '';
+    }
+
+    function closeResolveModal() {
+      document.getElementById('resolve-modal').style.display = 'none';
+    }
+
+    async function submitResolve() {
+      const reason = document.getElementById('resolve-reason').value;
+      const note   = document.getElementById('resolve-note').value.trim();
+      const ncrp   = _selected?.ncrp_ticket_id;
+      if (!ncrp) return;
+
+      const btn = document.getElementById('resolve-submit-btn');
+      btn.disabled = true; btn.textContent = 'Resolving…';
+
+      try {
+        const res = await fetch(`/api/v1/incidents/${encodeURIComponent(ncrp)}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, note }),
+        });
+        if (res.ok) {
+          closeResolveModal();
+          // Return to View A so officer sees the resolved section
+          switchView('A');
+          document.getElementById('vb-content').style.display = 'none';
+          document.getElementById('vb-empty').style.display  = 'flex';
+          document.getElementById('resolve-btn').style.display = 'none';
+          _selected = null; _selectedNcrp = null;
+          await pollIncidents(); // immediate refresh
+        } else {
+          const d = await res.json();
+          document.getElementById('resolve-submit-err').textContent = d.error || 'Server error';
+        }
+      } catch(e) {
+        document.getElementById('resolve-submit-err').textContent = 'Network error: ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Confirm Resolution';
+      }
+    }
+
+    // Override renderTable to split active / resolved
+    const _origRenderTable = renderTable; // keep ref if needed
+    function renderTable(inc) {
+      const active   = inc.filter(r => !r.resolved);
+      const resolved = inc.filter(r =>  r.resolved);
+
+      // Active queue
+      const tbody = document.getElementById('tbody');
+      if (!active.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3>No active incidents</h3><p>Upload an Incident_Payload.json via the Admin Panel</p>
+        </div></td></tr>`;
+      } else {
+        tbody.innerHTML = active.map((r, i) => {
+          const globalIdx = inc.findIndex(x => x.ncrp_ticket_id === r.ncrp_ticket_id);
+          const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
+          const tierBadge = tier === 'SECONDARY_PHYSICAL'
+            ? `<span class="badge b-phys"><span class="pulse-r"></span>PHYSICAL</span>`
+            : tier === 'PRIMARY_DIGITAL'
+              ? `<span class="badge b-dig">DIGITAL</span>`
+              : `<span class="badge b-log">LOG ONLY</span>`;
+          const wh = r.webhook_status || 'N/A';
+          const whBadge = wh === 'SUCCESS' ? `<span class="badge b-ok">✓ OK</span>`
+            : wh === 'FAILED' ? `<span class="badge b-fail">✗ FAIL</span>`
+              : `<span class="badge b-na">${wh}</span>`;
+          const drain = r.drain_time_remaining_minutes != null ? `${r.drain_time_remaining_minutes} min` : '—';
+          const conf  = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
+          return `<tr onclick="selectRow(${globalIdx})">
+            <td><span class="mono">${r.ncrp_ticket_id || '—'}</span></td>
+            <td>${tierBadge}</td>
+            <td><span style="font-weight:800;color:var(--primary)">${conf}</span></td>
+            <td><span class="mono">${drain}</span></td>
+            <td><span class="mono" style="font-size:.7rem">${r.mule_location_method || '—'}</span></td>
+            <td>${whBadge}</td>
+            <td><button class="map-link" onclick="event.stopPropagation();selectRow(${globalIdx});switchView('B')">Map →</button></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Resolved section
+      const sec = document.getElementById('resolved-section');
+      const rtbody = document.getElementById('resolved-tbody');
+      if (!resolved.length) {
+        sec.style.display = 'none';
+      } else {
+        sec.style.display = 'block';
+        rtbody.innerHTML = resolved.map((r) => {
+          const tier = r.intervention_tier || '—';
+          const conf = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
+          const reason = RESOLVE_REASONS[r.resolution_reason] || r.resolution_reason || '—';
+          const ts = r.resolved_at ? new Date(r.resolved_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' }) + ' IST' : '—';
+          const note = r.resolution_note || '—';
+          const globalIdx = inc.findIndex(x => x.ncrp_ticket_id === r.ncrp_ticket_id);
+          return `<tr style="opacity:.7">
+            <td><span class="mono" style="color:#6ee7b7">${r.ncrp_ticket_id || '—'}</span></td>
+            <td style="font-size:.72rem;color:#6ee7b7">${reason}</td>
+            <td><span class="mono" style="font-size:.7rem">${tier}</span></td>
+            <td>${conf}</td>
+            <td><span class="mono" style="font-size:.7rem">${ts}</span></td>
+            <td style="font-size:.72rem;color:var(--muted)">${note}</td>
+            <td><button class="map-link" style="background:rgba(16,185,129,.1);color:#6ee7b7;border-color:rgba(16,185,129,.3)" onclick="reopenCase('${r.ncrp_ticket_id}')">Reopen</button></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // KPIs: only count active for urgency metrics
+      document.getElementById('k-total').textContent = active.length;
+      document.getElementById('k-phys').textContent = active.filter(i => i.intervention_tier === 'SECONDARY_PHYSICAL').length;
+      document.getElementById('k-dig').textContent  = active.filter(i => i.intervention_tier === 'PRIMARY_DIGITAL').length;
+      document.getElementById('k-wh').textContent   = active.filter(i => i.webhook_status === 'SUCCESS').length;
+    }
+
+    async function reopenCase(ncrp) {
+      await fetch(`/api/v1/incidents/${encodeURIComponent(ncrp)}/unresolve`, { method: 'POST' });
+      await pollIncidents();
+    }
+
+    // Show resolve button when an incident is loaded in View B
+    const _origRenderViewB = renderViewB;
+    renderViewB = function(inc) {
+      _origRenderViewB(inc);
+      const btn = document.getElementById('resolve-btn');
+      if (btn && inc) {
+        btn.style.display = inc.resolved ? 'none' : 'inline-flex';
+        btn.textContent = inc.resolved ? '✓ RESOLVED' : '✓ MARK RESOLVED';
+      }
+    };
+
   </script>
+
+  <!-- ── Resolve Modal ── -->
+  <div id="resolve-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#111827;border:1px solid rgba(16,185,129,.25);border-radius:18px;padding:2rem;width:100%;max-width:480px;box-shadow:0 0 60px rgba(16,185,129,.1)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <div>
+          <div style="font-size:.65rem;color:#6ee7b7;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">CASE RESOLUTION</div>
+          <div style="font-weight:800;font-size:1rem">Mark Case as Resolved</div>
+          <div id="resolve-ncrp-display" style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#64748b;margin-top:.2rem"></div>
+        </div>
+        <button onclick="closeResolveModal()" style="background:none;border:none;color:#64748b;font-size:1.25rem;cursor:pointer;padding:.25rem">✕</button>
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Resolution Reason</label>
+        <select id="resolve-reason" style="width:100%;background:#0d1117;border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none">
+          <option value="FUNDS_FROZEN">🔒 Funds Frozen — Card / account blocked by bank</option>
+          <option value="MULE_APPREHENDED">🚔 Mule Apprehended — Physical arrest confirmed</option>
+          <option value="FUNDS_RECOVERED">💰 Funds Recovered — Amount reversed to victim</option>
+          <option value="WINDOW_ELAPSED_CASE_CLOSED">⏱ Window Elapsed — Administratively closed</option>
+          <option value="FALSE_POSITIVE">❌ False Positive — Not fraud-related</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:1.25rem">
+        <label style="display:block;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Officer Note (optional)</label>
+        <textarea id="resolve-note" rows="2" placeholder="e.g. Confirmed freeze by HDFC card ops team at 18:32 IST" style="width:100%;background:#0d1117;border:1px solid rgba(99,102,241,.15);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none;resize:none"></textarea>
+      </div>
+
+      <div style="color:#fca5a5;font-size:.75rem;margin-bottom:.75rem;min-height:1rem" id="resolve-submit-err"></div>
+
+      <div style="display:flex;gap:.75rem">
+        <button id="resolve-submit-btn" onclick="submitResolve()" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:9px;padding:.7rem 1.25rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">Confirm Resolution</button>
+        <button onclick="closeResolveModal()" style="background:#0d1117;border:1px solid rgba(99,102,241,.15);color:#64748b;border-radius:9px;padding:.7rem 1rem;font-size:.82rem;cursor:pointer;font-family:inherit">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>

@@ -143,6 +143,7 @@ app.add_middleware(
 # ── Static file paths ─────────────────────────────────────────────────────────
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 _UI_INDEX = _PROJECT_ROOT / "ui" / "index.html"
+_UI_FEED = _PROJECT_ROOT / "ui" / "feed.html"
 _SYNTHETIC_DIR = _PROJECT_ROOT / "synthetic"
 
 # Mount /synthetic so the UI's Quick Demo buttons can fetch JSON payloads directly
@@ -163,6 +164,20 @@ async def serve_ui() -> FileResponse:
         return FileResponse(str(_UI_INDEX), media_type="text/html")
     return JSONResponse(
         {"error": "UI not found. Place ui/index.html in the ui/ directory."},
+        status_code=404,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /feed — Serve Bank Feed Simulator
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/feed", include_in_schema=False)
+async def serve_feed() -> FileResponse:
+    """Serves the Bank Feed Simulator portal (ui/feed.html) at /feed."""
+    if _UI_FEED.exists():
+        return FileResponse(str(_UI_FEED), media_type="text/html")
+    return JSONResponse(
+        {"error": "Feed UI not found. Place ui/feed.html in the ui/ directory."},
         status_code=404,
     )
 
@@ -964,6 +979,88 @@ async def health_check() -> JSONResponse:
             "server_time_utc": datetime.now(timezone.utc).isoformat(),
         }
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/incidents/{ncrp_ticket_id}/resolve — Mark Case Resolved
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/incidents/{ncrp_ticket_id}/resolve",
+    summary="Mark an Incident as Resolved",
+    tags=["Case Management"],
+)
+async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONResponse:
+    """
+    Marks a case as resolved. Accepted body:
+        {
+            "reason": "FUNDS_FROZEN" | "MULE_APPREHENDED" | "FUNDS_RECOVERED" |
+                      "WINDOW_ELAPSED_CASE_CLOSED" | "FALSE_POSITIVE",
+            "note": "optional free-text note"
+        }
+    The resolved flag is returned in GET /api/v1/incidents so both portals
+    can filter and display the resolved section.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    reason = body.get("reason", "RESOLVED")
+    note   = body.get("note", "")
+
+    target = None
+    for inc in _incidents:
+        if inc.get("ncrp_ticket_id") == ncrp_ticket_id:
+            target = inc
+            break
+
+    if target is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Incident '{ncrp_ticket_id}' not found in active session."},
+        )
+
+    ts = datetime.now(timezone.utc).isoformat()
+    target["resolved"]           = True
+    target["resolved_at"]        = ts
+    target["resolution_reason"]  = reason
+    target["resolution_note"]    = note
+
+    logger.info(
+        f"[RESOLVE] ncrp={ncrp_ticket_id} | reason={reason} | note='{note}' | at={ts}"
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "RESOLVED",
+            "ncrp_ticket_id": ncrp_ticket_id,
+            "resolution_reason": reason,
+            "resolution_note": note,
+            "resolved_at": ts,
+        },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/incidents/{ncrp_ticket_id}/unresolve — Undo Resolution (safety valve)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/incidents/{ncrp_ticket_id}/unresolve",
+    summary="Reopen a Resolved Incident",
+    tags=["Case Management"],
+)
+async def unresolve_incident(ncrp_ticket_id: str) -> JSONResponse:
+    """Safety valve — reopens a previously resolved incident."""
+    for inc in _incidents:
+        if inc.get("ncrp_ticket_id") == ncrp_ticket_id:
+            inc.pop("resolved", None)
+            inc.pop("resolved_at", None)
+            inc.pop("resolution_reason", None)
+            inc.pop("resolution_note", None)
+            logger.info(f"[UNRESOLVE] ncrp={ncrp_ticket_id}")
+            return JSONResponse(status_code=200, content={"status": "REOPENED", "ncrp_ticket_id": ncrp_ticket_id})
+    return JSONResponse(status_code=404, content={"error": f"Incident '{ncrp_ticket_id}' not found."})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 # Project Synapse — Product Requirements Document
 
 > **Document Classification:** RESTRICTED — For Official Use Only  
-> **Version:** 1.8.0  
+> **Version:** 2.0.0  
 > **Date:** 06 September 2026  
 > **Author:** Principal Technical Product Manager, Synapse Programme  
 > **Sponsor:** Indian Cyber Crime Coordination Centre (I4C), Ministry of Home Affairs, Government of India  
@@ -1727,5 +1727,113 @@ When an officer opened an incident in View B, the only visible data was the map,
 | **Three Zero States** | (1) `DAILY LIMIT EXHAUSTED` — daily ATM cap hit (detected via `STAGE_2_TEMPORAL` detail string); (2) `WINDOW ELAPSED — MULE MAY BE AT ATM` — time ran out but `drainable_today_inr > 100`, money accessible, mule in transit — **most urgent state**; (3) `NO WITHDRAWABLE BALANCE` — `drainable_today_inr ≤ 100`, funds genuinely inaccessible. |
 | **Files Changed** | `ui/index.html` |
 | **Operational Impact** | Officers now receive an accurate threat signal. The 'WINDOW ELAPSED — MULE MAY BE AT ATM' state correctly escalates urgency rather than falsely de-escalating with 'no balance'. |
+
+---
+
+## 10. Phase 10 — Live Feed Simulator & Case Resolution
+
+> **PRD Version:** 2.0.0  
+> **Date:** 06 September 2026
+
+---
+
+### 10.1 Phase 10 Feature 01 — Bank Feed Simulator Portal
+
+**Status:** `Code Complete` — 06 September 2026
+
+#### 10.1.1 Problem
+
+The demo required a way to simulate real-time bank data feeds and NCRP portal submissions without relying on pre-built payload buttons or hardcoded city names. The system needed a second interface — mirroring what a live production integration would do — that could push payloads and withdrawal updates into Synapse in real time during a demo.
+
+#### 10.1.2 Changes
+
+| File | Change |
+|---|---|
+| `ui/feed.html` | New Bank Feed Simulator portal — dark orange-accented design. Sections: (A) Payload Upload with Simulation Mode toggle, (B) Live Withdrawal Push with incident selector and Mark Resolved button, (C) Feed Activity Log. |
+| `api/main.py` | `PATCH /api/v1/incidents/{ncrp_ticket_id}/live-update` endpoint — adds withdrawal amount, recalculates `withdrawals_today_inr`, `balance_inr`, `drainable_today_inr`. Logs `[LIVE-UPDATE]` with amounts and note. |
+| `api/main.py` | `GET /feed` route added — serves `ui/feed.html` directly from the FastAPI server at `http://localhost:8000/feed`. Eliminates need for a separate static server. |
+| `ui/index.html` | `pollIncidents()` silently re-renders `renderIntelPanel()` when `drainable_today_inr` or `withdrawals_today_inr` changes on the currently selected incident — live update reflection within 5 seconds. |
+
+#### 10.1.3 Design Decisions
+
+- Both portals served from the same FastAPI server (`/` = dashboard, `/feed` = simulator) to avoid CORS issues and eliminate the need for a separate static server.
+- The `PATCH /live-update` endpoint mutates the incident in-place (`_incidents` list) and returns the updated terminal mule fields so the feed portal can display confirmation immediately.
+- The simulator's activity log is frontend-only (not persisted); it resets on page reload.
+
+---
+
+### 10.2 Phase 10 Feature 02 — Simulation Mode Toggle in Feed Portal
+
+**Status:** `Code Complete` — 06 September 2026
+
+#### 10.2.1 Problem
+
+The Bank Feed Simulator previously always sent `?simulate=true` to bypass the Golden Hour gates, and never updated the payload's `ingestion_timestamp`. This meant the interception window countdown in the main dashboard would start from the original (possibly hours-old) ingestion timestamp in the payload file, not from the actual moment of upload — making demos with saved payloads show an immediately-expired or inaccurate countdown.
+
+#### 10.2.2 Changes
+
+| File | Change |
+|---|---|
+| `ui/feed.html` | Amber `SIMULATION MODE` toggle chip added to the Upload section. Off by default (live mode). |
+| `ui/feed.html` | `onSimToggle()` — switches `_simMode` boolean. Animates toggle track/thumb with amber highlight when ON. Logs state change to activity log. |
+| `ui/feed.html` | `submitPayload()` — when `_simMode = true`: stamps `body.ncrp_ticket.ingestion_timestamp = new Date().toISOString()` (so backend T_ref = upload time → countdown starts NOW), appends `?simulate=true` to ingest URL, tags submission as `[SIM]` in activity log. When OFF: payload sent as-is to `/api/v1/ingest` (no timestamp mutation, Golden Hour gates apply). |
+
+#### 10.2.3 Design Decisions
+
+- `ingestion_timestamp` mutation happens client-side before the POST, not server-side. This preserves the backend's clean separation: the backend simply uses whatever `ingestion_timestamp` is in the payload as T_ref in sim mode.
+- The feed portal's sim toggle is independent of the main dashboard's sim toggle — both can operate in different modes simultaneously. Officers explicitly control which uploads are simulated.
+
+---
+
+### 10.3 Phase 10 Feature 03 — Case Resolution
+
+**Status:** `Code Complete` — 06 September 2026
+
+#### 10.3.1 Problem
+
+Resolved incidents had no way to be closed. The active queue accumulated all incidents — there was no concept of case closure, resolution reason, or historical record of resolved cases within the session.
+
+#### 10.3.2 Changes
+
+| File | Change |
+|---|---|
+| `api/main.py` | `POST /api/v1/incidents/{ncrp_ticket_id}/resolve` — accepts `{reason, note}` body. Mutates incident in `_incidents` list: sets `resolved=True`, `resolved_at` (UTC ISO), `resolution_reason`, `resolution_note`. Returns 200 with resolution summary. Logs `[RESOLVE]`. |
+| `api/main.py` | `POST /api/v1/incidents/{ncrp_ticket_id}/unresolve` — safety valve. Removes resolved fields, logs `[UNRESOLVE]`. Returns 200. |
+| `ui/index.html` | `✓ MARK RESOLVED` button added to View B header (right side of incident label). Hidden until an incident is loaded. |
+| `ui/index.html` | Resolution modal — glassmorphism design, emerald color scheme. Fields: resolution reason (5 options), officer note (optional). Confirm → calls `/resolve` → returns to View A, refreshes table. |
+| `ui/index.html` | `renderTable()` rewritten — splits `_incidents` into `active` and `resolved` arrays. Active table shows only open cases. Resolved Cases section appears below active table when any resolved incidents exist. Each resolved row shows reason, timestamp (IST), note, and Reopen button. |
+| `ui/index.html` | KPI cards now count only active (non-resolved) incidents. |
+| `ui/feed.html` | `✓ Mark Resolved` button appears next to the Push Update button when an incident is selected from the dropdown. Calls `/resolve` with reason `FUNDS_FROZEN`. Resolved incidents disappear from the dropdown (only active incidents shown). |
+
+#### 10.3.3 Resolution Reason Taxonomy
+
+| Reason Code | Display Label | Operational Meaning |
+|---|---|---|
+| `FUNDS_FROZEN` | 🔒 Funds Frozen | Card/account blocked by issuing bank |
+| `MULE_APPREHENDED` | 🚔 Mule Apprehended | Physical arrest confirmed by LEA |
+| `FUNDS_RECOVERED` | 💰 Funds Recovered | Amount reversed/returned to victim |
+| `WINDOW_ELAPSED_CASE_CLOSED` | ⏱ Window Elapsed | Administratively closed; Golden Hour passed |
+| `FALSE_POSITIVE` | ❌ False Positive | Incident not fraud-related |
+
+#### 10.3.4 Design Decisions
+
+- Resolution state lives in the backend `_incidents` list (not localStorage). This means both portals can resolve cases and both see the updated state within 5 seconds via the poll loop.
+- `unresolve` endpoint provided as a safety valve for accidental resolutions during demos.
+- Resolved incidents are never deleted from `_incidents` — they remain accessible for audit; only filtered from the active queue display.
+
+---
+
+### 10.4 Phase 10 Bug Fix 05 — Drain Timer Reset on Bank Feed Upload
+
+**Status:** `Fixed` — 06 September 2026
+
+| Field | Detail |
+|---|---|
+| **Root Cause** | The `_drainTimerRegistry` (which anchors the interception window countdown to a wall-clock timestamp) was only populated in two places: (1) when the dashboard itself submitted a payload via the Admin Panel (`ingest()` function), and (2) lazily on first row-click via `_getSimDrainMinutes()`. When the Bank Feed Simulator submitted a payload, neither path was triggered — the dashboard discovered the incident via `pollIncidents()` but never anchored it in the registry. On page refresh, `_getSimDrainMinutes()` found no registry entry and reset the countdown to the full initial drain time. |
+| **Fix** | `pollIncidents()` now auto-registers every newly discovered incident in `_drainTimerRegistry` at poll time (within ≤5 s of any submission). Registry save (`_saveRegistry()`) called immediately after registration. This runs regardless of dashboard sim mode — both live and simulated incidents submitted from any portal get their clock anchored within one poll cycle. |
+| **Files Changed** | `ui/index.html` |
+| **Operational Impact** | Interception window countdown is now accurate across page refreshes for all submission paths (dashboard admin panel, Bank Feed Simulator, direct API POST). |
+
+---
 
 *— End of Document —*

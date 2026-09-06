@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Synapse — Bank Feed Simulator</title>
+  <meta name="description" content="Live bank data feed simulator for Project Synapse fraud interception system." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #06080f; --surface: #0d1117; --card: #111827;
+      --border: rgba(99,102,241,.15); --primary: #818cf8; --pri-dim: rgba(99,102,241,.08);
+      --text: #f1f5f9; --muted: #64748b; --success: #10b981; --warn: #f59e0b;
+      --danger: #ef4444; --feed-accent: #f97316; --feed-dim: rgba(249,115,22,.08);
+      --feed-border: rgba(249,115,22,.25);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+    /* Navbar */
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.75rem; border-bottom: 1px solid var(--border); background: rgba(13,17,23,.9); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { display: flex; align-items: center; gap: .75rem; }
+    .nav-icon { width: 32px; height: 32px; background: linear-gradient(135deg,var(--feed-accent),#fb923c); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .9rem; }
+    .nav-title { font-size: .9rem; font-weight: 700; letter-spacing: .03em; }
+    .nav-sub { font-size: .7rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+    #conn-pill { display: flex; align-items: center; gap: .4rem; padding: .3rem .75rem; border-radius: 20px; font-size: .72rem; font-weight: 600; border: 1px solid; transition: all .3s; }
+    #conn-pill.online { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.25); color: #6ee7b7; }
+    #conn-pill.offline { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); color: #fca5a5; }
+    #conn-pill.checking { background: rgba(100,116,139,.08); border-color: rgba(100,116,139,.25); color: var(--muted); }
+    .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .conn-dot.pulse { animation: pulse-g 2s infinite; }
+    @keyframes pulse-g { 0%{box-shadow:0 0 0 0 rgba(16,185,129,.6)} 70%{box-shadow:0 0 0 8px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
+
+    /* Layout */
+    .page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.35rem; font-weight: 800; margin-bottom: .3rem; }
+    .page-header p { font-size: .82rem; color: var(--muted); max-width: 520px; }
+    .feed-tag { display: inline-block; background: var(--feed-dim); border: 1px solid var(--feed-border); color: var(--feed-accent); font-size: .62rem; font-weight: 700; letter-spacing: .08em; padding: .15rem .5rem; border-radius: 4px; margin-bottom: .5rem; }
+
+    /* Cards */
+    .section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .section-header { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 1px solid var(--border); }
+    .section-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .85rem; background: var(--feed-dim); border: 1px solid var(--feed-border); }
+    .section-title { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--feed-accent); }
+    .section-desc { font-size: .73rem; color: var(--muted); margin-top: .1rem; }
+
+    /* Forms */
+    label { display: block; font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .35rem; }
+    select, input[type="number"], input[type="text"], textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .6rem .875rem; color: var(--text); font-family: 'Inter',sans-serif; font-size: .82rem; outline: none; transition: border-color .2s; appearance: none; }
+    select:focus, input:focus, textarea:focus { border-color: var(--feed-accent); }
+    textarea { font-family: 'JetBrains Mono',monospace; font-size: .75rem; resize: vertical; min-height: 140px; }
+    .form-row { margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .65rem 1.25rem; border-radius: 9px; font-size: .8rem; font-weight: 700; cursor: pointer; border: none; transition: all .2s; letter-spacing: .02em; font-family: 'Inter',sans-serif; }
+    .btn-primary { background: linear-gradient(135deg,#f97316,#ea580c); color: #fff; box-shadow: 0 0 18px rgba(249,115,22,.25); }
+    .btn-primary:hover { box-shadow: 0 0 28px rgba(249,115,22,.4); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--feed-accent); color: var(--feed-accent); }
+
+    /* Results */
+    .result-card { margin-top: 1rem; border-radius: 10px; padding: .875rem 1rem; font-size: .8rem; border: 1px solid; display: none; }
+    .result-card.success { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.25); }
+    .result-card.error { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.25); }
+    .result-card.show { display: block; animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    .result-title { font-weight: 700; margin-bottom: .5rem; }
+    .result-title.ok { color: #6ee7b7; }
+    .result-title.err { color: #fca5a5; }
+    .update-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .6rem; margin-top: .75rem; }
+    .update-stat { background: rgba(6,10,19,.5); border-radius: 8px; border: 1px solid var(--border); padding: .6rem .75rem; }
+    .update-stat-lbl { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .update-stat-val { font-family: 'JetBrains Mono',monospace; font-size: .8rem; font-weight: 700; margin-top: .15rem; }
+
+    /* Divider */
+    .divider { display: flex; align-items: center; gap: .75rem; margin: 1.75rem 0; }
+    .divider-line { flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; }
+
+    /* Quick picks */
+    .quick-picks { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+    .qp-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .25rem .6rem; font-size: .72rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; font-family: 'JetBrains Mono',monospace; }
+    .qp-btn:hover { border-color: var(--feed-accent); color: var(--feed-accent); }
+    #inc-meta { margin-top: .5rem; font-size: .72rem; color: var(--muted); font-family: 'JetBrains Mono',monospace; min-height: 1.2rem; }
+    .inc-meta-highlight { color: var(--feed-accent); font-weight: 600; }
+
+    /* Log */
+    .log-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .log-header { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .log-title { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    #log-list { max-height: 240px; overflow-y: auto; padding: .5rem 0; }
+    .log-entry { display: flex; align-items: flex-start; gap: .75rem; padding: .5rem 1.25rem; border-bottom: 1px solid rgba(99,102,241,.05); animation: fadeIn .2s ease; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-ts { font-family: 'JetBrains Mono',monospace; font-size: .65rem; color: var(--muted); white-space: nowrap; margin-top: .1rem; flex-shrink: 0; }
+    .log-msg { font-size: .75rem; line-height: 1.4; }
+    .log-ok { color: #6ee7b7; } .log-err { color: #fca5a5; } .log-info { color: var(--primary); }
+    .log-empty { text-align: center; color: var(--muted); font-size: .78rem; padding: 1.5rem; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-icon">🏦</div>
+    <div>
+      <div class="nav-title">Bank Feed Simulator</div>
+      <div class="nav-sub">Project Synapse — Phase 10</div>
+    </div>
+  </div>
+  <div id="conn-pill" class="checking">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span id="conn-text">Checking…</span>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="feed-tag">⚡ UPSTREAM DATA FEED</div>
+    <h1>Bank &amp; NCRP Feed Simulator</h1>
+    <p>Simulates real-time data pushes from banks and the NCRP portal to Project Synapse. Upload payloads and inject live withdrawal activity into active incidents.</p>
+  </div>
+
+   <!-- Section A: Upload Payload -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📤</div>
+      <div>
+        <div class="section-title">Upload Payload to Synapse</div>
+        <div class="section-desc">Select a JSON file from your device and ingest it into Synapse</div>
+      </div>
+    </div>
+
+    <!-- Simulation Mode Toggle -->
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:10px;margin-bottom:1rem">
+      <div style="flex:1">
+        <div style="font-size:.75rem;font-weight:700;color:#fbbf24;letter-spacing:.04em">⏱ SIMULATION MODE</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:.15rem">When ON — stamps ingestion timestamp to NOW so the drain timer starts fresh. Bypasses Golden Hour gates.</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;cursor:pointer">
+        <input type="checkbox" id="sim-toggle" style="opacity:0;width:0;height:0" onchange="onSimToggle()">
+        <span id="sim-track" style="position:absolute;inset:0;background:#1e293b;border-radius:24px;transition:all .25s;border:1px solid rgba(251,191,36,.2)"></span>
+        <span id="sim-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;background:#64748b;border-radius:50%;transition:all .25s"></span>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Select Payload JSON from Device</label>
+      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <label for="payload-file-input" style="display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;margin:0;transition:all .2s;" onmouseover="this.style.borderColor='var(--feed-accent)';this.style.color='var(--feed-accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+          📂 Browse JSON File
+        </label>
+        <input type="file" id="payload-file-input" accept=".json,application/json" style="display:none" onchange="loadLocalFile(this)" />
+        <span id="file-name-display" style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace"></span>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Payload JSON</label>
+      <textarea id="payload-json" placeholder='{"payload_version": "1.1.0", "payload_id": "…", …}'></textarea>
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitPayload()">📡 Submit to Synapse</button>
+      <button class="btn btn-ghost" onclick="clearPayload()">Clear</button>
+      <span id="submit-status" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="result-card" id="submit-result"></div>
+  </div>
+
+  <!-- Section B: Live Withdrawal + Resolve -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">💸</div>
+      <div>
+        <div class="section-title">Push Live Withdrawal Update</div>
+        <div class="section-desc">Simulates a bank reporting a new ATM withdrawal — reflects in Synapse Intel Panel within 5 seconds</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Active Incident</label>
+      <select id="inc-select" onchange="onIncidentSelect()"></select>
+      <div id="inc-meta"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row" style="margin-bottom:0">
+        <label>Withdrawal Amount (₹)</label>
+        <input type="number" id="withdrawal-amt" placeholder="e.g. 10000" min="0" step="100" />
+        <div class="quick-picks">
+          <button class="qp-btn" onclick="setAmt(5000)">₹5,000</button>
+          <button class="qp-btn" onclick="setAmt(10000)">₹10,000</button>
+          <button class="qp-btn" onclick="setAmt(20000)">₹20,000</button>
+          <button class="qp-btn" onclick="setAmt(50000)">₹50,000</button>
+          <button class="qp-btn" onclick="setAmt(100000)">₹1L</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>Note / ATM ID (optional)</label>
+        <input type="text" id="withdrawal-note" placeholder="e.g. Withdrawal at ICIC-ATM-DEL-0002" />
+      </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" id="push-btn" onclick="pushWithdrawal()">⚡ Push Update to Synapse</button>
+      <button id="resolve-case-btn" onclick="resolveCase()" style="display:none;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;border-radius:9px;padding:.65rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(16,185,129,.2)'" onmouseout="this.style.background='rgba(16,185,129,.1)'">✓ Mark Resolved</button>
+      <span id="push-status" style="font-size:.75rem;color:var(--muted)"></span>
+    </div>
+    <div class="result-card" id="push-result"></div>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="log-section">
+    <div class="log-header">
+      <span class="log-title">📋 Feed Activity Log</span>
+      <button class="btn btn-ghost" style="padding:.3rem .7rem;font-size:.72rem" onclick="clearLog()">Clear</button>
+    </div>
+    <div id="log-list">
+      <div class="log-empty">No activity yet. Submit a payload or push a withdrawal to begin.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SYNAPSE = 'http://localhost:8000';
+  let _incidents = [], _logEntries = [];
+
+  function loadLocalFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('file-name-display').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        document.getElementById('payload-json').value = JSON.stringify(json, null, 2);
+        const hops = json.fund_flow?.total_hops ?? '?';
+        const amt  = json.ncrp_ticket?.amount_inr;
+        log('info', `Loaded: ${file.name} — ${hops} hops${amt ? ' · ₹'+fmt(amt) : ''}`);
+      } catch {
+        log('err', `${file.name} is not valid JSON`);
+        document.getElementById('file-name-display').textContent = '⚠ Invalid JSON';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function clearPayload() {
+    document.getElementById('payload-json').value = '';
+    document.getElementById('file-name-display').textContent = '';
+    document.getElementById('payload-file-input').value = '';
+    hideR('submit-result');
+  }
+
+  // ── Simulation Mode ──────────────────────────────────────────────────────────
+  let _simMode = false;
+
+  function onSimToggle() {
+    _simMode = document.getElementById('sim-toggle').checked;
+    const track = document.getElementById('sim-track');
+    const thumb = document.getElementById('sim-thumb');
+    if (_simMode) {
+      track.style.background = 'rgba(251,191,36,.2)';
+      track.style.borderColor = '#fbbf24';
+      thumb.style.background = '#fbbf24';
+      thumb.style.left = '23px';
+      log('info', '⏱ Simulation Mode ON — uploads will stamp ingestion_timestamp=NOW and bypass Golden Hour gates');
+    } else {
+      track.style.background = '#1e293b';
+      track.style.borderColor = 'rgba(251,191,36,.2)';
+      thumb.style.background = '#64748b';
+      thumb.style.left = '3px';
+      log('info', '🔴 Simulation Mode OFF — uploads sent as live payloads');
+    }
+  }
+
+  async function submitPayload() {
+    const raw = document.getElementById('payload-json').value.trim();
+    if (!raw) { flash('submit-status', '⚠ Load or paste a payload first', '#f59e0b'); return; }
+    let body;
+    try { body = JSON.parse(raw); } catch { flash('submit-status', '✖ Invalid JSON', '#ef4444'); return; }
+
+    // Simulation mode: stamp ingestion_timestamp to NOW so drain timer starts from upload time.
+    // This is what makes the INTERCEPTION WINDOW countdown begin at the moment of demo-upload.
+    if (_simMode) {
+      if (body.ncrp_ticket) {
+        body.ncrp_ticket.ingestion_timestamp = new Date().toISOString();
+      }
+      log('info', `⏱ Sim mode: stamped ingestion_timestamp = ${new Date().toISOString()}`);
+    }
+
+    const url = _simMode
+      ? `${SYNAPSE}/api/v1/ingest?simulate=true`
+      : `${SYNAPSE}/api/v1/ingest`;
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true; btn.textContent = '⏳ Submitting…'; hideR('submit-result');
+    try {
+      const res = await fetch(url, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+      });
+      const d = await res.json();
+      if (res.ok) {
+        showR('submit-result','success','✓ Payload accepted by Synapse',`
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.6rem;font-size:.75rem">
+            <div><span style="color:var(--muted)">NCRP:</span> <code>${d.ncrp_ticket_id||'—'}</code></div>
+            <div><span style="color:var(--muted)">Tier:</span> <span style="color:var(--primary)">${d.intervention_tier||'—'}</span></div>
+            <div><span style="color:var(--muted)">Confidence:</span> <span style="color:#6ee7b7">${d.confidence_score!=null?((d.confidence_score*100).toFixed(1)+'%'):'—'}</span></div>
+            <div><span style="color:var(--muted)">Webhook:</span> ${d.webhook_status||'—'}</div>
+            <div><span style="color:var(--muted)">Drain:</span> ${d.drain_time_remaining_minutes!=null?(d.drain_time_remaining_minutes.toFixed(1)+' min'):'—'}</div>
+            <div><span style="color:var(--muted)">Drainable:</span> <span style="color:var(--warn)">₹${fmt(d.drainable_today_inr)}</span></div>
+          </div>`);
+        log('ok', `Submitted — ${d.ncrp_ticket_id} | ${d.intervention_tier} | C:${d.confidence_score!=null?(d.confidence_score*100).toFixed(1)+'%':'—'}${_simMode?' [SIM]':''}`);
+        await pollIncidents();
+      } else {
+        const msg = d.detail || JSON.stringify(d);
+        showR('submit-result','error','✖ Synapse rejected payload',`<div style="margin-top:.4rem;color:#fca5a5;font-family:'JetBrains Mono',monospace;font-size:.72rem">${msg}</div>`);
+        log('err', `Rejected: ${msg}`);
+      }
+    } catch(e) {
+      showR('submit-result','error','✖ Network error',`<div style="margin-top:.4rem;color:#fca5a5">${e.message}</div>`);
+      log('err', `Network: ${e.message}`);
+    } finally { btn.disabled=false; btn.textContent='📡 Submit to Synapse'; }
+  }
+
+  function setAmt(v) { document.getElementById('withdrawal-amt').value = v; }
+
+  async function pushWithdrawal() {
+    const ncrp = document.getElementById('inc-select').value;
+    const amt  = parseFloat(document.getElementById('withdrawal-amt').value);
+    const note = document.getElementById('withdrawal-note').value.trim();
+    if (!ncrp) { flash('push-status','⚠ Select an incident','#f59e0b'); return; }
+    if (!amt||amt<=0) { flash('push-status','⚠ Enter a withdrawal amount','#f59e0b'); return; }
+    const btn = document.getElementById('push-btn');
+    btn.disabled=true; btn.textContent='⏳ Pushing…'; hideR('push-result');
+    try {
+      const res = await fetch(`${SYNAPSE}/api/v1/incidents/${encodeURIComponent(ncrp)}/live-update`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({additional_withdrawal_inr:amt, note})
+      });
+      const d = await res.json();
+      if (res.ok) {
+        const m = d.terminal_mule||{};
+        const maxed = m.withdrawals_today_inr >= m.daily_limit_inr;
+        showR('push-result','success',`✓ Update pushed — ${ncrp}`,`
+          <div class="update-grid">
+            <div class="update-stat"><div class="update-stat-lbl">Withdrawn Today</div><div class="update-stat-val" style="color:var(--danger)">₹${fmt(m.withdrawals_today_inr)}</div></div>
+            <div class="update-stat"><div class="update-stat-lbl">Balance Remaining</div><div class="update-stat-val" style="color:var(--warn)">₹${fmt(m.balance_inr)}</div></div>
+            <div class="update-stat"><div class="update-stat-lbl">Still Drainable</div><div class="update-stat-val" style="color:${m.drainable_today_inr>0?'#6ee7b7':'#fca5a5'}">₹${fmt(m.drainable_today_inr)}</div></div>
+          </div>
+          ${maxed?'<div style="margin-top:.6rem;font-size:.75rem;color:#fca5a5">⚠ Daily limit reached — Synapse will show DAILY LIMIT EXHAUSTED</div>':''}
+          <div style="margin-top:.5rem;font-size:.72rem;color:var(--muted)">Synapse dashboard reflects this update within 5 seconds.</div>`);
+        log('ok', `Pushed — ${ncrp} | +₹${fmt(amt)} | Total: ₹${fmt(m.withdrawals_today_inr)} | Balance: ₹${fmt(m.balance_inr)}`);
+        patchLocalCache(ncrp, m);
+      } else {
+        const msg = d.error||JSON.stringify(d);
+        showR('push-result','error','✖ Update rejected',`<div style="margin-top:.4rem;color:#fca5a5">${msg}</div>`);
+        log('err', `Rejected: ${msg}`);
+      }
+    } catch(e) {
+      showR('push-result','error','✖ Network error',`<div style="margin-top:.4rem;color:#fca5a5">${e.message}</div>`);
+      log('err', `Network: ${e.message}`);
+    } finally { btn.disabled=false; btn.textContent='⚡ Push Update to Synapse'; }
+  }
+
+  async function pollIncidents() {
+    try {
+      const res = await fetch(`${SYNAPSE}/api/v1/incidents`);
+      const d = await res.json();
+      _incidents = d.incidents||[];
+      rebuildSelect();
+    } catch(_){}
+  }
+
+  function rebuildSelect() {
+    const sel = document.getElementById('inc-select');
+    const cur = sel.value;
+    // Only show active (non-resolved) incidents
+    const active = _incidents.filter(i => !i.resolved);
+    sel.innerHTML = active.length
+      ? '<option value="">— Select incident —</option>'
+      : '<option value="">— No active incidents —</option>';
+    active.forEach(inc => {
+      const s = inc.payload_snapshot||{};
+      const label = `${inc.ncrp_ticket_id} · ${s.victim_district||''} · ${s.fraud_type||''}${s.amount_inr?' · ₹'+fmt(s.amount_inr):''}`;
+      const o = document.createElement('option');
+      o.value = inc.ncrp_ticket_id; o.textContent = label;
+      sel.appendChild(o);
+    });
+    if (cur && active.find(i=>i.ncrp_ticket_id===cur)) { sel.value=cur; onIncidentSelect(); }
+    else { document.getElementById('inc-meta').innerHTML=''; document.getElementById('resolve-case-btn').style.display='none'; }
+  }
+
+  function onIncidentSelect() {
+    const ncrp = document.getElementById('inc-select').value;
+    const meta = document.getElementById('inc-meta');
+    const resolveBtn = document.getElementById('resolve-case-btn');
+    if (!ncrp) { meta.innerHTML=''; resolveBtn.style.display='none'; return; }
+    const inc = _incidents.find(i=>i.ncrp_ticket_id===ncrp);
+    if (!inc) { meta.innerHTML=''; resolveBtn.style.display='none'; return; }
+    const m = inc.payload_snapshot?.terminal_mule||{};
+    meta.innerHTML =
+      `Acct: <span class="inc-meta-highlight">${m.account_number||'N/A'}</span> · `+
+      `Balance: <span class="inc-meta-highlight">₹${fmt(m.balance_inr)}</span> · `+
+      `Withdrawn: <span class="inc-meta-highlight">₹${fmt(m.withdrawals_today_inr)}</span> · `+
+      `Limit: <span class="inc-meta-highlight">₹${fmt(m.daily_limit_inr)}</span>`;
+    resolveBtn.style.display = 'inline-flex';
+  }
+
+  async function resolveCase() {
+    const ncrp = document.getElementById('inc-select').value;
+    if (!ncrp) return;
+    const btn = document.getElementById('resolve-case-btn');
+    btn.disabled = true; btn.textContent = 'Resolving…';
+    try {
+      const res = await fetch(`${SYNAPSE}/api/v1/incidents/${encodeURIComponent(ncrp)}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'FUNDS_FROZEN', note: 'Resolved via Bank Feed Simulator' }),
+      });
+      if (res.ok) {
+        log('ok', `✓ Case resolved — ${ncrp}`);
+        document.getElementById('inc-select').value = '';
+        document.getElementById('inc-meta').innerHTML = '';
+        btn.style.display = 'none';
+        await pollIncidents();
+      } else {
+        const d = await res.json();
+        log('err', `Resolve failed: ${d.error||'server error'}`);
+      }
+    } catch(e) {
+      log('err', `Network error: ${e.message}`);
+    } finally { btn.disabled=false; btn.textContent='✓ Mark Resolved'; }
+  }
+
+  function patchLocalCache(ncrp, mule) {
+    const inc = _incidents.find(i=>i.ncrp_ticket_id===ncrp);
+    if (inc?.payload_snapshot?.terminal_mule) {
+      inc.payload_snapshot.terminal_mule.withdrawals_today_inr = mule.withdrawals_today_inr;
+      inc.payload_snapshot.terminal_mule.balance_inr = mule.balance_inr;
+      inc.drainable_today_inr = mule.drainable_today_inr;
+    }
+    onIncidentSelect();
+  }
+
+  async function pingHealth() {
+    const pill=document.getElementById('conn-pill'), dot=document.getElementById('conn-dot'), txt=document.getElementById('conn-text');
+    try {
+      const res = await fetch(`${SYNAPSE}/api/v1/health`);
+      if (res.ok) { pill.className='online'; dot.className='conn-dot pulse'; txt.textContent='● Synapse Online'; }
+      else throw new Error();
+    } catch(_) { pill.className='offline'; dot.className='conn-dot'; txt.textContent='● Synapse Offline'; }
+  }
+
+  function log(type, msg) {
+    const list=document.getElementById('log-list'), empty=list.querySelector('.log-empty');
+    if (empty) empty.remove();
+    const ts = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const e = document.createElement('div'); e.className='log-entry';
+    e.innerHTML=`<span class="log-ts">${ts}</span><span class="log-msg log-${type}">${msg}</span>`;
+    list.insertBefore(e, list.firstChild);
+    if (list.children.length>50) list.removeChild(list.lastChild);
+  }
+
+  function clearLog() { document.getElementById('log-list').innerHTML='<div class="log-empty">Log cleared.</div>'; }
+
+  function fmt(v) { if(v==null) return '0'; return Number(v).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+  function showR(id,type,title,body) { const e=document.getElementById(id); e.className=`result-card ${type} show`; e.innerHTML=`<div class="result-title ${type==='success'?'ok':'err'}">${title}</div>${body}`; }
+  function hideR(id) { const e=document.getElementById(id); if(e){e.className='result-card';} }
+  function flash(id,msg,color) { const e=document.getElementById(id); if(e){e.textContent=msg;e.style.color=color;setTimeout(()=>{e.textContent=''},3000);} }
+
+  pingHealth(); pollIncidents();
+  setInterval(pingHealth, 10000);
+  setInterval(pollIncidents, 5000);
+</script>
+</body>
+</html>

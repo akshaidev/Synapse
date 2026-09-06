@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Project Synapse
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
-> **PRD Version:** v1.8.0 (F03 Intelligence Panel + BF04 Messaging documented)  
-> **ASSUMPTIONS Version:** 37 entries (2 added — F03 payload_snapshot design, BF04 zero-state)  
-> **Last Updated:** 06 September 2026 — Phase 09 F03 + BF04 complete; Phase 10 planning begun
+> **PRD Version:** v2.0.0 (Phase 10 complete — Bank Feed Simulator, Case Resolution, Sim Toggle, Timer Fix)  
+> **ASSUMPTIONS Version:** 41 entries (4 added — Phase 10 design decisions)  
+> **Last Updated:** 06 September 2026 — Phase 10 complete
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 9 — Additional Functionality (wrapping up); Phase 10 — Live Feed Simulator (planning) |
-| **Last Completed Feature** | Phase 09 BF04: Interception Window zero-state messaging fix (`Fixed` 06 Sep 2026) |
-| **Active Task** | Implementation plan approved for Phase 10 — Bank Feed Simulator portal |
-| **Immediate Next Task** | Phase 10 Feature 01: Build Bank Feed Simulator (separate port, live withdrawal updates) |
-| **Known Blockers / Warnings** | Module 10 (F02) still pending user sign-off. Modules 14/15 have no formal verification gate. |
+| **Current Phase** | Phase 10 — Live Feed Simulator & Case Resolution (complete) |
+| **Last Completed Feature** | Phase 10 BF05: Drain timer reset fix for Bank Feed Simulator uploads (`Fixed` 06 Sep 2026) |
+| **Active Task** | None — Phase 10 fully complete |
+| **Immediate Next Task** | TBD — awaiting user direction for next phase |
+| **Known Blockers / Warnings** | Module 10 (F02) still pending user sign-off. Phase 10 modules (16–20) have no formal verification gate — verified live. |
 
 ---
 
@@ -331,6 +331,71 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 16: Bank Feed Simulator Portal (Phase 10 Feature 01)
+
+| Field | Value |
+|---|---|
+| **Files** | `ui/feed.html`, `api/main.py` |
+| **PRD Reference** | PRD v2.0.0 §10.1 |
+| **Description** | New Bank Feed Simulator portal at `GET /feed` — dark orange-accented design. Sections: (A) Payload Upload with Sim Mode toggle, (B) Live Withdrawal Push with incident selector and Mark Resolved button, (C) Feed Activity Log. Backend: `PATCH /api/v1/incidents/{ncrp}/live-update` mutates withdrawal/balance/drainable in `_incidents`. Dashboard polls update within 5 s and silently refreshes Intel Panel. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live — withdrawal pushes appear in dashboard Intel Panel within 5 s. `/feed` route serves feed.html directly from FastAPI — no separate static server required. |
+
+---
+
+### Module 17: Simulation Mode Toggle in Feed Portal (Phase 10 Feature 02)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/feed.html` |
+| **PRD Reference** | PRD v2.0.0 §10.2 |
+| **Description** | Amber toggle chip in the Upload section. OFF (default) = live mode (Golden Hour gates apply, timestamp unchanged). ON = sim mode: stamps `ncrp_ticket.ingestion_timestamp = NOW()` client-side before POST, sends `?simulate=true`. Ensures interception countdown starts from upload time, not from the payload's original stale timestamp. Toggle state change logged to Feed Activity Log. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live — Pune payload (18.6 min drain) uploaded with sim ON showed correct countdown immediately. |
+
+---
+
+### Module 18: Case Resolution (Phase 10 Feature 03)
+
+| Field | Value |
+|---|---|
+| **Files** | `api/main.py`, `ui/index.html`, `ui/feed.html` |
+| **PRD Reference** | PRD v2.0.0 §10.3 |
+| **Description** | Backend: `POST /resolve` marks incident with reason/note/timestamp. `POST /unresolve` reopens. Frontend (dashboard): `✓ MARK RESOLVED` button in View B header → glassmorphism modal with 5 reason options + note → incident moves to Resolved Cases section in View A. KPIs count only active. Frontend (feed portal): `✓ Mark Resolved` button in Section B → calls `/resolve` → incident disappears from dropdown. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live — resolved all 3 incidents from Bank Feed Simulator and confirmed Resolved Cases section appeared in dashboard. Reopen button tested. |
+
+---
+
+### Module 19: Drain Timer Reset Fix — Bank Feed Upload Path (Phase 10 BF05)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/index.html` |
+| **PRD Reference** | PRD v2.0.0 §10.4 |
+| **Description** | Root cause: `_drainTimerRegistry` was only populated when the dashboard itself submitted (Admin Panel) or on first row-click. Bank Feed uploads were discovered via poll but never anchored in the registry — page refresh reset timer to full initial drain. Fix: `pollIncidents()` auto-registers every new incident at first poll time and calls `_saveRegistry()` immediately. Runs regardless of dashboard sim mode. |
+| **Status** | `Fixed` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live — uploaded via Bank Feed Simulator, refreshed dashboard multiple times, countdown continued correctly. |
+
+---
+
+### Module 20: /feed Route & Single-Server Architecture (Phase 10 Feature 04)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py` |
+| **PRD Reference** | PRD v2.0.0 §10.1 |
+| **Description** | `GET /feed` endpoint added to FastAPI serving `ui/feed.html` — mirrors the existing `GET /` dashboard route. Both portals served from the same origin (`localhost:8000`), eliminating CORS issues and the need for a separate `python3 -m http.server` process. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified: `http://localhost:8000/feed` opens Bank Feed Simulator. All API calls from feed portal resolve correctly (same origin). |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -351,6 +416,11 @@ All verification records are appended here chronologically. Each entry is create
 | 06 Sep 2026 | Module 13 — BF03 Dispatch Persist | N/A — verified via localStorage persistence on refresh | PASS | N/A |
 | 06 Sep 2026 | Module 14 — F03 Intel Panel | N/A — verified live (Bengaluru payload — all 5 sections render) | PASS | N/A |
 | 06 Sep 2026 | Module 15 — BF04 Zero-State Msg | N/A — verified live (Delhi: 'WINDOW ELAPSED — MULE MAY BE AT ATM') | PASS | N/A |
+| 06 Sep 2026 | Module 16 — Bank Feed Simulator | N/A — verified live (withdrawal push → dashboard Intel Panel updates ≤5 s) | PASS | N/A |
+| 06 Sep 2026 | Module 17 — Sim Mode Toggle | N/A — verified live (Pune payload: correct countdown from upload time) | PASS | N/A |
+| 06 Sep 2026 | Module 18 — Case Resolution | N/A — verified live (3 cases resolved + reopened from both portals) | PASS | N/A |
+| 06 Sep 2026 | Module 19 — BF05 Timer Fix | N/A — verified live (countdown survived page refresh after Bank Feed upload) | PASS | N/A |
+| 06 Sep 2026 | Module 20 — /feed Route | N/A — verified: `localhost:8000/feed` serves simulator correctly | PASS | N/A |
 
 ---
 
@@ -363,8 +433,8 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Complete |
 | **Phase 3** | Verification Interface (UI, maps, demo flow) | Complete |
 | **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Complete |
-| **Phase 9** | Additional Functionality (F01 Sim Mode, F02 Interception Window, F03 Intel Panel, BF01–04) | **Wrapping Up** |
-| **Phase 10** | Live Feed Simulator — second portal on separate port, real-time withdrawal updates | **Planning** |
+| **Phase 9** | Additional Functionality (F01 Sim Mode, F02 Interception Window, F03 Intel Panel, BF01–04) | **Complete** |
+| **Phase 10** | Live Feed Simulator (Bank Feed portal, Case Resolution, Sim Toggle, Timer Fix, /feed route) | **Complete** |
 
 ---
 
