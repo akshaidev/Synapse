@@ -1,666 +1,1769 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Synapse — Fraud Interception Dashboard</title>
-  <meta name="description" content="Real-time spatial-temporal cyber fraud interception command dashboard. I4C / MHA Golden Hour intervention system.">
+  <meta name="description"
+    content="Real-time spatial-temporal cyber fraud interception command dashboard. I4C / MHA Golden Hour intervention system.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
     :root {
-      --bg:       #060a13;
-      --surface:  #0c1424;
-      --card:     #111827;
-      --border:   rgba(99,102,241,.16);
-      --primary:  #818cf8;
-      --pri-dim:  rgba(129,140,248,.10);
-      --success:  #10b981;
-      --warn:     #f59e0b;
-      --danger:   #ef4444;
-      --muted:    #64748b;
-      --text:     #f1f5f9;
+      --bg: #060a13;
+      --surface: #0c1424;
+      --card: #111827;
+      --border: rgba(99, 102, 241, .16);
+      --primary: #818cf8;
+      --pri-dim: rgba(129, 140, 248, .10);
+      --success: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --muted: #64748b;
+      --text: #f1f5f9;
     }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden
+    }
 
     /* ── Scrollbar ── */
-    ::-webkit-scrollbar{width:5px;height:5px}
-    ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px
+    }
 
     /* ── Navbar ── */
-    #navbar{
-      position:fixed;top:0;left:0;right:0;z-index:50;height:58px;
-      background:rgba(6,10,19,.92);border-bottom:1px solid var(--border);
-      backdrop-filter:blur(14px);
-      display:flex;align-items:center;padding:0 1.25rem;gap:.875rem;
+    #navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      height: 58px;
+      background: rgba(6, 10, 19, .92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      gap: .875rem;
     }
-    #hamburger{
-      width:34px;height:34px;display:flex;flex-direction:column;
-      justify-content:center;gap:5px;cursor:pointer;padding:6px;
-      border-radius:7px;transition:background .2s;flex-shrink:0;
-    }
-    #hamburger:hover{background:var(--pri-dim)}
-    #hamburger span{display:block;height:2px;border-radius:2px;background:var(--text);transition:all .3s}
-    #hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-    #hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
-    #hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-    .logo{
-      font-weight:800;font-size:1.05rem;letter-spacing:-.02em;
-      background:linear-gradient(130deg,#818cf8,#c084fc);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    }
-    .nav-pill{
-      display:flex;align-items:center;gap:.4rem;
-      padding:.25rem .625rem;border-radius:20px;
-      background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
-      font-size:.72rem;font-weight:500;color:#6ee7b7;
-    }
-    .nav-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse-g 2s infinite}
-    @keyframes pulse-g{0%,100%{opacity:1}50%{opacity:.5}}
-    #nav-clock{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted)}
 
-    /* ── Simulation Mode Pill & Switch ── */
-    .sim-pill{
-      display:flex;align-items:center;gap:.55rem;
-      padding:.26rem .75rem;border-radius:20px;
-      background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);
-      font-size:.72rem;font-weight:600;color:#fbbf24;
-      cursor:pointer;transition:all .25s ease;
-      box-shadow:0 0 14px rgba(245,158,11,.22);
-      user-select:none;
+    #hamburger {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 7px;
+      transition: background .2s;
+      flex-shrink: 0;
     }
-    .sim-pill:hover{box-shadow:0 0 18px rgba(245,158,11,.4);border-color:rgba(245,158,11,.7)}
-    .sim-pill.inactive{
-      background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.25);
-      color:var(--muted);box-shadow:none;
+
+    #hamburger:hover {
+      background: var(--pri-dim)
     }
-    .sim-dot{
-      width:7px;height:7px;border-radius:50%;background:#f59e0b;
-      box-shadow:0 0 8px #f59e0b;animation:pulse-sim 1.5s infinite;flex-shrink:0;
+
+    #hamburger span {
+      display: block;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--text);
+      transition: all .3s
     }
-    .sim-pill.inactive .sim-dot{background:var(--muted);box-shadow:none;animation:none}
-    @keyframes pulse-sim{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
-    .sim-switch{
-      width:28px;height:16px;border-radius:10px;
-      background:#f59e0b;position:relative;
-      transition:background .2s ease;cursor:pointer;flex-shrink:0;
+
+    #hamburger.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg)
     }
-    .sim-switch .sim-slider{
-      width:12px;height:12px;border-radius:50%;background:#fff;
-      position:absolute;top:2px;left:14px;transition:left .2s ease;
+
+    #hamburger.open span:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0)
     }
-    .sim-pill.inactive .sim-switch, .sim-switch.inactive{background:rgba(100,116,139,.4)}
-    .sim-pill.inactive .sim-switch .sim-slider, .sim-switch.inactive .sim-slider{left:2px;background:#cbd5e1}
-    .sim-drawer-card{
-      margin:.25rem 1.25rem .75rem;padding:.75rem;border-radius:10px;
-      background:var(--card);border:1px solid var(--border);
+
+    #hamburger.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg)
     }
-    .sim-drawer-header{display:flex;align-items:center;justify-content:space-between}
+
+    .logo {
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -.02em;
+      background: linear-gradient(130deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-pill {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .25rem .625rem;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, .08);
+      border: 1px solid rgba(16, 185, 129, .2);
+      font-size: .72rem;
+      font-weight: 500;
+      color: #6ee7b7;
+    }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse-g 2s infinite
+    }
+
+    @keyframes pulse-g {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .5
+      }
+    }
+
+    #nav-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--muted)
+    }
 
     /* ── Overlay ── */
-    #overlay{
-      position:fixed;inset:0;z-index:90;
-      background:rgba(0,0,0,.55);backdrop-filter:blur(2px);
-      opacity:0;pointer-events:none;transition:opacity .3s;
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
     }
-    #overlay.active{opacity:1;pointer-events:all}
+
+    #overlay.active {
+      opacity: 1;
+      pointer-events: all
+    }
 
     /* ── Admin Drawer ── */
-    #drawer{
-      position:fixed;top:0;left:-440px;bottom:0;width:420px;z-index:100;
-      background:var(--surface);border-right:1px solid var(--border);
-      transition:left .35s cubic-bezier(.4,0,.2,1);
-      display:flex;flex-direction:column;overflow:hidden;
+    #drawer {
+      position: fixed;
+      top: 0;
+      left: -440px;
+      bottom: 0;
+      width: 420px;
+      z-index: 100;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      transition: left .35s cubic-bezier(.4, 0, .2, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    #drawer.open{left:0}
-    .drawer-hdr{
-      padding:1rem 1.25rem;border-bottom:1px solid var(--border);
-      display:flex;align-items:center;justify-content:space-between;
-      position:sticky;top:0;background:var(--surface);z-index:1;flex-shrink:0;
+
+    #drawer.open {
+      left: 0
     }
-    .drawer-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--primary)}
-    .close-x{
-      width:26px;height:26px;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;
-      border-radius:6px;color:var(--muted);transition:all .2s;
+
+    .drawer-hdr {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+      flex-shrink: 0;
     }
-    .close-x:hover{background:var(--pri-dim);color:var(--text)}
-    .drawer-body{flex:1;overflow-y:auto;padding-bottom:1.5rem}
+
+    .drawer-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--primary)
+    }
+
+    .close-x {
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      color: var(--muted);
+      transition: all .2s;
+    }
+
+    .close-x:hover {
+      background: var(--pri-dim);
+      color: var(--text)
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 1.5rem
+    }
 
     /* Dropzone */
-    #dropzone{
-      border:2px dashed var(--border);border-radius:12px;
-      padding:1.75rem 1.5rem;text-align:center;cursor:pointer;
-      transition:all .2s;margin:1rem 1.25rem .75rem;
+    #dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      margin: 1rem 1.25rem .75rem;
     }
-    #dropzone:hover,#dropzone.drag{border-color:var(--primary);background:var(--pri-dim)}
-    #dropzone svg{width:36px;height:36px;color:var(--primary);margin:0 auto .625rem}
-    #dropzone p{font-size:.82rem;color:var(--muted)}
-    #dropzone strong{color:var(--text)}
+
+    #dropzone:hover,
+    #dropzone.drag {
+      border-color: var(--primary);
+      background: var(--pri-dim)
+    }
+
+    #dropzone svg {
+      width: 36px;
+      height: 36px;
+      color: var(--primary);
+      margin: 0 auto .625rem
+    }
+
+    #dropzone p {
+      font-size: .82rem;
+      color: var(--muted)
+    }
+
+    #dropzone strong {
+      color: var(--text)
+    }
 
     /* Demo btns */
-    .demo-row{display:flex;gap:.5rem;padding:0 1.25rem .875rem}
-    .demo-btn{
-      flex:1;padding:.35rem;border-radius:6px;
-      font-size:.73rem;font-weight:600;cursor:pointer;
-      border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .2s;
+    .demo-row {
+      display: flex;
+      gap: .5rem;
+      padding: 0 1.25rem .875rem
     }
-    .demo-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--pri-dim)}
+
+    .demo-btn {
+      flex: 1;
+      padding: .35rem;
+      border-radius: 6px;
+      font-size: .73rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      transition: all .2s;
+    }
+
+    .demo-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--pri-dim)
+    }
 
     /* Pipeline steps */
-    .prog-section{padding:0 1.25rem}
-    .prog-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.625rem}
-    .step{display:flex;align-items:flex-start;gap:.625rem;padding:.5rem 0;position:relative}
-    .step:not(:last-child)::after{
-      content:'';position:absolute;left:10px;top:26px;
-      width:1px;height:calc(100% - 6px);background:var(--border);
+    .prog-section {
+      padding: 0 1.25rem
     }
-    .step-ic{
-      width:22px;height:22px;border-radius:50%;flex-shrink:0;
-      display:flex;align-items:center;justify-content:center;
-      font-size:.65rem;font-weight:700;border:1.5px solid var(--border);
-      background:var(--card);color:var(--muted);transition:all .3s;z-index:1;
+
+    .prog-title {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      margin-bottom: .625rem
     }
-    .step.pass .step-ic{border-color:var(--success);background:rgba(16,185,129,.12);color:var(--success)}
-    .step.fail .step-ic{border-color:var(--danger);background:rgba(239,68,68,.12);color:var(--danger)}
-    .step.run  .step-ic{border-color:var(--primary);animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .step-lbl{font-size:.78rem;font-weight:500;line-height:1.2}
-    .step-det{font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.35}
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: .625rem;
+      padding: .5rem 0;
+      position: relative
+    }
+
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 26px;
+      width: 1px;
+      height: calc(100% - 6px);
+      background: var(--border);
+    }
+
+    .step-ic {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      transition: all .3s;
+      z-index: 1;
+    }
+
+    .step.pass .step-ic {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, .12);
+      color: var(--success)
+    }
+
+    .step.fail .step-ic {
+      border-color: var(--danger);
+      background: rgba(239, 68, 68, .12);
+      color: var(--danger)
+    }
+
+    .step.run .step-ic {
+      border-color: var(--primary);
+      animation: spin 1s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .step-lbl {
+      font-size: .78rem;
+      font-weight: 500;
+      line-height: 1.2
+    }
+
+    .step-det {
+      font-size: .7rem;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35
+    }
 
     /* Result card */
-    #result-card{
-      margin:1rem 1.25rem 0;padding:1rem;border-radius:10px;
-      border:1px solid var(--border);background:var(--card);display:none;
+    #result-card {
+      margin: 1rem 1.25rem 0;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      display: none;
     }
-    .r-tier{
-      display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;
-      letter-spacing:.06em;padding:.2rem .55rem;border-radius:4px;margin-bottom:.625rem;
+
+    .r-tier {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: .2rem .55rem;
+      border-radius: 4px;
+      margin-bottom: .625rem;
     }
-    .t-phys{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
-    .t-dig {background:rgba(245,158,11,.12);color:#fde68a;border:1px solid rgba(245,158,11,.25)}
-    .t-log {background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.2)}
-    .r-row{display:flex;justify-content:space-between;font-size:.79rem;margin-bottom:.3rem}
-    .r-lbl{color:var(--muted)}
-    .link-btn{
-      width:100%;margin-top:.75rem;padding:.45rem;border-radius:7px;
-      font-size:.76rem;font-weight:600;cursor:pointer;
-      border:1px solid var(--primary);background:var(--pri-dim);color:var(--primary);transition:all .2s;
+
+    .t-phys {
+      background: rgba(239, 68, 68, .12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, .25)
     }
-    .link-btn:hover{background:rgba(129,140,248,.2)}
+
+    .t-dig {
+      background: rgba(245, 158, 11, .12);
+      color: #fde68a;
+      border: 1px solid rgba(245, 158, 11, .25)
+    }
+
+    .t-log {
+      background: rgba(100, 116, 139, .1);
+      color: #94a3b8;
+      border: 1px solid rgba(100, 116, 139, .2)
+    }
+
+    .r-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .79rem;
+      margin-bottom: .3rem
+    }
+
+    .r-lbl {
+      color: var(--muted)
+    }
+
+    .link-btn {
+      width: 100%;
+      margin-top: .75rem;
+      padding: .45rem;
+      border-radius: 7px;
+      font-size: .76rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--primary);
+      background: var(--pri-dim);
+      color: var(--primary);
+      transition: all .2s;
+    }
+
+    .link-btn:hover {
+      background: rgba(129, 140, 248, .2)
+    }
 
     /* ── Main ── */
-    #main{margin-top:58px;min-height:calc(100vh - 58px);display:flex;flex-direction:column}
+    #main {
+      margin-top: 58px;
+      min-height: calc(100vh - 58px);
+      display: flex;
+      flex-direction: column
+    }
 
     /* Tabs */
-    #tabs{
-      display:flex;border-bottom:1px solid var(--border);
-      background:rgba(6,10,19,.96);backdrop-filter:blur(8px);
-      position:sticky;top:58px;z-index:40;padding:0 1.25rem;
+    #tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(6, 10, 19, .96);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 58px;
+      z-index: 40;
+      padding: 0 1.25rem;
     }
-    .tab{
-      padding:.75rem 1.25rem;font-size:.82rem;font-weight:500;cursor:pointer;
-      border:none;background:transparent;color:var(--muted);
-      border-bottom:2px solid transparent;transition:all .2s;
+
+    .tab {
+      padding: .75rem 1.25rem;
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
     }
-    .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
-    .tab:hover:not(.active){color:var(--text)}
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary)
+    }
+
+    .tab:hover:not(.active) {
+      color: var(--text)
+    }
 
     /* Views */
-    .view{display:none;flex:1;padding:1.25rem}
-    .view.active{display:block}
-    .sec-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.875rem}
+    .view {
+      display: none;
+      flex: 1;
+      padding: 1.25rem
+    }
+
+    .view.active {
+      display: block
+    }
+
+    .sec-title {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: .875rem
+    }
 
     /* KPIs */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.875rem;margin-bottom:1.25rem}
-    .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.875rem 1rem}
-    .kpi-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-    .kpi-val{font-size:1.9rem;font-weight:800;line-height:1;margin-top:.2rem}
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: .875rem;
+      margin-bottom: 1.25rem
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .875rem 1rem
+    }
+
+    .kpi-lbl {
+      font-size: .68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em
+    }
+
+    .kpi-val {
+      font-size: 1.9rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-top: .2rem
+    }
 
     /* Table */
-    .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    table{width:100%;border-collapse:collapse;font-size:.8rem}
-    thead tr{border-bottom:1px solid var(--border);background:rgba(17,24,39,.7)}
-    th{padding:.625rem 1rem;text-align:left;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-    tbody tr{border-bottom:1px solid rgba(99,102,241,.07);transition:background .15s;cursor:pointer}
-    tbody tr:hover{background:var(--pri-dim)}
-    tbody tr:last-child{border-bottom:none}
-    td{padding:.625rem 1rem;vertical-align:middle}
-    .mono{font-family:'JetBrains Mono',monospace;font-size:.75rem}
+    .tbl-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .8rem
+    }
+
+    thead tr {
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 24, 39, .7)
+    }
+
+    th {
+      padding: .625rem 1rem;
+      text-align: left;
+      font-size: .67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted)
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(99, 102, 241, .07);
+      transition: background .15s;
+      cursor: pointer
+    }
+
+    tbody tr:hover {
+      background: var(--pri-dim)
+    }
+
+    tbody tr:last-child {
+      border-bottom: none
+    }
+
+    td {
+      padding: .625rem 1rem;
+      vertical-align: middle
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem
+    }
 
     /* Badges */
-    .badge{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .48rem;border-radius:4px;font-size:.67rem;font-weight:700;letter-spacing:.04em}
-    .b-phys{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.22)}
-    .b-dig {background:rgba(245,158,11,.12);color:#fde68a;border:1px solid rgba(245,158,11,.22)}
-    .b-log {background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.18)}
-    .b-ok  {background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.2)}
-    .b-fail{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
-    .b-na  {background:rgba(100,116,139,.06);color:var(--muted);border:1px solid transparent}
-    .pulse-r{width:6px;height:6px;border-radius:50%;background:var(--danger);animation:p-r 1.4s infinite}
-    @keyframes p-r{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .18rem .48rem;
+      border-radius: 4px;
+      font-size: .67rem;
+      font-weight: 700;
+      letter-spacing: .04em
+    }
+
+    .b-phys {
+      background: rgba(239, 68, 68, .12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, .22)
+    }
+
+    .b-dig {
+      background: rgba(245, 158, 11, .12);
+      color: #fde68a;
+      border: 1px solid rgba(245, 158, 11, .22)
+    }
+
+    .b-log {
+      background: rgba(100, 116, 139, .1);
+      color: #94a3b8;
+      border: 1px solid rgba(100, 116, 139, .18)
+    }
+
+    .b-ok {
+      background: rgba(16, 185, 129, .1);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, .2)
+    }
+
+    .b-fail {
+      background: rgba(239, 68, 68, .1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, .2)
+    }
+
+    .b-na {
+      background: rgba(100, 116, 139, .06);
+      color: var(--muted);
+      border: 1px solid transparent
+    }
+
+    .pulse-r {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: p-r 1.4s infinite
+    }
+
+    @keyframes p-r {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, .4)
+      }
+
+      70% {
+        box-shadow: 0 0 0 5px rgba(239, 68, 68, 0)
+      }
+    }
 
     /* Map action btn */
-    .map-link{
-      padding:.22rem .55rem;border-radius:5px;font-size:.7rem;font-weight:600;cursor:pointer;
-      border:1px solid var(--primary);background:var(--pri-dim);color:var(--primary);transition:all .2s;
+    .map-link {
+      padding: .22rem .55rem;
+      border-radius: 5px;
+      font-size: .7rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--primary);
+      background: var(--pri-dim);
+      color: var(--primary);
+      transition: all .2s;
     }
-    .map-link:hover{background:rgba(129,140,248,.2)}
 
-    /* Clear Queue Button */
-    .clear-btn{
-      padding:.32rem .75rem;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;
-      border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:#fca5a5;
-      transition:all .2s;display:inline-flex;align-items:center;gap:.35rem;
+    .map-link:hover {
+      background: rgba(129, 140, 248, .2)
     }
-    .clear-btn:hover{background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.6);color:#fff}
-
-    /* ── Toast Notifications ── */
-    #toast-container{
-      position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
-      display:flex;flex-direction:column;gap:.75rem;max-width:420px;pointer-events:none;
-    }
-    .toast-alert{
-      pointer-events:all;padding:.85rem 1rem;border-radius:10px;
-      backdrop-filter:blur(12px);border:1px solid;box-shadow:0 8px 30px rgba(0,0,0,.6);
-      transition:all .3s cubic-bezier(.4,0,.2,1);animation:slide-in .3s ease;
-    }
-    @keyframes slide-in{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
-    .toast-err{background:rgba(153,27,27,.95);border-color:rgba(239,68,68,.6);color:#fef2f2}
-    .toast-ok {background:rgba(6,95,70,.95);border-color:rgba(16,185,129,.6);color:#ecfdf5}
 
     /* Empty state */
-    .empty{text-align:center;padding:3.5rem 2rem;color:var(--muted)}
-    .empty svg{width:44px;height:44px;margin:0 auto .875rem;opacity:.35}
-    .empty h3{font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:.4rem}
-    .empty p{font-size:.82rem}
+    .empty {
+      text-align: center;
+      padding: 3.5rem 2rem;
+      color: var(--muted)
+    }
+
+    .empty svg {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto .875rem;
+      opacity: .35
+    }
+
+    .empty h3 {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: .4rem
+    }
+
+    .empty p {
+      font-size: .82rem
+    }
 
     /* ── View B ── */
-    #vb-grid{display:grid;grid-template-columns:1fr 375px;gap:1.25rem;align-items:start}
-    .map-wrap{border-radius:14px;overflow:hidden;border:1px solid var(--border);height:460px;position:relative}
-    #map{width:100%;height:100%}
+    #vb-grid {
+      display: grid;
+      grid-template-columns: 1fr 375px;
+      gap: 1.25rem;
+      align-items: start
+    }
+
+    .map-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      height: 460px;
+      position: relative
+    }
+
+    #map {
+      width: 100%;
+      height: 100%
+    }
 
     /* Countdown overlay */
-    .cd-overlay{
-      position:absolute;top:.875rem;right:.875rem;z-index:1000;
-      background:rgba(6,10,19,.88);border:1px solid var(--border);
-      border-radius:10px;padding:.625rem .875rem;backdrop-filter:blur(10px);
-      text-align:center;min-width:110px;
+    .cd-overlay {
+      position: absolute;
+      top: .875rem;
+      right: .875rem;
+      z-index: 1000;
+      background: rgba(6, 10, 19, .88);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .625rem .875rem;
+      backdrop-filter: blur(10px);
+      text-align: center;
+      min-width: 110px;
     }
-    .cd-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-    .cd-val{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;line-height:1.1;margin-top:.1rem}
-    .cd-sub{font-size:.62rem;color:var(--muted);margin-top:.1rem;line-height:1.3}
-    .cd-bar{height:3px;border-radius:2px;background:rgba(100,116,139,.2);margin-top:.4rem;overflow:hidden}
-    .cd-fill{height:100%;border-radius:2px;transition:width 1s linear;background:linear-gradient(90deg,var(--success),var(--warn))}
-    .cd-ok{color:var(--success)}
-    .cd-warn{color:var(--warn)}
-    .cd-crit{color:var(--danger)}
+
+    .cd-lbl {
+      font-size: .62rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted)
+    }
+
+    .cd-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-top: .1rem
+    }
+
+    .cd-sub {
+      font-size: .62rem;
+      color: var(--muted);
+      margin-top: .1rem;
+      line-height: 1.3
+    }
+
+    .cd-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(100, 116, 139, .2);
+      margin-top: .4rem;
+      overflow: hidden
+    }
+
+    .cd-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s linear;
+      background: linear-gradient(90deg, var(--success), var(--warn))
+    }
+
+    .cd-ok {
+      color: var(--success)
+    }
+
+    .cd-warn {
+      color: var(--warn)
+    }
+
+    .cd-crit {
+      color: var(--danger)
+    }
 
     /* Confidence panel */
-    .conf-panel{
-      margin-top:.875rem;background:var(--card);
-      border:1px solid var(--border);border-radius:10px;padding:.875rem;
+    .conf-panel {
+      margin-top: .875rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .875rem;
     }
-    .conf-bar-wrap{height:5px;border-radius:3px;background:rgba(100,116,139,.18);overflow:hidden;margin:.5rem 0 .4rem}
-    .conf-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#a78bfa);transition:width .5s ease}
-    .conf-sub-row{display:flex;justify-content:space-between;font-size:.67rem;color:var(--muted)}
+
+    .conf-bar-wrap {
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(100, 116, 139, .18);
+      overflow: hidden;
+      margin: .5rem 0 .4rem
+    }
+
+    .conf-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      transition: width .5s ease
+    }
+
+    .conf-sub-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .67rem;
+      color: var(--muted)
+    }
 
     /* ATM cards */
-    .atm-cards{display:flex;flex-direction:column;gap:.75rem}
-    .atm-card{
-      background:var(--card);border:1px solid var(--border);
-      border-radius:12px;padding:.875rem;
-      transition:border-color .2s,transform .15s;
+    .atm-cards {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem
     }
-    .atm-card:hover{border-color:rgba(129,140,248,.4);transform:translateX(-2px)}
-    .atm-card.acked{border-color:var(--success);background:rgba(16,185,129,.04)}
-    .rnk{
-      display:inline-flex;align-items:center;justify-content:center;
-      width:20px;height:20px;border-radius:50%;font-size:.65rem;font-weight:700;
+
+    .atm-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .875rem;
+      transition: border-color .2s, transform .15s;
     }
-    .r1{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
-    .r2{background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.35)}
-    .r3{background:rgba(234,179,8,.18);color:#fde047;border:1px solid rgba(234,179,8,.35)}
-    .site-tag{
-      display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.04em;
-      padding:.12rem .38rem;border-radius:3px;
+
+    .atm-card:hover {
+      border-color: rgba(129, 140, 248, .4);
+      transform: translateX(-2px)
     }
-    .offsite{background:rgba(16,185,129,.1);color:#6ee7b7;border:1px solid rgba(16,185,129,.2)}
-    .onsite {background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.15)}
-    .atm-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:.5rem 0;font-size:.7rem}
-    .atm-stat-lbl{color:var(--muted)}
-    .atm-stat-val{font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:.1rem}
-    .score-bar{height:3px;border-radius:2px;background:rgba(100,116,139,.18);overflow:hidden;margin:.5rem 0 .625rem}
-    .score-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#6366f1,#a78bfa)}
-    .dispatch-btn{
-      width:100%;padding:.45rem;border-radius:7px;
-      font-size:.76rem;font-weight:600;cursor:pointer;border:none;
-      background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;transition:all .2s;
+
+    .atm-card.acked {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, .04)
     }
-    .dispatch-btn:hover{opacity:.88;transform:translateY(-1px)}
-    .dispatch-btn.done{
-      background:rgba(16,185,129,.12);color:var(--success);
-      border:1px solid rgba(16,185,129,.3);cursor:default;transform:none;
+
+    .rnk {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: .65rem;
+      font-weight: 700;
+    }
+
+    .r1 {
+      background: rgba(239, 68, 68, .18);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, .35)
+    }
+
+    .r2 {
+      background: rgba(249, 115, 22, .18);
+      color: #fdba74;
+      border: 1px solid rgba(249, 115, 22, .35)
+    }
+
+    .r3 {
+      background: rgba(234, 179, 8, .18);
+      color: #fde047;
+      border: 1px solid rgba(234, 179, 8, .35)
+    }
+
+    .site-tag {
+      display: inline-block;
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      padding: .12rem .38rem;
+      border-radius: 3px;
+    }
+
+    .offsite {
+      background: rgba(16, 185, 129, .1);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, .2)
+    }
+
+    .onsite {
+      background: rgba(100, 116, 139, .1);
+      color: #94a3b8;
+      border: 1px solid rgba(100, 116, 139, .15)
+    }
+
+    .atm-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .4rem;
+      margin: .5rem 0;
+      font-size: .7rem
+    }
+
+    .atm-stat-lbl {
+      color: var(--muted)
+    }
+
+    .atm-stat-val {
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: .1rem
+    }
+
+    .score-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(100, 116, 139, .18);
+      overflow: hidden;
+      margin: .5rem 0 .625rem
+    }
+
+    .score-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #6366f1, #a78bfa)
+    }
+
+    .dispatch-btn {
+      width: 100%;
+      padding: .45rem;
+      border-radius: 7px;
+      font-size: .76rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      transition: all .2s;
+    }
+
+    .dispatch-btn:hover {
+      opacity: .88;
+      transform: translateY(-1px)
+    }
+
+    .dispatch-btn.done {
+      background: rgba(16, 185, 129, .12);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, .3);
+      cursor: default;
+      transform: none;
     }
 
     /* ── Leaflet custom icons ── */
-    .mule-dot{
-      width:14px;height:14px;border-radius:50%;
-      background:#818cf8;border:2px solid rgba(129,140,248,.35);
-      animation:mule-p 1.8s infinite;
+    .mule-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #818cf8;
+      border: 2px solid rgba(129, 140, 248, .35);
+      animation: mule-p 1.8s infinite;
     }
-    @keyframes mule-p{
-      0%{box-shadow:0 0 0 0 rgba(129,140,248,.6)}
-      70%{box-shadow:0 0 0 14px rgba(129,140,248,0)}
-      100%{box-shadow:0 0 0 0 rgba(129,140,248,0)}
+
+    @keyframes mule-p {
+      0% {
+        box-shadow: 0 0 0 0 rgba(129, 140, 248, .6)
+      }
+
+      70% {
+        box-shadow: 0 0 0 14px rgba(129, 140, 248, 0)
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(129, 140, 248, 0)
+      }
     }
-    .atm-pin{
-      width:24px;height:24px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:.65rem;font-weight:800;color:#fff;
-      border:2px solid rgba(255,255,255,.25);box-shadow:0 2px 8px rgba(0,0,0,.4);
+
+    .atm-pin {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      font-weight: 800;
+      color: #fff;
+      border: 2px solid rgba(255, 255, 255, .25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
     }
-    /* Standard OpenStreetMap with dark theme CSS filter (eliminates CartoDB watermark) */
-    .leaflet-tile{filter:invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%)}
-    .leaflet-popup-content-wrapper{
-      background:var(--card);color:var(--text);
-      border:1px solid var(--border);border-radius:8px;
-      font-family:'Inter',sans-serif;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.5);
+
+    /* CartoDB dark tiles already dark; slight desaturate */
+    .leaflet-tile-pane {
+      filter: brightness(.85) saturate(.8)
     }
-    .leaflet-popup-tip{background:var(--card)}
-    .leaflet-popup-close-button{color:var(--muted)!important}
+
+    .leaflet-popup-content-wrapper {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: .78rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .5);
+    }
+
+    .leaflet-popup-tip {
+      background: var(--card)
+    }
+
+    .leaflet-popup-close-button {
+      color: var(--muted) !important
+    }
+
+    /* ── Simulation Mode Toggle ── */
+    .sim-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .875rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(245, 158, 11, .03);
+    }
+
+    .sim-lbl {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text)
+    }
+
+    .sim-sub {
+      font-size: .67rem;
+      color: var(--muted);
+      margin-top: .2rem;
+      line-height: 1.4
+    }
+
+    /* Toggle switch knob */
+    .t-sw {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 23px;
+      flex-shrink: 0
+    }
+
+    .t-sw input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .t-sl {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(100, 116, 139, .2);
+      border-radius: 23px;
+      border: 1px solid var(--border);
+      transition: .25s;
+    }
+
+    .t-sl:before {
+      position: absolute;
+      content: "";
+      height: 15px;
+      width: 15px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: .25s;
+    }
+
+    .t-sw input:checked+.t-sl {
+      background: rgba(245, 158, 11, .22);
+      border-color: rgba(245, 158, 11, .45)
+    }
+
+    .t-sw input:checked+.t-sl:before {
+      transform: translateX(19px);
+      background: #f59e0b
+    }
+
+    /* Sim navbar badge */
+    #sim-nav-pill {
+      display: none;
+      align-items: center;
+      gap: .4rem;
+      padding: .25rem .625rem;
+      border-radius: 20px;
+      background: rgba(245, 158, 11, .08);
+      border: 1px solid rgba(245, 158, 11, .22);
+      font-size: .72rem;
+      font-weight: 600;
+      color: #fde68a;
+    }
+
+    #sim-nav-pill.active {
+      display: flex
+    }
+
+    .sim-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+      animation: pulse-g 2s infinite
+    }
+    /* ── Incident Intelligence Panel ── */
+    #intel-panel {
+      margin-top: 1.25rem;
+      display: none;
+    }
+
+    .intel-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .875rem;
+      margin-bottom: .875rem;
+    }
+
+    .intel-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .intel-card-title {
+      font-size: .62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--primary);
+      margin-bottom: .75rem;
+      padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .intel-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: .5rem;
+      margin-bottom: .4rem;
+      font-size: .76rem;
+    }
+
+    .intel-lbl {
+      color: var(--muted);
+      font-size: .7rem;
+      flex-shrink: 0;
+    }
+
+    .intel-val {
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--text);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .intel-val.na {
+      color: var(--muted);
+      font-style: italic;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .intel-val.highlight {
+      color: var(--danger);
+      font-size: .82rem;
+    }
+
+    /* Transaction accordion */
+    .txn-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: .875rem;
+    }
+
+    .txn-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .55rem .75rem;
+      margin-bottom: .35rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: .76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      text-align: left;
+    }
+
+    .txn-btn:hover {
+      border-color: var(--primary);
+      background: var(--pri-dim);
+    }
+
+    .txn-btn.open {
+      border-color: var(--primary);
+      background: var(--pri-dim);
+    }
+
+    .txn-btn-left {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .txn-hop {
+      background: rgba(129, 140, 248, .15);
+      color: var(--primary);
+      border: 1px solid rgba(129, 140, 248, .3);
+      border-radius: 5px;
+      font-size: .65rem;
+      font-weight: 800;
+      padding: .1rem .4rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .txn-channel {
+      background: rgba(16, 185, 129, .1);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, .2);
+      border-radius: 4px;
+      font-size: .63rem;
+      font-weight: 700;
+      padding: .1rem .35rem;
+    }
+
+    .txn-chevron {
+      transition: transform .2s;
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .txn-btn.open .txn-chevron {
+      transform: rotate(180deg);
+    }
+
+    .txn-detail {
+      display: none;
+      padding: .75rem;
+      margin-bottom: .35rem;
+      background: rgba(6, 10, 19, .6);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: .73rem;
+    }
+
+    .txn-detail.open {
+      display: block;
+    }
+
+    .txn-flow {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .6rem;
+      flex-wrap: wrap;
+    }
+
+    .txn-acct {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: .4rem .6rem;
+      flex: 1;
+    }
+
+    .txn-acct-lbl {
+      font-size: .62rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .txn-acct-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      font-weight: 700;
+      margin-top: .15rem;
+    }
+
+    .txn-acct-bank {
+      font-size: .67rem;
+      color: var(--muted);
+      margin-top: .1rem;
+    }
+
+    .txn-arrow {
+      color: var(--primary);
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* IP Table */
+    .ip-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .ip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .76rem;
+    }
+
+    .ip-table thead tr {
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 24, 39, .7);
+    }
+
+    .ip-table th {
+      padding: .55rem .875rem;
+      text-align: left;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .ip-table tbody tr {
+      border-bottom: 1px solid rgba(99, 102, 241, .07);
+    }
+
+    .ip-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .ip-table td {
+      padding: .55rem .875rem;
+      vertical-align: middle;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+    }
   </style>
 </head>
+
 <body>
 
-<!-- ── Navbar ───────────────────────────────────────────────── -->
-<nav id="navbar">
-  <div id="hamburger" onclick="toggleDrawer()" title="Admin Panel">
-    <span></span><span></span><span></span>
-  </div>
-  <div class="logo">⚡ Project Synapse</div>
-  <div style="flex:1"></div>
-  <div class="nav-pill"><span class="nav-dot"></span>I4C / MHA Online</div>
-  <div id="sim-nav-pill" class="sim-pill" onclick="toggleSimulationMode()" title="Toggle Simulation Mode for Demo Payloads">
-    <span class="sim-dot"></span>
-    <span>Simulation Mode: <strong id="sim-nav-status">ON</strong></span>
-    <div class="sim-switch"><div class="sim-slider"></div></div>
-  </div>
-  <div id="nav-clock" style="margin-left:.75rem"></div>
-</nav>
-
-<!-- ── Overlay ──────────────────────────────────────────────── -->
-<div id="overlay" onclick="toggleDrawer()"></div>
-
-<!-- ── Admin Drawer ─────────────────────────────────────────── -->
-<div id="drawer">
-  <div class="drawer-hdr">
-    <span class="drawer-title">⚙ Admin — Ingest Panel</span>
-    <div class="close-x" onclick="toggleDrawer()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
+  <!-- ── Navbar ───────────────────────────────────────────────── -->
+  <nav id="navbar">
+    <div id="hamburger" onclick="toggleDrawer()" title="Admin Panel">
+      <span></span><span></span><span></span>
     </div>
-  </div>
-  <div class="drawer-body">
+    <div class="logo">⚡ Project Synapse</div>
+    <div style="flex:1"></div>
+    <div id="sim-nav-pill"><span class="sim-dot"></span>SIM MODE</div>
+    <div class="nav-pill" style="margin-left:.5rem"><span class="nav-dot"></span>I4C / MHA Online</div>
+    <div id="nav-clock" style="margin-left:.75rem"></div>
+  </nav>
 
-    <!-- Drop zone -->
-    <div id="dropzone" onclick="document.getElementById('fileIn').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
-      </svg>
-      <p><strong>Drop Incident_Payload.json</strong></p>
-      <p style="margin-top:.3rem;font-size:.76rem">or click to browse</p>
-      <input type="file" id="fileIn" accept=".json" style="display:none" onchange="handleSelect(event)">
-    </div>
+  <!-- ── Overlay ──────────────────────────────────────────────── -->
+  <div id="overlay" onclick="toggleDrawer()"></div>
 
-    <!-- Simulation Mode Toggle in Admin Drawer -->
-    <div class="sim-drawer-card">
-      <div class="sim-drawer-header">
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <span class="sim-dot"></span>
-          <span style="font-size:.78rem;font-weight:700;color:var(--text)">Simulation Mode</span>
-        </div>
-        <div id="sim-drawer-toggle" class="sim-switch" onclick="toggleSimulationMode()" title="Toggle Simulation Mode">
-          <div class="sim-slider"></div>
-        </div>
-      </div>
-      <p style="font-size:.7rem;color:var(--muted);margin-top:.35rem;line-height:1.35">
-        Anchors Golden Hour check to payload timestamps rather than system clock. Enabled by default for demo scenarios.
-      </p>
-    </div>
-
-    <!-- Quick demo -->
-    <p style="padding:0 1.25rem .4rem;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Quick Demo Payloads</p>
-    <div class="demo-row">
-      <button class="demo-btn" onclick="loadDemo('pune')">🏙 Pune</button>
-      <button class="demo-btn" onclick="loadDemo('bengaluru')">🌆 Bengaluru</button>
-      <button class="demo-btn" onclick="loadDemo('delhi')">🏛 Delhi</button>
-    </div>
-
-    <!-- Divider -->
-    <div style="height:1px;background:var(--border);margin:.25rem 1.25rem .875rem"></div>
-
-    <!-- Pipeline progress -->
-    <div class="prog-section" id="prog-section" style="display:none">
-      <p class="prog-title">Pipeline Stages</p>
-      <div id="steps"></div>
-    </div>
-
-    <!-- Result card -->
-    <div id="result-card"></div>
-  </div>
-</div>
-
-<!-- ── Main content ──────────────────────────────────────────── -->
-<div id="main">
-  <div id="tabs">
-    <button class="tab active" id="tab-a" onclick="switchView('A')">📡 View A — Strategic Command</button>
-    <button class="tab" id="tab-b" onclick="switchView('B')">🎯 View B — Tactical Interception</button>
-  </div>
-
-  <!-- ── View A ── -->
-  <div id="viewA" class="view active">
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Total Incidents</div><div class="kpi-val" id="k-total">0</div></div>
-      <div class="kpi"><div class="kpi-lbl">Physical Dispatch</div><div class="kpi-val" style="color:var(--danger)" id="k-phys">0</div></div>
-      <div class="kpi"><div class="kpi-lbl">Digital Hold</div><div class="kpi-val" style="color:var(--warn)" id="k-dig">0</div></div>
-      <div class="kpi"><div class="kpi-lbl">Webhooks OK</div><div class="kpi-val" style="color:var(--success)" id="k-wh">0</div></div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem">
-      <p class="sec-title" style="margin-bottom:0">Active Incident Queue</p>
-      <button id="btn-clear-queue" class="clear-btn" onclick="clearIncidentQueue()" title="Clear all incidents in memory">
-        🗑 Clear Queue
-      </button>
-    </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>NCRP Ticket</th><th>Tier</th><th>Confidence</th>
-          <th>Drain Time</th><th>Location</th><th>Webhook</th><th>Action</th>
-        </tr></thead>
-        <tbody id="tbody">
-          <tr><td colspan="7">
-            <div class="empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <h3>No incidents yet</h3>
-              <p>Open Admin Panel (☰) and upload an Incident_Payload.json</p>
-            </div>
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── View B ── -->
-  <div id="viewB" class="view">
-    <!-- Empty state -->
-    <div id="vb-empty" class="empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-      </svg>
-      <h3>No incident selected</h3>
-      <p>Click a row in View A (or the Map → button) to load tactical data</p>
-    </div>
-
-    <!-- Content (grid) -->
-    <div id="vb-content" style="display:none">
-      <div id="vb-grid">
-        <!-- Left col: map + confidence -->
-        <div>
-          <p class="sec-title" id="vb-label">Incident</p>
-          <div class="map-wrap">
-            <div id="map"></div>
-            <div class="cd-overlay">
-              <div class="cd-lbl">⏱ Drain Time</div>
-              <div class="cd-val cd-ok" id="cd-val">--:--</div>
-              <div class="cd-sub" id="cd-sub"></div>
-              <div class="cd-bar"><div class="cd-fill" id="cd-fill" style="width:100%"></div></div>
-            </div>
-          </div>
-          <div class="conf-panel">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Composite Confidence</span>
-              <span style="font-size:.88rem;font-weight:800;color:var(--primary)" id="vb-conf">—</span>
-            </div>
-            <div class="conf-bar-wrap"><div class="conf-bar" id="conf-bar" style="width:0%"></div></div>
-            <div class="conf-sub-row">
-              <span>MPS: <strong id="vb-mps" style="color:var(--text)">—</strong></span>
-              <span>Urgency: <strong id="vb-urg" style="color:var(--text)">—</strong></span>
-              <span>Spatial: <strong id="vb-spat" style="color:var(--text)">—</strong></span>
-            </div>
-          </div>
-        </div>
-        <!-- Right col: ATM cards -->
-        <div>
-          <p class="sec-title">Top 3 Target ATMs</p>
-          <div class="atm-cards" id="atm-cards"></div>
-        </div>
+  <!-- ── Admin Drawer ─────────────────────────────────────────── -->
+  <div id="drawer">
+    <div class="drawer-hdr">
+      <span class="drawer-title">⚙ Admin — Ingest Panel</span>
+      <div class="close-x" onclick="toggleDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
       </div>
     </div>
+    <div class="drawer-body">
+
+      <!-- Simulation Mode Toggle -->
+      <div class="sim-row">
+        <div>
+          <div class="sim-lbl">⚡ Simulation Mode</div>
+          <div class="sim-sub">Bypasses Golden Hour gates — any payload works.<br>Timer tracks real elapsed time across
+            re-submissions.</div>
+        </div>
+        <label class="t-sw" title="Toggle Simulation Mode">
+          <input type="checkbox" id="sim-toggle" onchange="onSimToggle()">
+          <span class="t-sl"></span>
+        </label>
+      </div>
+
+      <!-- Drop zone -->
+      <div id="dropzone" onclick="document.getElementById('fileIn').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path
+            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z" />
+        </svg>
+        <p><strong>Drop Incident_Payload.json</strong></p>
+        <p style="margin-top:.3rem;font-size:.76rem">or click to browse</p>
+        <input type="file" id="fileIn" accept=".json" style="display:none" onchange="handleSelect(event)">
+      </div>
+
+      <!-- Quick demo -->
+      <p
+        style="padding:0 1.25rem .4rem;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">
+        Quick Demo Payloads</p>
+      <div class="demo-row">
+        <button class="demo-btn" onclick="loadDemo('pune')">🏙 Pune</button>
+        <button class="demo-btn" onclick="loadDemo('bengaluru')">🌆 Bengaluru</button>
+        <button class="demo-btn" onclick="loadDemo('delhi')">🏛 Delhi</button>
+      </div>
+
+      <!-- Divider -->
+      <div style="height:1px;background:var(--border);margin:.25rem 1.25rem .875rem"></div>
+
+      <!-- Pipeline progress -->
+      <div class="prog-section" id="prog-section" style="display:none">
+        <p class="prog-title">Pipeline Stages</p>
+        <div id="steps"></div>
+      </div>
+
+      <!-- Result card -->
+      <div id="result-card"></div>
+    </div>
   </div>
-</div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- ── Main content ──────────────────────────────────────────── -->
+  <div id="main">
+    <div id="tabs">
+      <button class="tab active" id="tab-a" onclick="switchView('A')">📡 View A — Strategic Command</button>
+      <button class="tab" id="tab-b" onclick="switchView('B')">🎯 View B — Tactical Interception</button>
+    </div>
 
-<script>
-'use strict';
+    <!-- ── View A ── -->
+    <div id="viewA" class="view active">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-lbl">Total Incidents</div>
+          <div class="kpi-val" id="k-total">0</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Physical Dispatch</div>
+          <div class="kpi-val" style="color:var(--danger)" id="k-phys">0</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Digital Hold</div>
+          <div class="kpi-val" style="color:var(--warn)" id="k-dig">0</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Webhooks OK</div>
+          <div class="kpi-val" style="color:var(--success)" id="k-wh">0</div>
+        </div>
+      </div>
+      <p class="sec-title">Active Incident Queue</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>NCRP Ticket</th>
+              <th>Tier</th>
+              <th>Confidence</th>
+              <th>Initial Interception Window</th>
+              <th>Location</th>
+              <th>Webhook</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr>
+              <td colspan="7">
+                <div class="empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3>No incidents yet</h3>
+                  <p>Open Admin Panel (☰) and upload an Incident_Payload.json</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-// ─── State ──────────────────────────────────────────────────────────────────
-let _map            = null;
-let _layers         = [];   // all leaflet layers added (markers + circles)
-let _cdTimer        = null; // countdown interval
-let _cdInit         = 0;    // initial drain seconds for ratio
-let _incidents      = [];
-let _selected       = null;
-let _simulationMode = true; // Default TRUE per specification
+    <!-- ── View B ── -->
+    <div id="viewB" class="view">
+      <!-- Empty state -->
+      <div id="vb-empty" class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <h3>No incident selected</h3>
+        <p>Click a row in View A (or the Map → button) to load tactical data</p>
+      </div>
 
-// Stage display names
-const STAGE_NAMES = {
-  DUAL_GATE_GOLDEN_HOUR:  'Dual-Gate Golden Hour',
-  STAGE_1_GRAPH:          'Stage 1 — Terminal Mule',
-  STAGE_2_TEMPORAL:       'Stage 2 — Drain Time',
-  STAGE_3_SPATIAL:        'Stage 3 — ATM Ranking',
-  CONFIDENCE_AGGREGATION: 'Confidence Aggregation',
-  WEBHOOK_DISPATCH:       'Webhook Dispatch',
-};
-const STAGE_ORDER = Object.keys(STAGE_NAMES);
+      <!-- Content (grid) -->
+      <div id="vb-content" style="display:none">
+        <div id="vb-grid">
+          <!-- Left col: map + confidence -->
+          <div>
+            <p class="sec-title" id="vb-label">Incident</p>
+            <div class="map-wrap">
+              <div id="map"></div>
+              <div class="cd-overlay">
+                <div class="cd-lbl">🎯 INTERCEPTION WINDOW</div>
+                <div style="font-size:.58rem;color:var(--muted);letter-spacing:.04em;margin-bottom:.15rem">Est. window
+                  to intercept cash-out</div>
+                <div class="cd-val cd-ok" id="cd-val">--:--</div>
+                <div class="cd-sub" id="cd-sub"></div>
+                <div class="cd-bar">
+                  <div class="cd-fill" id="cd-fill" style="width:100%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="conf-panel">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span
+                  style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Composite
+                  Confidence</span>
+                <span style="font-size:.88rem;font-weight:800;color:var(--primary)" id="vb-conf">—</span>
+              </div>
+              <div class="conf-bar-wrap">
+                <div class="conf-bar" id="conf-bar" style="width:0%"></div>
+              </div>
+              <div class="conf-sub-row">
+                <span>MPS: <strong id="vb-mps" style="color:var(--text)">—</strong></span>
+                <span>Urgency: <strong id="vb-urg" style="color:var(--text)">—</strong></span>
+                <span>Spatial: <strong id="vb-spat" style="color:var(--text)">—</strong></span>
+              </div>
+            </div>
+          </div>
+          <!-- Right col: ATM cards -->
+          <div>
+            <p class="sec-title">Top 3 Target ATMs</p>
+            <div class="atm-cards" id="atm-cards"></div>
+          </div>
+        </div>
 
-// Cash status colours
-const CASH_CLR = {FULL:'#10b981',PARTIAL:'#f59e0b',LOW:'#ef4444',EMPTY:'#6b7280',UNKNOWN:'#6b7280'};
+        <!-- ── Incident Intelligence Panel ── -->
+        <div id="intel-panel">
+          <p class="sec-title" style="margin-top:.25rem">📋 Incident Intelligence</p>
+          <!-- Row 1: Case Overview + Source Account + Terminal Mule -->
+          <div class="intel-grid">
+            <div class="intel-card" id="intel-case"></div>
+            <div class="intel-card" id="intel-source"></div>
+            <div class="intel-card" id="intel-mule"></div>
+          </div>
+          <!-- Transaction Flow -->
+          <div class="txn-section">
+            <div class="intel-card-title" style="margin-bottom:.75rem">🔗 Transaction Flow</div>
+            <div id="intel-txns"></div>
+          </div>
+          <!-- IP Intelligence -->
+          <div class="ip-section">
+            <div class="intel-card-title" style="padding:.875rem 1rem .4rem;margin-bottom:0">🌐 IP Intelligence</div>
+            <table class="ip-table">
+              <thead><tr>
+                <th>IP Address</th><th>ASN</th><th>Lat / Lon</th><th>Last Seen (IST)</th>
+              </tr></thead>
+              <tbody id="intel-ip-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  initMap();
-  startClock();
-  setupDrop();
-  updateSimulationUI();
-  startPolling();
-});
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-// ─── Simulation Mode Toggle ──────────────────────────────────────────────────
-function updateSimulationUI() {
-  const navPill = document.getElementById('sim-nav-pill');
-  const navStatus = document.getElementById('sim-nav-status');
-  const drawerToggle = document.getElementById('sim-drawer-toggle');
+  <script>
+    'use strict';
 
-  if (navPill) {
-    navPill.className = 'sim-pill' + (_simulationMode ? '' : ' inactive');
-  }
-  if (navStatus) {
-    navStatus.textContent = _simulationMode ? 'ON' : 'OFF';
-  }
-  if (drawerToggle) {
-    drawerToggle.className = 'sim-switch' + (_simulationMode ? '' : ' inactive');
-  }
-}
+    // ─── State ──────────────────────────────────────────────────────────────────
+    let _map = null;
+    let _layers = [];   // all leaflet layers added (markers + circles)
+    let _cdTimer = null; // countdown interval
+    let _cdInit = 0;    // initial drain seconds for ratio
+    let _incidents = [];
+    let _selected = null;
 
-function toggleSimulationMode() {
-  _simulationMode = !_simulationMode;
-  updateSimulationUI();
-}
+    // Simulation Mode state
+    let _simulationMode = false;
 
-// ─── Clock ───────────────────────────────────────────────────────────────────
-function startClock() {
-  const el = document.getElementById('nav-clock');
-  const tick = () => {
-    const n = new Date();
-    el.textContent = `IST ${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
-  };
-  tick(); setInterval(tick, 1000);
-}
-function pad(n){ return String(n).padStart(2,'0') }
+    // Drain Timer Registry (Simulation Mode only)
+    // Maps ncrp_ticket_id → { submittedAt: Date.now(), initialDrainSeconds: number }
+    // Lets re-submitted payloads continue their countdown instead of restarting.
+    const _drainTimerRegistry = new Map();
 
-// ─── Drawer ──────────────────────────────────────────────────────────────────
-function toggleDrawer() {
-  const d = document.getElementById('drawer');
-  const o = document.getElementById('overlay');
-  const h = document.getElementById('hamburger');
-  const open = d.classList.toggle('open');
-  o.classList.toggle('active', open);
-  h.classList.toggle('open', open);
-}
+    // Stage display names
+    const STAGE_NAMES = {
+      DUAL_GATE_GOLDEN_HOUR: 'Dual-Gate Golden Hour',
+      STAGE_1_GRAPH: 'Stage 1 — Terminal Mule',
+      STAGE_2_TEMPORAL: 'Stage 2 — Interception Window',
+      STAGE_3_SPATIAL: 'Stage 3 — ATM Ranking',
+      CONFIDENCE_AGGREGATION: 'Confidence Aggregation',
+      WEBHOOK_DISPATCH: 'Webhook Dispatch',
+    };
+    const STAGE_ORDER = Object.keys(STAGE_NAMES);
 
-// ─── Drag & Drop ──────────────────────────────────────────────────────────────
-function setupDrop() {
-  const dz = document.getElementById('dropzone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag');
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.json')) readFile(f);
-  });
-}
-function handleSelect(e) { const f = e.target.files[0]; if (f) readFile(f); e.target.value=''; }
-function readFile(f) {
-  const r = new FileReader();
-  r.onload = ev => { try { ingest(JSON.parse(ev.target.result)); } catch { alert('Invalid JSON.'); } };
-  r.readAsText(f);
-}
+    // Cash status colours
+    const CASH_CLR = { FULL: '#10b981', PARTIAL: '#f59e0b', LOW: '#ef4444', EMPTY: '#6b7280', UNKNOWN: '#6b7280' };
 
-// ─── Demo Loader ──────────────────────────────────────────────────────────────
-async function loadDemo(city) {
-  try {
-    const resp = await fetch(`/synthetic/payload_${city}.json`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    ingest(await resp.json());
-  } catch(e) { alert(`Could not load ${city} payload.\n${e.message}`); }
-}
+    // ─── Simulation Mode — localStorage persistence ──────────────────────────────
+    const _LS_SIM_KEY = 'synapse_sim_mode';
+    const _LS_REG_KEY = 'synapse_drain_registry';
+    const _LS_DISP_KEY = 'synapse_dispatch_registry';
 
-// ─── Ingest ───────────────────────────────────────────────────────────────────
-function initSteps() {
-  document.getElementById('prog-section').style.display = 'block';
-  document.getElementById('result-card').style.display  = 'none';
-  const c = document.getElementById('steps');
-  c.innerHTML = STAGE_ORDER.map((k,i) => `
+    // Dispatch Registry — persists crew dispatch state across page refreshes.
+    // Key: "${ncrp_ticket_id}:${atm_id}"  Value: { rank, atmId, ncrpId, dispatchedAt }
+    // Entries are NEVER cleared — once a crew is dispatched that is a permanent operational record.
+    const _dispatchRegistry = new Map();
+
+    function _saveRegistry() {
+      try {
+        const obj = {};
+        _drainTimerRegistry.forEach((v, k) => { obj[k] = v; });
+        localStorage.setItem(_LS_REG_KEY, JSON.stringify(obj));
+      } catch (e) { console.warn('[SIM] Could not persist timer registry:', e); }
+    }
+
+    function _loadRegistry() {
+      try {
+        const raw = localStorage.getItem(_LS_REG_KEY);
+        if (raw) {
+          const obj = JSON.parse(raw);
+          Object.entries(obj).forEach(([k, v]) => _drainTimerRegistry.set(k, v));
+        }
+      } catch (e) { console.warn('[SIM] Could not restore timer registry:', e); }
+    }
+
+    function _saveDispatchRegistry() {
+      try {
+        const obj = {};
+        _dispatchRegistry.forEach((v, k) => { obj[k] = v; });
+        localStorage.setItem(_LS_DISP_KEY, JSON.stringify(obj));
+      } catch (e) { console.warn('[DISPATCH] Could not persist dispatch registry:', e); }
+    }
+
+    function _loadDispatchRegistry() {
+      try {
+        const raw = localStorage.getItem(_LS_DISP_KEY);
+        if (raw) {
+          const obj = JSON.parse(raw);
+          Object.entries(obj).forEach(([k, v]) => _dispatchRegistry.set(k, v));
+        }
+        console.log(`[DISPATCH] Registry restored — ${_dispatchRegistry.size} dispatch(es) on record`);
+      } catch (e) { console.warn('[DISPATCH] Could not restore dispatch registry:', e); }
+    }
+
+    function _restoreSimMode() {
+      // Restore toggle state
+      const saved = localStorage.getItem(_LS_SIM_KEY);
+      _simulationMode = saved === 'true';
+      const toggle = document.getElementById('sim-toggle');
+      if (toggle) toggle.checked = _simulationMode;
+      const pill = document.getElementById('sim-nav-pill');
+      if (pill) pill.classList.toggle('active', _simulationMode);
+      // Restore drain timer registry so timers continue after refresh
+      _loadRegistry();
+      console.log(`[SIM] Restored — mode=${_simulationMode}, registry entries=${_drainTimerRegistry.size}`);
+    }
+
+    function onSimToggle() {
+      _simulationMode = document.getElementById('sim-toggle').checked;
+      localStorage.setItem(_LS_SIM_KEY, _simulationMode);
+      const pill = document.getElementById('sim-nav-pill');
+      if (pill) pill.classList.toggle('active', _simulationMode);
+      if (!_simulationMode) {
+        // Leaving sim mode: clear registry from memory and localStorage.
+        _drainTimerRegistry.clear();
+        localStorage.removeItem(_LS_REG_KEY);
+      }
+      console.log(`[SIM] Simulation mode ${_simulationMode ? 'ON ⚡' : 'OFF'}`);
+    }
+
+    // Returns the real-elapsed-aware drain minutes for a payload in simulation mode.
+    // If this is the first ingest of this ncrpId, registers it (with persistence) and returns full drain.
+    // If re-ingest or page refresh, returns (initial − real_elapsed) so the timer continues.
+    function _getSimDrainMinutes(ncrpId, apiDrainMinutes) {
+      const initialSecs = Math.round(apiDrainMinutes * 60);
+      if (!_drainTimerRegistry.has(ncrpId)) {
+        // First time — register with current wall time and persist to localStorage
+        _drainTimerRegistry.set(ncrpId, { submittedAt: Date.now(), initialDrainSeconds: initialSecs });
+        _saveRegistry();
+        return apiDrainMinutes;
+      }
+      // Already registered (including after page refresh) — compute real remaining time
+      const entry = _drainTimerRegistry.get(ncrpId);
+      const elapsedSecs = Math.floor((Date.now() - entry.submittedAt) / 1000);
+      return Math.max(0, (entry.initialDrainSeconds - elapsedSecs) / 60);
+    }
+
+    // ─── Boot ─────────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      _restoreSimMode();       // ← restore toggle + drain timer registry from localStorage FIRST
+      _loadDispatchRegistry(); // ← restore crew dispatch state so buttons survive page refresh
+      initMap();
+      startClock();
+      setupDrop();
+      startPolling();
+    });
+
+    // ─── Clock ───────────────────────────────────────────────────────────────────
+    function startClock() {
+      const el = document.getElementById('nav-clock');
+      const tick = () => {
+        const n = new Date();
+        el.textContent = `IST ${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+      };
+      tick(); setInterval(tick, 1000);
+    }
+    function pad(n) { return String(n).padStart(2, '0') }
+
+    // ─── Drawer ──────────────────────────────────────────────────────────────────
+    function toggleDrawer() {
+      const d = document.getElementById('drawer');
+      const o = document.getElementById('overlay');
+      const h = document.getElementById('hamburger');
+      const open = d.classList.toggle('open');
+      o.classList.toggle('active', open);
+      h.classList.toggle('open', open);
+    }
+
+    // ─── Drag & Drop ──────────────────────────────────────────────────────────────
+    function setupDrop() {
+      const dz = document.getElementById('dropzone');
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault(); dz.classList.remove('drag');
+        const f = e.dataTransfer.files[0];
+        if (f && f.name.endsWith('.json')) readFile(f);
+      });
+    }
+    function handleSelect(e) { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ''; }
+    function readFile(f) {
+      const r = new FileReader();
+      r.onload = ev => { try { ingest(JSON.parse(ev.target.result)); } catch { alert('Invalid JSON.'); } };
+      r.readAsText(f);
+    }
+
+    // ─── Demo Loader ──────────────────────────────────────────────────────────────
+    async function loadDemo(city) {
+      try {
+        const resp = await fetch(`/synthetic/payload_${city}.json`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        ingest(await resp.json());
+      } catch (e) { alert(`Could not load ${city} payload.\n${e.message}`); }
+    }
+
+    // ─── Ingest ───────────────────────────────────────────────────────────────────
+    function initSteps() {
+      document.getElementById('prog-section').style.display = 'block';
+      document.getElementById('result-card').style.display = 'none';
+      const c = document.getElementById('steps');
+      c.innerHTML = STAGE_ORDER.map((k, i) => `
     <div class="step run" id="step-${k}">
       <div class="step-ic" id="ic-${k}">…</div>
       <div>
@@ -668,410 +1771,567 @@ function initSteps() {
         <div class="step-det" id="det-${k}">Queued</div>
       </div>
     </div>`).join('');
-}
-
-function setStep(stage, ok, detail) {
-  const el = document.getElementById(`step-${stage}`);
-  const ic = document.getElementById(`ic-${stage}`);
-  const det= document.getElementById(`det-${stage}`);
-  if (!el) return;
-  el.className = 'step ' + (ok ? 'pass' : 'fail');
-  ic.textContent = ok ? '✓' : '✗';
-  if (det && detail) det.textContent = detail.length > 90 ? detail.slice(0,90)+'…' : detail;
-}
-
-async function ingest(data) {
-  initSteps();
-  // Mark all as running
-  STAGE_ORDER.forEach(k => {
-    const el = document.getElementById(`step-${k}`);
-    if (el) el.className = 'step run';
-    const det = document.getElementById(`det-${k}`);
-    if (det) det.textContent = 'Processing…';
-  });
-
-  let result;
-  try {
-    const url = _simulationMode ? '/api/v1/ingest?simulate=true' : '/api/v1/ingest';
-    const headers = { 'Content-Type': 'application/json' };
-    if (_simulationMode) {
-      headers['X-Simulation-Mode'] = 'true';
     }
 
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(data),
-    });
+    function setStep(stage, ok, detail) {
+      const el = document.getElementById(`step-${stage}`);
+      const ic = document.getElementById(`ic-${stage}`);
+      const det = document.getElementById(`det-${stage}`);
+      if (!el) return;
+      el.className = 'step ' + (ok ? 'pass' : 'fail');
+      ic.textContent = ok ? '✓' : '✗';
+      if (det && detail) det.textContent = detail.length > 90 ? detail.slice(0, 90) + '…' : detail;
+    }
 
-    if (resp.status === 422) {
-      const err = await resp.json();
-      const msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-      const isGoldenHour = msg.includes('GOLDEN_HOUR_EXPIRED');
-      const isStale = msg.includes('STALE_PAYLOAD');
+    async function ingest(data) {
+      initSteps();
+      // Mark all as running
+      STAGE_ORDER.forEach(k => {
+        const el = document.getElementById(`step-${k}`);
+        if (el) el.className = 'step run';
+        const det = document.getElementById(`det-${k}`);
+        if (det) det.textContent = 'Processing…';
+      });
 
-      const detail = isGoldenHour
-        ? '❌ Gate 1: fraud recency > 120 min (GOLDEN_HOUR_EXPIRED)'
-        : isStale
-        ? '❌ Gate 2: complaint > 240 min (STALE_PAYLOAD)'
-        : '❌ Validation error: ' + msg.slice(0, 80);
-      setStep('DUAL_GATE_GOLDEN_HOUR', false, detail);
-      ['STAGE_1_GRAPH','STAGE_2_TEMPORAL','STAGE_3_SPATIAL','CONFIDENCE_AGGREGATION','WEBHOOK_DISPATCH']
-        .forEach(k => setStep(k, false, 'Skipped'));
+      // Build request based on current simulation mode
+      const simActive = _simulationMode;
+      const url = simActive ? '/api/v1/ingest?simulate=true' : '/api/v1/ingest';
+      const hdrs = simActive
+        ? { 'Content-Type': 'application/json', 'X-Simulation-Mode': 'true' }
+        : { 'Content-Type': 'application/json' };
 
-      if (isGoldenHour) {
-        showNotification(
-          'Golden Hour Expired',
-          'Golden Hour Expired: Fraud occurred >120m ago. Enable Simulation Mode to test historical payloads.',
-          true
-        );
-      } else {
-        showNotification('Validation Error', msg, true);
+      let result;
+      try {
+        const resp = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(data) });
+
+        if (resp.status === 422) {
+          const err = await resp.json();
+          const msg = JSON.stringify(err.detail);
+          const detail = msg.includes('GOLDEN_HOUR_EXPIRED')
+            ? '❌ Gate 1: fraud recency > 120 min (GOLDEN_HOUR_EXPIRED) — enable Simulation Mode'
+            : msg.includes('STALE_PAYLOAD')
+              ? '❌ Gate 2: complaint > 240 min (STALE_PAYLOAD) — enable Simulation Mode'
+              : '❌ Validation error: ' + msg.slice(0, 100);
+          setStep('DUAL_GATE_GOLDEN_HOUR', false, detail);
+          ['STAGE_1_GRAPH', 'STAGE_2_TEMPORAL', 'STAGE_3_SPATIAL', 'CONFIDENCE_AGGREGATION', 'WEBHOOK_DISPATCH']
+            .forEach(k => setStep(k, false, 'Skipped'));
+          return;
+        }
+        result = await resp.json();
+      } catch (e) { alert('Request failed: ' + e.message); return; }
+
+      // Register payload in drain timer registry (simulation mode only).
+      // IMPORTANT: Always force-overwrite on a new ingest POST — anchors the countdown
+      // clock to the real wall time of THIS submission. This prevents stale localStorage
+      // entries from previous sessions (where submittedAt could be hours ago) from
+      // computing elapsed >> initialDrain → 0 and triggering CLOSED on a live timer.
+      // Row-click / page-refresh continuity is handled by renderViewB() reading the
+      // registry WITHOUT overwriting, so the countdown carries over correctly.
+      if (simActive && result.status === 'PROCESSED' && result.ncrp_ticket_id) {
+        const initialSecs = Math.round((result.drain_time_remaining_minutes || 0) * 60);
+        _drainTimerRegistry.set(result.ncrp_ticket_id, { submittedAt: Date.now(), initialDrainSeconds: initialSecs });
+        _saveRegistry();
       }
 
+      // Reveal pipeline stages one-by-one with a 2-second delay between each.
+      // Stages not yet revealed stay in their spinning 'run' state so the operator
+      // can see the pipeline working step-by-step rather than everything flashing at once.
+      const stages = result.stages || [];
+      for (let i = 0; i < stages.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const s = stages[i];
+        const ok = ['PASS', 'COMPLETE', 'VIABLE_ATM_MULE', 'SUCCESS'].some(x => s.status.includes(x));
+        setStep(s.stage, ok, s.detail);
+      }
+
+      showResult(result);
+      await pollIncidents();
+    }
+
+    function showResult(r) {
       const card = document.getElementById('result-card');
-      if (card) {
-        card.style.display = 'block';
-        card.innerHTML = `
-          <div style="border-left:3px solid var(--danger);padding-left:.75rem">
-            <span class="r-tier t-phys" style="margin-bottom:.3rem">REJECTED (422)</span>
-            <div style="font-weight:700;font-size:.8rem;color:#fca5a5;margin-bottom:.25rem">Golden Hour Expired</div>
-            <p style="font-size:.72rem;color:var(--muted);line-height:1.4">
-              Fraud occurred &gt;120m ago. Enable <strong>Simulation Mode</strong> to test historical payloads.
-            </p>
-          </div>`;
-      }
-      return;
-    }
-    result = await resp.json();
-  } catch(e) { alert('Request failed: ' + e.message); return; }
-
-  // Update steps from response
-  (result.stages || []).forEach(s => {
-    const ok = ['PASS','COMPLETE','VIABLE_ATM_MULE','SUCCESS'].some(x => s.status.includes(x));
-    setStep(s.stage, ok, s.detail);
-  });
-
-  showResult(result);
-  await pollIncidents();
-}
-
-function showResult(r) {
-  const card = document.getElementById('result-card');
-  card.style.display = 'block';
-  const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
-  const tc = tier === 'SECONDARY_PHYSICAL' ? 't-phys' : tier === 'PRIMARY_DIGITAL' ? 't-dig' : 't-log';
-  const tl = tier === 'SECONDARY_PHYSICAL' ? '🔴 SECONDARY PHYSICAL' : tier === 'PRIMARY_DIGITAL' ? '🟡 PRIMARY DIGITAL' : '⬜ LOG ONLY';
-  const drain = (r.drain_time_remaining_minutes != null)
-    ? `${r.drain_time_remaining_minutes} min remaining`
-    : '—';
-  const whColor = r.webhook_status === 'SUCCESS' ? 'var(--success)'
-    : r.webhook_status === 'NOT_APPLICABLE' ? 'var(--muted)' : 'var(--danger)';
-  card.innerHTML = `
+      card.style.display = 'block';
+      const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
+      const tc = tier === 'SECONDARY_PHYSICAL' ? 't-phys' : tier === 'PRIMARY_DIGITAL' ? 't-dig' : 't-log';
+      const tl = tier === 'SECONDARY_PHYSICAL' ? '🔴 SECONDARY PHYSICAL' : tier === 'PRIMARY_DIGITAL' ? '🟡 PRIMARY DIGITAL' : '⬜ LOG ONLY';
+      const drain = (r.drain_time_remaining_minutes != null)
+        ? `${r.drain_time_remaining_minutes} min remaining`
+        : '—';
+      const whColor = r.webhook_status === 'SUCCESS' ? 'var(--success)'
+        : r.webhook_status === 'NOT_APPLICABLE' ? 'var(--muted)' : 'var(--danger)';
+      card.innerHTML = `
     <span class="r-tier ${tc}">${tl}</span>
-    <div class="r-row"><span class="r-lbl">Confidence</span><strong style="color:var(--primary)">${((r.confidence_score||0)*100).toFixed(1)}%</strong></div>
-    <div class="r-row"><span class="r-lbl">Drain Time</span><span>${drain}</span></div>
-    <div class="r-row"><span class="r-lbl">Location</span><span>${r.mule_location_method||'—'}</span></div>
-    <div class="r-row"><span class="r-lbl">Webhook</span><span style="color:${whColor};font-weight:700">${r.webhook_status||'—'}</span></div>
+    <div class="r-row"><span class="r-lbl">Confidence</span><strong style="color:var(--primary)">${((r.confidence_score || 0) * 100).toFixed(1)}%</strong></div>
+    <div class="r-row"><span class="r-lbl">Interception Window</span><span>${drain}</span></div>
+    <div class="r-row"><span class="r-lbl">Location</span><span>${r.mule_location_method || '—'}</span></div>
+    <div class="r-row"><span class="r-lbl">Webhook</span><span style="color:${whColor};font-weight:700">${r.webhook_status || '—'}</span></div>
     ${r.top_atms?.length ? `<div style="border-top:1px solid var(--border);margin-top:.5rem;padding-top:.5rem;font-size:.74rem">
       <span style="color:var(--muted)">Rank 1:</span>
       <strong> ${r.top_atms[0].atm_id}</strong>
       <span style="color:var(--muted)"> — score ${r.top_atms[0].risk_score}</span>
     </div>` : ''}
     <button class="link-btn" onclick="selectByNcrp('${r.ncrp_ticket_id}')">View Tactical Map →</button>`;
-}
+    }
 
-// ─── Polling ──────────────────────────────────────────────────────────────────
-async function pollIncidents() {
-  try {
-    const resp = await fetch('/api/v1/incidents');
-    const data = await resp.json();
-    _incidents = data.incidents || [];
-    renderTable(_incidents);
-    renderKPIs(_incidents);
-  } catch(e) { console.warn('Poll error:', e.message); }
-}
-function startPolling() { pollIncidents(); setInterval(pollIncidents, 5000); }
+    // ─── Polling ──────────────────────────────────────────────────────────────────
+    async function pollIncidents() {
+      try {
+        const resp = await fetch('/api/v1/incidents');
+        const data = await resp.json();
+        _incidents = data.incidents || [];
+        renderTable(_incidents);
+        renderKPIs(_incidents);
+      } catch (e) { console.warn('Poll error:', e.message); }
+    }
+    function startPolling() { pollIncidents(); setInterval(pollIncidents, 5000); }
 
-function renderKPIs(inc) {
-  document.getElementById('k-total').textContent = inc.length;
-  document.getElementById('k-phys').textContent  = inc.filter(i=>i.intervention_tier==='SECONDARY_PHYSICAL').length;
-  document.getElementById('k-dig').textContent   = inc.filter(i=>i.intervention_tier==='PRIMARY_DIGITAL').length;
-  document.getElementById('k-wh').textContent    = inc.filter(i=>i.webhook_status==='SUCCESS').length;
-}
+    function renderKPIs(inc) {
+      document.getElementById('k-total').textContent = inc.length;
+      document.getElementById('k-phys').textContent = inc.filter(i => i.intervention_tier === 'SECONDARY_PHYSICAL').length;
+      document.getElementById('k-dig').textContent = inc.filter(i => i.intervention_tier === 'PRIMARY_DIGITAL').length;
+      document.getElementById('k-wh').textContent = inc.filter(i => i.webhook_status === 'SUCCESS').length;
+    }
 
-function renderTable(inc) {
-  const tbody = document.getElementById('tbody');
-  if (!inc.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
+    function renderTable(inc) {
+      const tbody = document.getElementById('tbody');
+      if (!inc.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
       <h3>No incidents yet</h3><p>Upload an Incident_Payload.json via the Admin Panel</p>
     </div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = inc.map((r,i) => {
-    const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
-    const tierBadge = tier === 'SECONDARY_PHYSICAL'
-      ? `<span class="badge b-phys"><span class="pulse-r"></span>PHYSICAL</span>`
-      : tier === 'PRIMARY_DIGITAL'
-      ? `<span class="badge b-dig">DIGITAL</span>`
-      : `<span class="badge b-log">LOG ONLY</span>`;
-    const wh = r.webhook_status || 'N/A';
-    const whBadge = wh === 'SUCCESS' ? `<span class="badge b-ok">✓ OK</span>`
-      : wh === 'FAILED' ? `<span class="badge b-fail">✗ FAIL</span>`
-      : `<span class="badge b-na">${wh}</span>`;
-    const drain = r.drain_time_remaining_minutes != null ? `${r.drain_time_remaining_minutes} min` : '—';
-    const conf  = r.confidence_score != null ? `${(r.confidence_score*100).toFixed(1)}%` : '—';
-    return `<tr onclick="selectRow(${i})">
-      <td><span class="mono">${r.ncrp_ticket_id||'—'}</span></td>
+        return;
+      }
+      tbody.innerHTML = inc.map((r, i) => {
+        const tier = r.intervention_tier || 'TIER_1_LOG_ONLY';
+        const tierBadge = tier === 'SECONDARY_PHYSICAL'
+          ? `<span class="badge b-phys"><span class="pulse-r"></span>PHYSICAL</span>`
+          : tier === 'PRIMARY_DIGITAL'
+            ? `<span class="badge b-dig">DIGITAL</span>`
+            : `<span class="badge b-log">LOG ONLY</span>`;
+        const wh = r.webhook_status || 'N/A';
+        const whBadge = wh === 'SUCCESS' ? `<span class="badge b-ok">✓ OK</span>`
+          : wh === 'FAILED' ? `<span class="badge b-fail">✗ FAIL</span>`
+            : `<span class="badge b-na">${wh}</span>`;
+        const drain = r.drain_time_remaining_minutes != null ? `${r.drain_time_remaining_minutes} min` : '—';
+        const conf = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
+        return `<tr onclick="selectRow(${i})">
+      <td><span class="mono">${r.ncrp_ticket_id || '—'}</span></td>
       <td>${tierBadge}</td>
       <td><span style="font-weight:800;color:var(--primary)">${conf}</span></td>
       <td><span class="mono">${drain}</span></td>
-      <td><span class="mono" style="font-size:.7rem">${r.mule_location_method||'—'}</span></td>
+      <td><span class="mono" style="font-size:.7rem">${r.mule_location_method || '—'}</span></td>
       <td>${whBadge}</td>
       <td><button class="map-link" onclick="event.stopPropagation();selectRow(${i});switchView('B')">Map →</button></td>
     </tr>`;
-  }).join('');
-}
-
-// ─── View Switching ───────────────────────────────────────────────────────────
-function switchView(v) {
-  document.getElementById('viewA').classList.toggle('active', v==='A');
-  document.getElementById('viewB').classList.toggle('active', v==='B');
-  document.getElementById('tab-a').classList.toggle('active', v==='A');
-  document.getElementById('tab-b').classList.toggle('active', v==='B');
-  if (v === 'B') setTimeout(() => _map && _map.invalidateSize(), 60);
-}
-
-// ─── Incident Selection ───────────────────────────────────────────────────────
-function selectRow(i) { _selected = _incidents[i]; renderViewB(_selected); }
-function selectByNcrp(id) {
-  const i = _incidents.findIndex(x => x.ncrp_ticket_id === id);
-  if (i >= 0) { selectRow(i); switchView('B'); toggleDrawer(); }
-}
-
-function renderViewB(inc) {
-  if (!inc) return;
-  document.getElementById('vb-empty').style.display = 'none';
-  const content = document.getElementById('vb-content');
-  content.style.display = 'block'; // grid defined by #vb-grid child
-
-  document.getElementById('vb-label').textContent =
-    `${inc.ncrp_ticket_id||'Incident'} — ${inc.intervention_tier||''}`;
-
-  const c = inc.confidence_score || 0;
-  document.getElementById('vb-conf').textContent = `${(c*100).toFixed(1)}%`;
-  document.getElementById('conf-bar').style.width = `${(c*100).toFixed(1)}%`;
-  document.getElementById('vb-mps').textContent  = (inc.mps_score||0).toFixed(3);
-  document.getElementById('vb-urg').textContent  = (inc.urgency_score||0).toFixed(3);
-  document.getElementById('vb-spat').textContent = (inc.top_atm_risk_score||0).toFixed(3);
-
-  startCountdown(inc.drain_time_remaining_minutes || 0);
-  renderMap(inc);
-  renderCards(inc);
-}
-
-// ─── Countdown ────────────────────────────────────────────────────────────────
-function startCountdown(mins) {
-  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
-  const total = Math.round(mins * 60);
-  _cdInit = total;
-  let rem = total;
-
-  function tick() {
-    const mm = pad(Math.floor(rem / 60));
-    const ss = pad(rem % 60);
-    const cdEl  = document.getElementById('cd-val');
-    const subEl = document.getElementById('cd-sub');
-    const fill  = document.getElementById('cd-fill');
-
-    cdEl.textContent = `${mm}:${ss}`;
-    if (fill) fill.style.width = _cdInit > 0 ? `${((rem/_cdInit)*100).toFixed(1)}%` : '0%';
-
-    cdEl.className = 'cd-val';
-    if (rem <= 0) {
-      cdEl.classList.add('cd-crit'); cdEl.textContent = '00:00';
-      subEl.textContent = 'Window closed'; return;
+      }).join('');
     }
-    if (rem < 300)       { cdEl.classList.add('cd-crit'); subEl.textContent = '⚠ Critical — < 5 min'; }
-    else if (rem < 600)  { cdEl.classList.add('cd-warn'); subEl.textContent = '⚡ Urgent — act now'; }
-    else {
-      cdEl.classList.add('cd-ok');
-      const elapsed = Math.round((_cdInit - rem) / 60);
-      subEl.textContent = elapsed > 0
-        ? `${elapsed} min elapsed since funds landed`
-        : 'Countdown active';
+
+    // ─── View Switching ───────────────────────────────────────────────────────────
+    function switchView(v) {
+      document.getElementById('viewA').classList.toggle('active', v === 'A');
+      document.getElementById('viewB').classList.toggle('active', v === 'B');
+      document.getElementById('tab-a').classList.toggle('active', v === 'A');
+      document.getElementById('tab-b').classList.toggle('active', v === 'B');
+      if (v === 'B') setTimeout(() => _map && _map.invalidateSize(), 60);
     }
-  }
 
-  if (total <= 0) {
-    const cdEl = document.getElementById('cd-val');
-    if (cdEl) { cdEl.textContent = '00:00'; cdEl.className = 'cd-val cd-crit'; }
-    const subEl = document.getElementById('cd-sub');
-    if (subEl) subEl.textContent = mins === 0 ? 'Limit exhausted' : 'Window closed';
-    const fill = document.getElementById('cd-fill');
-    if (fill) fill.style.width = '0%';
-    return;
-  }
+    // ─── Incident Selection ───────────────────────────────────────────────────────
+    function selectRow(i) { _selected = _incidents[i]; renderViewB(_selected); }
+    function selectByNcrp(id) {
+      const i = _incidents.findIndex(x => x.ncrp_ticket_id === id);
+      if (i >= 0) { selectRow(i); switchView('B'); toggleDrawer(); }
+    }
 
-  tick();
-  _cdTimer = setInterval(() => {
-    rem = Math.max(0, rem - 1);
-    tick();
-    if (rem <= 0) { clearInterval(_cdTimer); _cdTimer = null; }
-  }, 1000);
-}
+    function renderViewB(inc) {
+      if (!inc) return;
+      document.getElementById('vb-empty').style.display = 'none';
+      const content = document.getElementById('vb-content');
+      content.style.display = 'block'; // grid defined by #vb-grid child
 
-// ─── Leaflet Map ──────────────────────────────────────────────────────────────
-function initMap() {
-  _map = L.map('map', { zoomControl: true, attributionControl: false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    subdomains: 'abc',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(_map);
-  _map.setView([20.5937, 78.9629], 5);
-}
+      document.getElementById('vb-label').textContent =
+        `${inc.ncrp_ticket_id || 'Incident'} — ${inc.intervention_tier || ''}`;
 
-function clearLayers() {
-  _layers.forEach(l => { try { _map.removeLayer(l); } catch(e){} });
-  _layers = [];
-}
+      const c = inc.confidence_score || 0;
+      document.getElementById('vb-conf').textContent = `${(c * 100).toFixed(1)}%`;
+      document.getElementById('conf-bar').style.width = `${(c * 100).toFixed(1)}%`;
+      document.getElementById('vb-mps').textContent = (inc.mps_score || 0).toFixed(3);
+      document.getElementById('vb-urg').textContent = (inc.urgency_score || 0).toFixed(3);
+      document.getElementById('vb-spat').textContent = (inc.top_atm_risk_score || 0).toFixed(3);
 
-function renderMap(inc) {
-  clearLayers();
+      // Interception Window countdown: in simulation mode, use real-elapsed-aware value from
+      // registry so the countdown continues from where it left off on re-submission / row click.
+      let drainMins = inc.drain_time_remaining_minutes || 0;
+      if (_simulationMode && inc.ncrp_ticket_id && _drainTimerRegistry.has(inc.ncrp_ticket_id)) {
+        drainMins = _getSimDrainMinutes(inc.ncrp_ticket_id, inc.drain_time_remaining_minutes || 0);
+      }
 
-  const lat = inc.mule_estimated_lat;
-  const lon = inc.mule_estimated_lon;
-  if (!lat || !lon) return;
+      // Determine pre-zero reason by inspecting stage detail + drainable balance.
+      // Three distinct zero states — each communicates a different operational reality:
+      //   1. DAILY_LIMIT_EXHAUSTED  — mule has hit their daily ATM withdrawal cap.
+      //                               Money is there but they can't withdraw more today.
+      //   2. WINDOW ELAPSED         — temporal model says τ ≥ settlement window; balance IS
+      //                               accessible but our interception time has run out.
+      //                               Mule may already be at / past the ATM. URGENT.
+      //   3. NO WITHDRAWABLE BALANCE — drainable_today_inr is effectively zero (balance
+      //                               depleted or all limits hit). No monetary threat.
+      let preZeroReason = null;
+      if (drainMins <= 0) {
+        const s2 = (inc.stages || []).find(s => s.stage === 'STAGE_2_TEMPORAL');
+        if (s2 && s2.detail && s2.detail.includes('DAILY_LIMIT_EXHAUSTED')) {
+          preZeroReason = 'DAILY LIMIT EXHAUSTED';
+        } else if ((inc.drainable_today_inr || 0) > 100) {
+          // Money is accessible — the time window elapsed, not the funds.
+          // This is the high-urgency case: mule may be at ATM now.
+          preZeroReason = 'WINDOW ELAPSED — MULE MAY BE AT ATM';
+        } else {
+          preZeroReason = 'NO WITHDRAWABLE BALANCE';
+        }
+      }
 
-  // Pulsing mule dot
-  const muleIco = L.divIcon({
-    className: '', html: '<div class="mule-dot"></div>',
-    iconSize: [14,14], iconAnchor: [7,7],
-  });
-  const muleMk = L.marker([lat,lon], {icon: muleIco})
-    .bindPopup(`<b>🔵 Estimated Mule Position</b><br>Method: <code>${inc.mule_location_method}</code><br>${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-  muleMk.addTo(_map); _layers.push(muleMk);
+      startCountdown(drainMins, preZeroReason);
+      renderMap(inc);
+      renderCards(inc);
+      renderIntelPanel(inc);
+    }
 
-  // 2 km accuracy ring
-  const ring = L.circle([lat,lon], {
-    radius:2000, color:'#818cf8', fillColor:'#818cf8',
-    fillOpacity:.05, weight:1.5, dashArray:'5 4',
-  }).addTo(_map); _layers.push(ring);
+    // ─── Countdown ────────────────────────────────────────────────────────────────
+    // startCountdown(mins, preZeroReason)
+    //   mins          — initial interception window in minutes (from API)
+    //   preZeroReason — optional string shown when mins <= 0 on arrival
+    //                   e.g. 'DAILY LIMIT EXHAUSTED' | 'NO WITHDRAWABLE BALANCE'
+    //                   When null and mins > 0, live countdown runs normally.
+    function startCountdown(mins, preZeroReason = null) {
+      if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
+      const total = Math.round(mins * 60);
+      _cdInit = total;
+      let rem = total;
 
-  // ATM markers
-  const pinClr = ['#ef4444','#f97316','#eab308'];
-  (inc.top_atms || []).forEach((atm,i) => {
-    if (!atm.lat || !atm.lon) return;
-    const ico = L.divIcon({
-      className: '',
-      html: `<div class="atm-pin" style="background:${pinClr[i]}">${i+1}</div>`,
-      iconSize: [24,24], iconAnchor: [12,12],
-    });
-    const mk = L.marker([atm.lat,atm.lon], {icon: ico})
-      .bindPopup(`<b>#${i+1} ${atm.atm_id}</b><br>${atm.bank_name}<br>Risk: ${atm.risk_score}<br>${atm.is_onsite?'Onsite':'⭐ Offsite'} ATM`);
-    mk.addTo(_map); _layers.push(mk);
-  });
+      // ── Helpers ──────────────────────────────────────────────────────────────
+      function _showClosed(subtitle) {
+        const cdEl = document.getElementById('cd-val');
+        const subEl = document.getElementById('cd-sub');
+        const fill = document.getElementById('cd-fill');
+        if (cdEl) { cdEl.className = 'cd-val cd-crit'; cdEl.textContent = 'INTERCEPTION WINDOW: CLOSED'; }
+        if (subEl) subEl.textContent = subtitle;
+        if (fill) fill.style.width = '0%';
+      }
 
-  // fitBounds with 15% padding per requirement
-  if (_layers.length) {
-    try {
-      const grp = L.featureGroup(_layers);
-      _map.fitBounds(grp.getBounds().pad(0.15));
-    } catch(e) { _map.setView([lat,lon], 14); }
-  }
-}
+      // ── Pre-zero on arrival ───────────────────────────────────────────────────
+      // The API already returned drain_time = 0 before the timer even started.
+      // Show a contextual reason label rather than a meaningless '00:00'.
+      if (total <= 0) {
+        const reason = preZeroReason || 'NO WITHDRAWABLE BALANCE';
+        _showClosed(reason);
+        return;
+      }
 
-// ─── ATM Cards ────────────────────────────────────────────────────────────────
-function renderCards(inc) {
-  const container = document.getElementById('atm-cards');
-  if (!inc.top_atms?.length) {
-    container.innerHTML = '<p style="color:var(--muted);font-size:.82rem">No ATMs ranked.</p>';
-    return;
-  }
-  container.innerHTML = inc.top_atms.map(atm => {
-    const rc = ['r1','r2','r3'][atm.rank-1] || 'r3';
-    const siteTag = atm.is_onsite
-      ? '<span class="site-tag onsite">🏦 Onsite ATM</span>'
-      : '<span class="site-tag offsite">⭐ Offsite ATM</span>';
-    const cashClr = CASH_CLR[atm.cash_status] || '#6b7280';
-    const pct = Math.round((atm.risk_score||0)*100);
-    return `
-    <div class="atm-card" id="ac-${atm.rank}">
+      // ── Live countdown ────────────────────────────────────────────────────────
+      function tick() {
+        const cdEl = document.getElementById('cd-val');
+        const subEl = document.getElementById('cd-sub');
+        const fill = document.getElementById('cd-fill');
+
+        // Timer reached zero during the live countdown — window has expired.
+        if (rem <= 0) {
+          _showClosed('Window expired — cash-out complete or mule fled');
+          return;
+        }
+
+        const mm = pad(Math.floor(rem / 60));
+        const ss = pad(rem % 60);
+        if (cdEl) { cdEl.textContent = `${mm}:${ss}`; cdEl.className = 'cd-val'; }
+        if (fill) fill.style.width = _cdInit > 0 ? `${((rem / _cdInit) * 100).toFixed(1)}%` : '0%';
+
+        if (rem < 300) {
+          cdEl.classList.add('cd-crit');
+          if (subEl) subEl.textContent = '⚠ Critical — < 5 min';
+        } else if (rem < 600) {
+          cdEl.classList.add('cd-warn');
+          if (subEl) subEl.textContent = '⚡ Urgent — act now';
+        } else {
+          cdEl.classList.add('cd-ok');
+          const elapsed = Math.round((_cdInit - rem) / 60);
+          if (subEl) subEl.textContent = elapsed > 0
+            ? `${elapsed} min elapsed since funds landed`
+            : 'Countdown active';
+        }
+      }
+
+      tick();
+      _cdTimer = setInterval(() => {
+        rem = Math.max(0, rem - 1);
+        tick();
+        if (rem <= 0) { clearInterval(_cdTimer); _cdTimer = null; }
+      }, 1000);
+    }
+
+    // ─── Leaflet Map ──────────────────────────────────────────────────────────────
+    function initMap() {
+      _map = L.map('map', { zoomControl: true, attributionControl: false });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19, subdomains: 'abcd',
+      }).addTo(_map);
+      _map.setView([20.5937, 78.9629], 5);
+    }
+
+    function clearLayers() {
+      _layers.forEach(l => { try { _map.removeLayer(l); } catch (e) { } });
+      _layers = [];
+    }
+
+    function renderMap(inc) {
+      clearLayers();
+
+      const lat = inc.mule_estimated_lat;
+      const lon = inc.mule_estimated_lon;
+      if (!lat || !lon) return;
+
+      // Pulsing mule dot
+      const muleIco = L.divIcon({
+        className: '', html: '<div class="mule-dot"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7],
+      });
+      const muleMk = L.marker([lat, lon], { icon: muleIco })
+        .bindPopup(`<b>🔵 Estimated Mule Position</b><br>Method: <code>${inc.mule_location_method}</code><br>${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      muleMk.addTo(_map); _layers.push(muleMk);
+
+      // 2 km accuracy ring
+      const ring = L.circle([lat, lon], {
+        radius: 2000, color: '#818cf8', fillColor: '#818cf8',
+        fillOpacity: .05, weight: 1.5, dashArray: '5 4',
+      }).addTo(_map); _layers.push(ring);
+
+      // ATM markers
+      const pinClr = ['#ef4444', '#f97316', '#eab308'];
+      (inc.top_atms || []).forEach((atm, i) => {
+        if (!atm.lat || !atm.lon) return;
+        const ico = L.divIcon({
+          className: '',
+          html: `<div class="atm-pin" style="background:${pinClr[i]}">${i + 1}</div>`,
+          iconSize: [24, 24], iconAnchor: [12, 12],
+        });
+        const mk = L.marker([atm.lat, atm.lon], { icon: ico })
+          .bindPopup(`<b>#${i + 1} ${atm.atm_id}</b><br>${atm.bank_name}<br>Risk: ${atm.risk_score}<br>${atm.is_onsite ? 'Onsite' : '⭐ Offsite'} ATM`);
+        mk.addTo(_map); _layers.push(mk);
+      });
+
+      // fitBounds with 15% padding per requirement
+      if (_layers.length) {
+        try {
+          const grp = L.featureGroup(_layers);
+          _map.fitBounds(grp.getBounds().pad(0.15));
+        } catch (e) { _map.setView([lat, lon], 14); }
+      }
+    }
+
+    // ─── ATM Cards ────────────────────────────────────────────────────────────────
+    function renderCards(inc) {
+      const container = document.getElementById('atm-cards');
+      if (!inc.top_atms?.length) {
+        container.innerHTML = '<p style="color:var(--muted);font-size:.82rem">No ATMs ranked.</p>';
+        return;
+      }
+      const ncrpId = inc.ncrp_ticket_id || '';
+      container.innerHTML = inc.top_atms.map(atm => {
+        const rc = ['r1', 'r2', 'r3'][atm.rank - 1] || 'r3';
+        const siteTag = atm.is_onsite
+          ? '<span class="site-tag onsite">🏦 Onsite ATM</span>'
+          : '<span class="site-tag offsite">⭐ Offsite ATM</span>';
+        const cashClr = CASH_CLR[atm.cash_status] || '#6b7280';
+        const pct = Math.round((atm.risk_score || 0) * 100);
+
+        // Check persistent dispatch registry so button state survives page refresh.
+        const dispKey = `${ncrpId}:${atm.atm_id}`;
+        const alreadyDispatched = _dispatchRegistry.has(dispKey);
+        const btnClass = alreadyDispatched ? 'dispatch-btn done' : 'dispatch-btn';
+        const btnText = alreadyDispatched
+          ? `✓ Crew Dispatched — #${atm.rank}`
+          : '⚡ Acknowledge &amp; Dispatch';
+        // Dispatched button is inert (pointer-events:none via .done CSS); others remain active.
+        const btnAttr = alreadyDispatched ? '' : `onclick="acknowledge(${atm.rank},'${atm.atm_id}')"`;
+
+        return `
+    <div class="atm-card${alreadyDispatched ? ' acked' : ''}" id="ac-${atm.rank}">
       <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem">
         <span class="rnk ${rc}">#${atm.rank}</span>
         <span style="font-weight:700;font-size:.85rem;flex:1">${atm.atm_id}</span>
         ${siteTag}
       </div>
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:.3rem">${atm.bank_name}</div>
-      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.5rem;line-height:1.35">${atm.address||''}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.5rem;line-height:1.35">${atm.address || ''}</div>
       <div class="atm-stat-grid">
         <div><div class="atm-stat-lbl">Distance</div><div class="atm-stat-val">${atm.distance_km} km</div></div>
         <div><div class="atm-stat-lbl">Cash</div><div class="atm-stat-val" style="color:${cashClr}">${atm.cash_status}</div></div>
         <div><div class="atm-stat-lbl">Risk Score</div><div class="atm-stat-val" style="color:var(--primary)">${atm.risk_score}</div></div>
       </div>
       <div class="score-bar"><div class="score-fill" style="width:${pct}%"></div></div>
-      <button class="dispatch-btn" id="db-${atm.rank}" onclick="acknowledge(${atm.rank},'${atm.atm_id}')">
-        ⚡ Acknowledge &amp; Dispatch
+      <button class="${btnClass}" id="db-${atm.rank}" ${btnAttr}>
+        ${btnText}
       </button>
     </div>`;
-  }).join('');
-}
+      }).join('');
+    }
 
-function acknowledge(rank, atmId) {
-  const btn  = document.getElementById(`db-${rank}`);
-  const card = document.getElementById(`ac-${rank}`);
-  if (!btn || btn.classList.contains('done')) return;
-  btn.textContent = '✓ Acknowledged';
-  btn.classList.add('done');
-  if (card) card.classList.add('acked');
-  console.log(`[DISPATCH] Rank ${rank} — ${atmId} — incident ${_selected?.ncrp_ticket_id}`);
-}
+    // ─── Incident Intelligence Panel ─────────────────────────────────────────────
+    function renderIntelPanel(inc) {
+      const panel = document.getElementById('intel-panel');
+      const snap = inc?.payload_snapshot;
 
-// ─── Reset Queue & Toast Notification ─────────────────────────────────────────
-async function clearIncidentQueue() {
-  try {
-    const resp = await fetch('/api/v1/incidents/reset', { method: 'POST' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    await pollIncidents();
-    clearLayers();
-    _selected = null;
-    const vbEmpty = document.getElementById('vb-empty');
-    const vbGrid  = document.getElementById('vb-grid');
-    if (vbEmpty) vbEmpty.style.display = 'block';
-    if (vbGrid)  vbGrid.style.display  = 'none';
-    showNotification('Incident Queue Cleared', `Successfully purged ${data.purged || 0} incident(s) from memory.`, false);
-  } catch (err) {
-    showNotification('Reset Failed', err.message, true);
-  }
-}
+      if (!snap) {
+        // No snapshot (old in-memory incident from before server restart) — hide panel.
+        if (panel) panel.style.display = 'none';
+        return;
+      }
+      panel.style.display = 'block';
 
-function showNotification(title, message, isError = true) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = 'toast-alert ' + (isError ? 'toast-err' : 'toast-ok');
-  toast.innerHTML = `
-    <div style="display:flex;align-items:flex-start;gap:.65rem">
-      <div style="font-size:1.1rem">${isError ? '⚠️' : '✅'}</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:.82rem;margin-bottom:.2rem">${title}</div>
-        <div style="font-size:.74rem;line-height:1.4;opacity:.9">${message}</div>
-      </div>
-      <span style="cursor:pointer;font-size:.8rem;opacity:.6" onclick="this.parentElement.parentElement.remove()">✕</span>
-    </div>`;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    setTimeout(() => toast.remove(), 400);
-  }, 7000);
-}
-</script>
-<div id="toast-container"></div>
+      // Helper: format a value or return N/A
+      const na = (v, fmt) => (v != null && v !== '') ? (fmt ? fmt(v) : String(v)) : null;
+      const fmtINR = v => `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const fmtDate = iso => {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      };
+
+      function irow(label, value, highlight = false) {
+        const isNa = value == null;
+        const cls = isNa ? 'intel-val na' : (highlight ? 'intel-val highlight' : 'intel-val');
+        return `<div class="intel-row">
+          <span class="intel-lbl">${label}</span>
+          <span class="${cls}">${isNa ? 'N/A' : value}</span>
+        </div>`;
+      }
+
+      // ── Case Overview ──────────────────────────────────────────────────────────
+      document.getElementById('intel-case').innerHTML = `
+        <div class="intel-card-title">📋 Case Overview</div>
+        ${irow('NCRP Ticket', snap.ncrp_ticket_id || inc.ncrp_ticket_id)}
+        ${irow('Fraud Type', snap.fraud_type)}
+        ${irow('Victim State / District', snap.victim_state && snap.victim_district ? `${snap.victim_district}, ${snap.victim_state}` : null)}
+        ${irow('Complaint Filed By', na(snap.complainant_name))}
+        ${irow('Complaint Filed At', na(snap.complaint_timestamp, fmtDate))}
+        ${irow('Amount Involved', na(snap.amount_inr, fmtINR), true)}
+      `;
+
+      // ── Source Account ─────────────────────────────────────────────────────────
+      const src = snap.source_account || {};
+      document.getElementById('intel-source').innerHTML = `
+        <div class="intel-card-title">🏦 Source Account (Victim)</div>
+        ${irow('Account No.', na(src.account_number))}
+        ${irow('IFSC', na(src.ifsc))}
+        ${irow('Bank', na(src.bank_name))}
+      `;
+
+      // ── Terminal Mule Account ──────────────────────────────────────────────────
+      const mule = snap.terminal_mule || {};
+      document.getElementById('intel-mule').innerHTML = `
+        <div class="intel-card-title">🎯 Terminal Mule Account</div>
+        ${irow('Account No.', na(mule.account_number))}
+        ${irow('IFSC', na(mule.ifsc))}
+        ${irow('Bank', na(mule.bank))}
+        ${irow('Account Type', na(mule.account_type))}
+        ${irow('Current Balance', na(mule.balance_inr, fmtINR))}
+        ${irow('Daily Limit', na(mule.daily_limit_inr, fmtINR))}
+        ${irow('Withdrawn Today', na(mule.withdrawals_today_inr, fmtINR))}
+      `;
+
+      // ── Transaction Flow Accordion ─────────────────────────────────────────────
+      const txns = snap.transactions || [];
+      const txnContainer = document.getElementById('intel-txns');
+      if (!txns.length) {
+        txnContainer.innerHTML = '<p style="color:var(--muted);font-size:.78rem;text-align:center;padding:.5rem">No transactions recorded.</p>';
+      } else {
+        txnContainer.innerHTML = txns.map((t, i) => {
+          const id = `txn-detail-${i}`;
+          const amtFmt = fmtINR(t.amount_inr);
+          const tsStr = fmtDate(t.txn_timestamp) || t.txn_timestamp || 'N/A';
+          return `
+          <button class="txn-btn" onclick="toggleTxn('${id}', this)" id="txn-btn-${i}">
+            <div class="txn-btn-left">
+              <span class="txn-hop">HOP ${String(t.hop_index).padStart(2,'0')}</span>
+              <span class="txn-channel">${t.channel || 'N/A'}</span>
+              <span style="color:var(--text)">${t.sender_bank || 'N/A'} → ${t.receiver_bank || 'N/A'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--warn)">${amtFmt}</span>
+              <span class="txn-chevron">▼</span>
+            </div>
+          </button>
+          <div class="txn-detail" id="${id}">
+            <div class="txn-flow">
+              <div class="txn-acct">
+                <div class="txn-acct-lbl">Sender</div>
+                <div class="txn-acct-num">${t.sender_account || 'N/A'}</div>
+                <div class="txn-acct-bank">${t.sender_bank || ''} · ${t.sender_ifsc || ''}</div>
+              </div>
+              <div class="txn-arrow">→</div>
+              <div class="txn-acct">
+                <div class="txn-acct-lbl">Receiver</div>
+                <div class="txn-acct-num">${t.receiver_account || 'N/A'}</div>
+                <div class="txn-acct-bank">${t.receiver_bank || ''} · ${t.receiver_ifsc || ''}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.7rem">
+              <span><span style="color:var(--muted)">Txn ID:</span> <span style="font-family:'JetBrains Mono',monospace">${t.txn_id || 'N/A'}</span></span>
+              <span><span style="color:var(--muted)">Amount:</span> <span style="color:var(--warn);font-weight:700">${amtFmt}</span></span>
+              <span><span style="color:var(--muted)">Time:</span> ${tsStr}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // ── IP Intelligence Table ──────────────────────────────────────────────────
+      const ips = snap.ip_cluster || [];
+      const tbody = document.getElementById('intel-ip-tbody');
+      if (!ips.length) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">No IP data available</td></tr>`;
+      } else {
+        tbody.innerHTML = ips.map(ip => `
+          <tr>
+            <td style="color:var(--primary)">${ip.ip_address || 'N/A'}</td>
+            <td style="color:var(--muted)">${ip.asn || 'N/A'}</td>
+            <td>${ip.geo_lat != null ? ip.geo_lat.toFixed(4) : 'N/A'} / ${ip.geo_lon != null ? ip.geo_lon.toFixed(4) : 'N/A'}</td>
+            <td style="color:var(--muted)">${fmtDate(ip.last_seen) || 'N/A'}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function toggleTxn(detailId, btn) {
+      const detail = document.getElementById(detailId);
+      if (!detail) return;
+      const isOpen = detail.classList.contains('open');
+      detail.classList.toggle('open', !isOpen);
+      btn.classList.toggle('open', !isOpen);
+    }
+
+    function acknowledge(rank, atmId) {
+      const btn = document.getElementById(`db-${rank}`);
+      const card = document.getElementById(`ac-${rank}`);
+      if (!btn || btn.classList.contains('done')) return;
+
+      const ncrpId = _selected?.ncrp_ticket_id || '';
+      const dispKey = `${ncrpId}:${atmId}`;
+
+      // Update DOM immediately
+      btn.textContent = `✓ Crew Dispatched — #${rank}`;
+      btn.classList.add('done');
+      if (card) card.classList.add('acked');
+
+      // Persist to dispatch registry so state survives any page refresh or row re-click.
+      _dispatchRegistry.set(dispKey, {
+        rank,
+        atmId,
+        ncrpId,
+        dispatchedAt: new Date().toISOString(),
+      });
+      _saveDispatchRegistry();
+
+      console.log(`[DISPATCH] ✓ Crew sent to Rank #${rank} (${atmId}) for incident ${ncrpId}`);
+    }
+  </script>
 </body>
+
 </html>

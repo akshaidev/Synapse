@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, Field, constr, model_validator
+from pydantic import BaseModel, Field, constr
 from uuid import UUID
 
 # Regex Patterns
@@ -65,6 +65,7 @@ class NCRPTicket(BaseModel):
     complaint_timestamp: datetime
     victim_state: str = Field(..., min_length=2, max_length=2)
     victim_district: str
+    complainant_name: Optional[str] = None  # Added Phase 09 F03 — optional for backward compat
     fraud_type: FraudType
     amount_inr: float = Field(..., ge=0)
     source_account: SourceAccount
@@ -120,54 +121,9 @@ class IncidentPayload(BaseModel):
     ncrp_ticket: NCRPTicket
     fund_flow: FundFlow
     terminal_mule: TerminalMule
-
-    @model_validator(mode='after')
-    def validate_golden_hour_gates(self):
-        # Validate self-consistency relative to the declared ingestion_timestamp.
-        # Strict wall-clock validation is enforced at the API layer based on Simulation Mode.
-        validate_golden_hour(self, reference_time=self.ingestion_timestamp)
-        return self
-
-
-def validate_golden_hour(payload: "IncidentPayload", reference_time: Optional[datetime] = None) -> None:
-    """
-    Validates Gate 1 (Fraud Recency <= 120 min) and Gate 2 (Payload Freshness <= 240 min).
-    If reference_time is None, defaults to datetime.now(timezone.utc).
-    Raises ValueError on violation:
-      - GOLDEN_HOUR_EXPIRED if Gate 1 fails
-      - STALE_PAYLOAD if Gate 2 fails
-    """
-    ref_now = reference_time or datetime.now(timezone.utc)
-
-    txns = payload.fund_flow.transactions
-    max_txn_timestamp = max(t.txn_timestamp for t in txns)
-
-    # Normalize timezone awareness for Gate 1
-    ref_1 = ref_now
-    if ref_1.tzinfo and not max_txn_timestamp.tzinfo:
-        ref_1 = ref_1.replace(tzinfo=None)
-    elif not ref_1.tzinfo and max_txn_timestamp.tzinfo:
-        ref_1 = ref_1.astimezone(max_txn_timestamp.tzinfo)
-
-    gate1_delta = ref_1 - max_txn_timestamp
-    if gate1_delta.total_seconds() > 120 * 60:
-        raise ValueError(
-            f"GOLDEN_HOUR_EXPIRED: Fraud recency exceeds 120 mins (Delta: {gate1_delta.total_seconds() / 60:.1f} mins)"
-        )
-
-    # Normalize timezone awareness for Gate 2
-    complaint_ts = payload.ncrp_ticket.complaint_timestamp
-    ref_2 = ref_now
-    if ref_2.tzinfo and not complaint_ts.tzinfo:
-        ref_2 = ref_2.replace(tzinfo=None)
-    elif not ref_2.tzinfo and complaint_ts.tzinfo:
-        ref_2 = ref_2.astimezone(complaint_ts.tzinfo)
-
-    gate2_delta = ref_2 - complaint_ts
-    if gate2_delta.total_seconds() > 240 * 60:
-        raise ValueError(
-            f"STALE_PAYLOAD: Complaint is older than 240 mins (Delta: {gate2_delta.total_seconds() / 60:.1f} mins)"
-        )
+    # Golden Hour gate checks are enforced in POST /api/v1/ingest (api/main.py)
+    # where the simulation flag is known. Non-simulation mode checks against
+    # datetime.now(UTC); simulation mode bypasses gates entirely.
 
 # Webhook Sub-models
 class RequestingAuthority(BaseModel):

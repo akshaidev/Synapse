@@ -27,6 +27,7 @@ Webhook Retry:
     so the retry suite doesn't block for 35+ seconds.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -54,7 +55,6 @@ from api.schemas import (
     HoldType,
     Justification,
     RequestingAuthority,
-    validate_golden_hour,
 )
 from core.cluster import rank_atms, Stage3Result
 from core.graph import isolate_terminal_mule, Stage1Result
@@ -218,6 +218,7 @@ class IngestResponse(BaseModel):
     webhook_status: Optional[str] = None    # SUCCESS | FAILED | NOT_APPLICABLE
     stages: List[PipelineStageStatus] = Field(default_factory=list)
     simulation_mode: bool = False
+    payload_snapshot: Optional[Dict[str, Any]] = None  # Phase 09 F03: raw intelligence for UI panel
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -327,122 +328,37 @@ def _build_webhook_payload(
     )
 
 
-def _handle_mock_freeze(payload_dict: dict) -> dict:
-    """
-    Core handler for the mock bank switch webhook.
-    Logs the full incoming freeze request payload to stdout for demo visibility
-    and returns the standard acknowledgement body.
-    """
-    incident_id = payload_dict.get("synapse_incident_id", "UNKNOWN")
-    ncrp_id = payload_dict.get("ncrp_ticket_id", "UNKNOWN")
-    confidence = payload_dict.get("confidence_score", "N/A")
-    tier = payload_dict.get("intervention_tier", "N/A")
-    atm_count = len(payload_dict.get("atm_blocks", []))
-
-    logger.info(
-        f"[MOCK WEBHOOK RECEIVER] ✅ Received freeze request:\n"
-        f"  incident_id   = {incident_id}\n"
-        f"  ncrp_ticket   = {ncrp_id}\n"
-        f"  confidence    = {confidence}\n"
-        f"  tier          = {tier}\n"
-        f"  atm_blocks    = {atm_count} ATM(s) targeted\n"
-        f"  raw_payload   = {json.dumps(payload_dict, indent=2, default=str)}"
-    )
-    return {
-        "status": "ACKNOWLEDGED",
-        "message": "Card hold request received and queued for processing.",
-        "synapse_incident_id": incident_id,
-        "ncrp_ticket_id": ncrp_id,
-        "ack_timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-
-
-def _dispatch_webhook(webhook_payload: FreezeCardATMRequest) -> str:
+async def _dispatch_webhook_async(webhook_payload: FreezeCardATMRequest) -> str:
     """
     Dispatches webhook to the mock /api/v1/freeze-card-atm endpoint.
     Uses exponential backoff: base_delay → 2×base_delay → 4×base_delay (max 3 retries).
     Returns: "SUCCESS" | "FAILED"
 
-    [Engineering Trade-off] Retry Policy per Assumptions.MD:
-        Max 3 retries, base 5s (5 → 10 → 20). Configurable via _RETRY_DELAY_SECONDS for testing.
-
-    In-process Direct Dispatch (Single-worker Loopback Deadlock Prevention):
-        When running as a live single-worker Uvicorn process, making a synchronous HTTP POST
-        back to localhost:8000 causes Uvicorn to deadlock waiting on itself. If target_url
-        points to the local mock switch, we invoke _handle_mock_freeze directly in-process.
+    ASYNC FIX: Previously used httpx.Client (sync) inside an async def endpoint,
+    which froze the event loop — the self-referential POST to localhost:8000 could
+    never be accepted while the loop was blocked → all 4 attempts timed out.
+    Now uses httpx.AsyncClient + await so the event loop stays free to accept
+    the incoming webhook connection during the await.
 
     Injectable client:
         If _WEBHOOK_HTTP_CLIENT is set (e.g. FastAPI TestClient in tests), it is used
-        for testing retry backoff logic without hitting real network sockets.
+        synchronously (TestClient is sync-only) so tests remain unaffected.
     """
     target_url = f"{MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
     payload_dict = webhook_payload.model_dump(mode="json", exclude_none=True)
 
-    # 1. Injected test client (e.g. FastAPI TestClient or MockClient in tests)
-    if _WEBHOOK_HTTP_CLIENT is not None:
-        for attempt in range(1, MAX_WEBHOOK_RETRIES + 2):
-            try:
-                logger.info(
-                    f"[WEBHOOK] Attempt {attempt}/{MAX_WEBHOOK_RETRIES + 1} → POST {MOCK_WEBHOOK_PATH} "
-                    f"(incident: {webhook_payload.synapse_incident_id})"
-                )
-                response = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=payload_dict)
-                if response.status_code == 200:
-                    logger.info(
-                        f"[WEBHOOK] SUCCESS on attempt {attempt} — "
-                        f"ncrp={webhook_payload.ncrp_ticket_id}, "
-                        f"confidence={webhook_payload.confidence_score:.4f}, "
-                        f"tier={webhook_payload.intervention_tier}"
-                    )
-                    return "SUCCESS"
-                else:
-                    logger.warning(
-                        f"[WEBHOOK] Attempt {attempt} returned HTTP {response.status_code}. "
-                        f"Body: {response.text[:200]}"
-                    )
-            except Exception as exc:
-                logger.warning(f"[WEBHOOK] Attempt {attempt} raised exception: {exc}")
-
-            if attempt <= MAX_WEBHOOK_RETRIES:
-                delay = _RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
-                logger.info(f"[WEBHOOK] Backing off {delay:.2f}s before retry {attempt + 1}…")
-                time.sleep(delay)
-
-        logger.error(
-            f"[WEBHOOK] All {MAX_WEBHOOK_RETRIES + 1} attempts FAILED for incident "
-            f"{webhook_payload.synapse_incident_id}. Marking WEBHOOK_FAILED."
-        )
-        return "FAILED"
-
-    # 2. Live server: In-process dispatch if target is local mock switch (prevents Uvicorn loopback deadlock)
-    is_local_mock = (
-        MOCK_WEBHOOK_PATH in target_url
-        or "localhost" in target_url
-        or "127.0.0.1" in target_url
-    )
-    if is_local_mock:
-        logger.info(
-            f"[WEBHOOK] Direct in-process dispatch to mock switch ({MOCK_WEBHOOK_PATH}) "
-            f"for incident {webhook_payload.synapse_incident_id} (single-worker loopback optimization)."
-        )
-        _handle_mock_freeze(payload_dict)
-        logger.info(
-            f"[WEBHOOK] SUCCESS on attempt 1 — "
-            f"ncrp={webhook_payload.ncrp_ticket_id}, "
-            f"confidence={webhook_payload.confidence_score:.4f}, "
-            f"tier={webhook_payload.intervention_tier}"
-        )
-        return "SUCCESS"
-
-    # 3. External target: HTTP POST with exponential backoff
-    for attempt in range(1, MAX_WEBHOOK_RETRIES + 2):
+    for attempt in range(1, MAX_WEBHOOK_RETRIES + 2):  # attempts 1..4 (1 original + 3 retries)
         try:
             logger.info(
                 f"[WEBHOOK] Attempt {attempt}/{MAX_WEBHOOK_RETRIES + 1} → POST {target_url} "
                 f"(incident: {webhook_payload.synapse_incident_id})"
             )
-            with httpx.Client(timeout=10.0) as http:
-                response = http.post(target_url, json=payload_dict)
+            # Injected test client is sync (TestClient); real path is async.
+            if _WEBHOOK_HTTP_CLIENT is not None:
+                response = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=payload_dict)
+            else:
+                async with httpx.AsyncClient(timeout=10.0) as http:
+                    response = await http.post(target_url, json=payload_dict)
 
             if response.status_code == 200:
                 logger.info(
@@ -461,9 +377,9 @@ def _dispatch_webhook(webhook_payload: FreezeCardATMRequest) -> str:
             logger.warning(f"[WEBHOOK] Attempt {attempt} raised exception: {exc}")
 
         if attempt <= MAX_WEBHOOK_RETRIES:
-            delay = _RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+            delay = _RETRY_DELAY_SECONDS * (2 ** (attempt - 1))  # 5 → 10 → 20
             logger.info(f"[WEBHOOK] Backing off {delay:.2f}s before retry {attempt + 1}…")
-            time.sleep(delay)
+            await asyncio.sleep(delay)  # non-blocking — event loop stays free during backoff
 
     logger.error(
         f"[WEBHOOK] All {MAX_WEBHOOK_RETRIES + 1} attempts FAILED for incident "
@@ -511,45 +427,102 @@ async def ingest_incident(
     stages: List[PipelineStageStatus] = []
 
     if simulation_active:
-        logger.info(f"[INGEST {incident_id}] Simulation mode ACTIVE — using ingestion_timestamp as reference clock.")
+        logger.info(
+            f"[INGEST {incident_id}] ⚡ Simulation mode ACTIVE — "
+            f"Golden Hour gates BYPASSED. T_ref = ingestion_timestamp."
+        )
 
-    # ── Reference clock & Strict Simulation Gating ────────────────────────────
-    # When Simulation Mode is OFF: The reference clock strictly anchors to wall-clock time
-    # (datetime.now(timezone.utc)). Historical/test payloads will fail Gate 1 (GOLDEN_HOUR_EXPIRED).
-    # When Simulation Mode is ON: The reference clock anchors to payload.ingestion_timestamp.
+    # ── Reference clock ───────────────────────────────────────────────────────
+    # Simulation mode: use ingestion_timestamp → fully deterministic pipeline output
+    #   (same MPS, drain time, and ATM scores on every run regardless of wall clock).
+    # Live mode: use datetime.now(UTC) → gates are enforced and τ reflects true elapsed time.
+    now_utc = datetime.now(timezone.utc)
+
     if simulation_active:
         reference_time = payload.ingestion_timestamp
     else:
-        reference_time = datetime.now(timezone.utc)
+        reference_time = now_utc
+
+        # ── Gate 1: Fraud Recency — NOW() − max(txn_timestamp) ≤ 120 min ─────
+        t_latest = max(t.txn_timestamp for t in payload.fund_flow.transactions)
+        if t_latest.tzinfo is None:
+            t_latest = t_latest.replace(tzinfo=timezone.utc)
+        gate1_delta = now_utc - t_latest
+
+        if gate1_delta.total_seconds() > 120 * 60:
+            stages.append(PipelineStageStatus(
+                stage="DUAL_GATE_GOLDEN_HOUR",
+                status="FAIL",
+                detail=(
+                    f"Gate 1 FAILED: Fraud recency {gate1_delta.total_seconds() / 60:.1f} min "
+                    f"> 120 min. Enable Simulation Mode to bypass."
+                ),
+            ))
+            logger.warning(
+                f"[INGEST {incident_id}] GOLDEN_HOUR_EXPIRED — "
+                f"recency={gate1_delta.total_seconds() / 60:.1f} min"
+            )
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"GOLDEN_HOUR_EXPIRED: Fraud recency exceeds 120 mins "
+                    f"(Delta: {gate1_delta.total_seconds() / 60:.1f} mins)"
+                ),
+            )
+
+        # ── Gate 2: Payload Freshness — NOW() − complaint_timestamp ≤ 240 min ─
+        complaint_ts = payload.ncrp_ticket.complaint_timestamp
+        if complaint_ts.tzinfo is None:
+            complaint_ts = complaint_ts.replace(tzinfo=timezone.utc)
+        gate2_delta = now_utc - complaint_ts
+
+        if gate2_delta.total_seconds() > 240 * 60:
+            stages.append(PipelineStageStatus(
+                stage="DUAL_GATE_GOLDEN_HOUR",
+                status="FAIL",
+                detail=(
+                    f"Gate 2 FAILED: Complaint {gate2_delta.total_seconds() / 60:.1f} min "
+                    f"> 240 min. Enable Simulation Mode to bypass."
+                ),
+            ))
+            logger.warning(
+                f"[INGEST {incident_id}] STALE_PAYLOAD — "
+                f"complaint_age={gate2_delta.total_seconds() / 60:.1f} min"
+            )
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"STALE_PAYLOAD: Complaint is older than 240 mins "
+                    f"(Delta: {gate2_delta.total_seconds() / 60:.1f} mins)"
+                ),
+            )
 
     # Ensure timezone-aware
     if reference_time.tzinfo is None:
         reference_time = reference_time.replace(tzinfo=timezone.utc)
 
-    # ── Strict Dual-Gate Golden Hour Enforcement ──────────────────────────────
-    try:
-        validate_golden_hour(payload, reference_time=reference_time)
-    except ValueError as exc:
-        logger.warning(
-            f"[INGEST {incident_id}] Golden Hour validation failed: {exc} "
-            f"(simulation_mode={simulation_active}, reference_time={reference_time.isoformat()})"
+    # ── Gates passed or bypassed — log stage ─────────────────────────────────
+    if simulation_active:
+        gate_detail = (
+            "⚡ Simulation mode — Golden Hour gates BYPASSED. "
+            "T_ref = ingestion_timestamp (deterministic pipeline output)."
         )
-        raise HTTPException(
-            status_code=422,
-            detail=str(exc),
+    else:
+        gate_detail = (
+            f"Gate 1 (Fraud Recency ≤ 120 min, δ={gate1_delta.total_seconds() / 60:.1f} min) and "
+            f"Gate 2 (Payload Freshness ≤ 240 min, δ={gate2_delta.total_seconds() / 60:.1f} min) "
+            f"both passed."
         )
 
     stages.append(PipelineStageStatus(
         stage="DUAL_GATE_GOLDEN_HOUR",
         status="PASS",
-        detail=(
-            f"Gate 1 and Gate 2 passed against reference clock "
-            f"({'SIMULATION' if simulation_active else 'WALL_CLOCK'}): {reference_time.isoformat()}"
-        ),
+        detail=gate_detail,
     ))
     logger.info(
         f"[INGEST {incident_id}] ncrp={payload.ncrp_ticket.ticket_id} — "
-        f"Gates passed. Reference clock ({'SIMULATION' if simulation_active else 'WALL_CLOCK'}): {reference_time.isoformat()}"
+        f"{'Gates BYPASSED (sim)' if simulation_active else 'Gates PASSED'}. "
+        f"Reference clock: {reference_time.isoformat()}"
     )
 
     # ── Stage 1: Terminal Mule Isolation ─────────────────────────────────────
@@ -740,7 +713,7 @@ async def ingest_incident(
                 f"[INGEST {incident_id}] Dispatching webhook for tier={tier} "
                 f"to {MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
             )
-            wh_result = _dispatch_webhook(wh_payload)
+            wh_result = await _dispatch_webhook_async(wh_payload)
             webhook_dispatched = True
             webhook_status = wh_result
         except Exception as exc:
@@ -799,6 +772,56 @@ async def ingest_incident(
         stages=stages,
         simulation_mode=simulation_active,
     )
+    # Build payload_snapshot — structured subset of original payload for the UI Incident Intelligence panel.
+    # complainant_name is Optional in the schema; use getattr with None fallback so legacy payloads work.
+    result.payload_snapshot = {
+        "fraud_type":          payload.ncrp_ticket.fraud_type.value,
+        "victim_state":        payload.ncrp_ticket.victim_state,
+        "victim_district":     payload.ncrp_ticket.victim_district,
+        "complainant_name":    getattr(payload.ncrp_ticket, "complainant_name", None),
+        "complaint_timestamp": payload.ncrp_ticket.complaint_timestamp.isoformat(),
+        "amount_inr":          payload.ncrp_ticket.amount_inr,
+        "source_account": {
+            "account_number": payload.ncrp_ticket.source_account.account_number,
+            "ifsc":           payload.ncrp_ticket.source_account.ifsc,
+            "bank_name":      payload.ncrp_ticket.source_account.bank_name,
+        },
+        "transactions": [
+            {
+                "hop_index":       t.hop_index,
+                "txn_id":          t.txn_id,
+                "txn_timestamp":   t.txn_timestamp.isoformat(),
+                "sender_account":  t.sender_account,
+                "sender_ifsc":     t.sender_ifsc,
+                "sender_bank":     t.sender_bank,
+                "receiver_account":t.receiver_account,
+                "receiver_ifsc":   t.receiver_ifsc,
+                "receiver_bank":   t.receiver_bank,
+                "amount_inr":      t.amount_inr,
+                "channel":         t.channel.value,
+            }
+            for t in payload.fund_flow.transactions
+        ],
+        "terminal_mule": {
+            "account_number":        payload.terminal_mule.mule_account_number,
+            "ifsc":                  payload.terminal_mule.mule_ifsc,
+            "bank":                  payload.terminal_mule.mule_bank,
+            "account_type":          payload.terminal_mule.account_type.value,
+            "balance_inr":           payload.terminal_mule.current_balance_inr,
+            "daily_limit_inr":       payload.terminal_mule.daily_withdrawal_limit_inr,
+            "withdrawals_today_inr": payload.terminal_mule.withdrawals_today_inr,
+        },
+        "ip_cluster": [
+            {
+                "ip_address": ip.ip_address,
+                "asn":        ip.asn,
+                "geo_lat":    ip.geo_lat,
+                "geo_lon":    ip.geo_lon,
+                "last_seen":  ip.last_seen.isoformat(),
+            }
+            for ip in (payload.terminal_mule.ip_cluster or [])
+        ],
+    }
     _incidents.append(result.model_dump())
 
     logger.info(
@@ -831,8 +854,32 @@ async def mock_freeze_card_atm(request: Request) -> JSONResponse:
     except Exception:
         body = {}
 
-    content = _handle_mock_freeze(body)
-    return JSONResponse(status_code=200, content=content)
+    incident_id = body.get("synapse_incident_id", "UNKNOWN")
+    ncrp_id = body.get("ncrp_ticket_id", "UNKNOWN")
+    confidence = body.get("confidence_score", "N/A")
+    tier = body.get("intervention_tier", "N/A")
+    atm_count = len(body.get("atm_blocks", []))
+
+    logger.info(
+        f"[MOCK WEBHOOK RECEIVER] ✅ Received freeze request:\n"
+        f"  incident_id   = {incident_id}\n"
+        f"  ncrp_ticket   = {ncrp_id}\n"
+        f"  confidence    = {confidence}\n"
+        f"  tier          = {tier}\n"
+        f"  atm_blocks    = {atm_count} ATM(s) targeted\n"
+        f"  raw_payload   = {json.dumps(body, indent=2, default=str)}"
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ACKNOWLEDGED",
+            "message": "Card hold request received and queued for processing.",
+            "synapse_incident_id": incident_id,
+            "ncrp_ticket_id": ncrp_id,
+            "ack_timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -853,27 +900,6 @@ async def get_incidents() -> JSONResponse:
             "total": len(_incidents),
             "incidents": list(reversed(_incidents)),
         }
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /api/v1/incidents/reset — Clear In-Memory Incident Queue
-# ─────────────────────────────────────────────────────────────────────────────
-@app.post(
-    "/api/v1/incidents/reset",
-    summary="Reset In-Memory Incident Queue",
-    tags=["UI Support"],
-)
-async def reset_incidents() -> JSONResponse:
-    """
-    Clears all in-memory processed incidents to eliminate duplicate ticket clutter across re-runs.
-    """
-    purged_count = len(_incidents)
-    _incidents.clear()
-    logger.info(f"[INCIDENTS] Reset requested — cleared {purged_count} incident(s).")
-    return JSONResponse(
-        status_code=200,
-        content={"status": "CLEARED", "count": 0, "purged": purged_count},
     )
 
 
@@ -922,10 +948,12 @@ async def webhook_callback(request_id: str, request: Request) -> JSONResponse:
     )
 
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Health Check
+# GET /api/v1/health — Health Check
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["System"])
+@app.get("/api/v1/health", tags=["System"])
 async def health_check() -> JSONResponse:
     """Quick health check — returns server status and ATM registry size."""
     return JSONResponse(
@@ -935,4 +963,103 @@ async def health_check() -> JSONResponse:
             "incidents_processed": len(_incidents),
             "server_time_utc": datetime.now(timezone.utc).isoformat(),
         }
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATCH /api/v1/incidents/{ncrp_ticket_id}/live-update — Bank Feed Live Update
+# ─────────────────────────────────────────────────────────────────────────────
+@app.patch(
+    "/api/v1/incidents/{ncrp_ticket_id}/live-update",
+    summary="Push a Live Withdrawal Update to an Incident (Bank Feed Simulator)",
+    tags=["Bank Feed"],
+)
+async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONResponse:
+    """
+    Simulates a real-time bank data push: adds a withdrawal amount to the terminal
+    mule's account in the incident's payload_snapshot.
+
+    Accepted body (all fields optional):
+        {
+            "additional_withdrawal_inr": 10000,
+            "note": "ATM withdrawal observed at 10:00 AM"
+        }
+
+    Updates in payload_snapshot.terminal_mule:
+      - withdrawals_today_inr  += additional_withdrawal_inr
+      - balance_inr            -= additional_withdrawal_inr (floor 0)
+      - drainable_today_inr    = max(0, min(balance_inr, daily_limit - withdrawn_today))
+
+    The Synapse dashboard polls GET /api/v1/incidents every 5 seconds and will
+    reflect the change automatically.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    additional_withdrawal = float(body.get("additional_withdrawal_inr", 0.0))
+    note = body.get("note", "")
+
+    # Find incident in-memory
+    target = None
+    for inc in _incidents:
+        if inc.get("ncrp_ticket_id") == ncrp_ticket_id:
+            target = inc
+            break
+
+    if target is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Incident '{ncrp_ticket_id}' not found in active session."},
+        )
+
+    snap = target.get("payload_snapshot")
+    if snap is None:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "Incident has no payload_snapshot — ingested before Phase 10. Re-submit payload."},
+        )
+
+    mule = snap.get("terminal_mule", {})
+
+    # Apply withdrawal
+    prev_withdrawn = float(mule.get("withdrawals_today_inr", 0.0))
+    prev_balance   = float(mule.get("balance_inr", 0.0))
+    daily_limit    = float(mule.get("daily_limit_inr", 100000.0))
+
+    new_withdrawn = prev_withdrawn + additional_withdrawal
+    new_balance   = max(0.0, prev_balance - additional_withdrawal)
+    new_drainable = max(0.0, min(new_balance, daily_limit - new_withdrawn))
+
+    mule["withdrawals_today_inr"] = round(new_withdrawn, 2)
+    mule["balance_inr"]           = round(new_balance, 2)
+    snap["terminal_mule"]         = mule
+
+    # Also patch the top-level drainable_today_inr used by the confidence/urgency display
+    target["drainable_today_inr"] = round(new_drainable, 2)
+
+    ts = datetime.now(timezone.utc).isoformat()
+    logger.info(
+        f"[LIVE-UPDATE] ncrp={ncrp_ticket_id} | "
+        f"+withdrawal=₹{additional_withdrawal:,.2f} | "
+        f"withdrawn_total=₹{new_withdrawn:,.2f} | "
+        f"balance_remaining=₹{new_balance:,.2f} | "
+        f"note='{note}'"
+    )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "UPDATED",
+            "ncrp_ticket_id": ncrp_ticket_id,
+            "applied_at_utc": ts,
+            "note": note,
+            "terminal_mule": {
+                "withdrawals_today_inr": round(new_withdrawn, 2),
+                "balance_inr":           round(new_balance, 2),
+                "drainable_today_inr":   round(new_drainable, 2),
+                "daily_limit_inr":       daily_limit,
+            },
+        },
     )

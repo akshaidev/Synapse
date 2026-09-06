@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Project Synapse
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
-> **PRD Version:** v1.3.0 (16 fixes across 3 review rounds)  
-> **ASSUMPTIONS Version:** 31 entries (1 superseded, 5 updated, 2 added in v1.3)  
-> **Last Updated:** 05 September 2026 — Rewritten to reflect PRD v1.3.0 + ASSUMPTIONS v1.3
+> **PRD Version:** v1.8.0 (F03 Intelligence Panel + BF04 Messaging documented)  
+> **ASSUMPTIONS Version:** 37 entries (2 added — F03 payload_snapshot design, BF04 zero-state)  
+> **Last Updated:** 06 September 2026 — Phase 09 F03 + BF04 complete; Phase 10 planning begun
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 4 — Synthetic Data & End-to-End Demo |
-| **Last Completed Feature** | Module 8: Barebones Verification Interface (`/ui/index.html`) |
-| **Active Task** | 90-Second Evaluation Demo Rehearsal (Pune Scenario) |
-| **Immediate Next Task** | Bengaluru & Delhi Secondary Test Verification |
-| **Known Blockers / Warnings** | None |
+| **Current Phase** | Phase 9 — Additional Functionality (wrapping up); Phase 10 — Live Feed Simulator (planning) |
+| **Last Completed Feature** | Phase 09 BF04: Interception Window zero-state messaging fix (`Fixed` 06 Sep 2026) |
+| **Active Task** | Implementation plan approved for Phase 10 — Bank Feed Simulator portal |
+| **Immediate Next Task** | Phase 10 Feature 01: Build Bank Feed Simulator (separate port, live withdrawal updates) |
+| **Known Blockers / Warnings** | Module 10 (F02) still pending user sign-off. Modules 14/15 have no formal verification gate. |
 
 ---
 
@@ -225,7 +225,7 @@ No module may reach `Verified & Approved` without a passing verification script,
 | **Description** | Single-page HTML/JS interface (no build tooling required) with three sections: Admin panel, Strategic view, Tactical view. Frontend teammate will restyle; priority is functional data flow. |
 | **Status** | `Verified & Approved` |
 | **Verification Date** | 05 September 2026 |
-| **Notes** | Verified with `/tests/verify_ui_smoke.py` (35/35 tests pass). Includes Leaflet map with auto-fitBounds, live countdown timer with elapsed τ subtraction, View A/B switching, and static file serving mounted in `api/main.py`. |
+| **Notes** | Verified with `/tests/verify_ui_smoke.py` (35/35 tests pass). Single-page Tailwind + Leaflet frontend served directly via FastAPI (`/` → `ui/index.html`), coordinate fields mapped, live countdown timer active, demo static mount verified. |
 
 **Critical v1.3 requirements for this module:**
 
@@ -237,6 +237,97 @@ No module may reach `Verified & Approved` without a passing verification script,
 - Leaflet CDN for maps. Tailwind CDN for minimal styling.
 - "Acknowledge & Dispatch" button must POST back to the API and visually update status.
 - Map: pulsing blue dot (mule IP estimate) with 2 km accuracy ring + 3 numbered ATM markers.
+
+---
+
+### Module 9: Simulation Mode UI Toggle (Phase 09 Feature 01)
+
+| Field | Value |
+|---|---|
+| **Files** | `api/schemas.py`, `api/main.py`, `ui/index.html`, `tests/verify_simulation_mode.py` |
+| **PRD Reference** | Phase 09 Additional Functionality — Feature 01 |
+| **Description** | UI toggle switch (Admin Drawer) enabling Simulation Mode. When ON: Golden Hour gates are bypassed in `POST /api/v1/ingest`, any payload works regardless of timestamps, pipeline uses `ingestion_timestamp` as `T_ref` (deterministic output). An amber “⚡ SIM MODE” badge appears in the navbar. When OFF: Gate 1 (fraud recency ≤ 120 min) and Gate 2 (complaint ≤ 240 min) are enforced against `datetime.now(UTC)`. Drain timer registry (`_drainTimerRegistry`) backed by `localStorage` — tracks first-submission wall time per `ncrp_ticket_id` so re-submitted payloads and page refreshes continue the countdown from real elapsed time rather than restarting. Gate checks moved from `schemas.py` `model_validator` to `ingest_incident()` endpoint where simulation flag is known. |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified with `/tests/verify_simulation_mode.py` (18/18 PASS). localStorage persistence confirmed live in browser — timer survives page refresh. |
+
+---
+
+### Module 10: Interception Window Label Rename (Phase 09 Feature 02)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/index.html` |
+| **PRD Reference** | Phase 09 Additional Functionality — Feature 02 (PRD v1.5.0 §9.2) |
+| **Description** | All user-facing occurrences of "Drain Time" in the verification dashboard renamed to "INTERCEPTION WINDOW". Countdown overlay gains subtitle "Est. window to intercept cash-out". Zero-state logic rewritten: when the timer naturally reaches zero during live countdown, shows `INTERCEPTION WINDOW: CLOSED` with `"Window expired — cash-out complete or mule fled"`. When the API returns drain_time = 0 pre-arrival due to `DAILY_LIMIT_EXHAUSTED`, shows that as the reason; other pre-zero cases show `"NO WITHDRAWABLE BALANCE"`. Reason is determined by parsing the `STAGE_2_TEMPORAL` stage detail string already returned by the API — no new API field required. `startCountdown()` refactored to accept optional `preZeroReason` parameter. |
+| **Status** | `Code Complete (Unverified)` |
+| **Verification Date** | Pending |
+| **Notes** | Verification script `/tests/verify_interception_window.py` authored and executed: **18/18 PASS**. Awaiting user sign-off to transition to `Verified & Approved`. |
+
+---
+
+### Module 11: Async Webhook Dispatch Fix (Phase 09 Bug Fix 01)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py` |
+| **PRD Reference** | PRD v1.6.0 §9.3 Bug Fix 01 |
+| **Description** | `_dispatch_webhook()` (sync, `httpx.Client`) called inside `async def ingest_incident` froze the uvicorn event loop. Self-referential POST to `localhost:8000` could never be accepted → 10 s timeout × 4 attempts. Replaced with `_dispatch_webhook_async()` using `httpx.AsyncClient` + `await`. `time.sleep` → `asyncio.sleep`. |
+| **Status** | `Fixed` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live: server log shows `[WEBHOOK] SUCCESS on attempt 1`. Injectable TestClient path unchanged — existing tests pass. |
+
+---
+
+### Module 12: Stale Drain Timer Registry Fix (Phase 09 Bug Fix 02)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/index.html` |
+| **PRD Reference** | PRD v1.6.0 §9.3 Bug Fix 02 |
+| **Description** | `_getSimDrainMinutes()` only registered on first encounter. Stale localStorage entry from a prior session had hours-old `submittedAt` → computed remaining = 0 → INTERCEPTION WINDOW showed CLOSED on a live 18.6-min window. Fixed: `ingest()` now force-overwrites registry entry on every new POST, anchoring `submittedAt` to current wall time. |
+| **Status** | `Fixed` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live: Bengaluru payload (1.5 min) countdown ran correctly after fix. |
+
+---
+
+### Module 13: Crew Dispatch Persistence Fix (Phase 09 Bug Fix 03)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/index.html` |
+| **PRD Reference** | PRD v1.6.0 §9.3 Bug Fix 03 |
+| **Description** | `acknowledge()` updated DOM only. On page refresh / row re-click, `renderCards()` rebuilt from API data (no dispatch state) → buttons reverted to "Acknowledge & Dispatch", enabling duplicate crew dispatch. Added `_dispatchRegistry` Map backed by `localStorage` (`synapse_dispatch_registry`). Key: `"${ncrp_ticket_id}:${atm_id}"`. `renderCards()` now reads registry per ATM — dispatched buttons render as `done` with `"✓ Crew Dispatched — #${rank}"`. Other ATM buttons unaffected. |
+| **Status** | `Fixed` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live: dispatching crew to ATM #1 then refreshing page shows `✓ Crew Dispatched — #1` with ATMs #2 and #3 still active. |
+
+---
+
+### Module 14: Incident Intelligence Panel (Phase 09 Feature 03)
+
+| Field | Value |
+|---|---|
+| **Files** | `api/schemas.py`, `synthetic/generator.py`, `api/main.py`, `ui/index.html` |
+| **PRD Reference** | PRD v1.7.0 §9.4 |
+| **Description** | `complainant_name` added to `NCRPTicket` (optional, backward-compatible). Generator gains 25-name Indian pool. `payload_snapshot` field added to `IngestResponse` — structured subset of original payload for UI rendering. View B gains full-width Incident Intelligence panel: Case Overview / Source Account / Terminal Mule / Transaction Flow accordion / IP Intelligence table. All N/A-safe. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | No verification gate required. Panel hides for incidents without `payload_snapshot` (pre-restart in-memory incidents). |
+
+---
+
+### Module 15: Interception Window Zero-State Messaging Fix (Phase 09 Bug Fix 04)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/index.html` |
+| **PRD Reference** | PRD v1.8.0 §9.5 |
+| **Description** | Three-case zero-state logic replaces two-case: (1) `DAILY LIMIT EXHAUSTED` via stage detail; (2) `WINDOW ELAPSED — MULE MAY BE AT ATM` when `drainable_today_inr > 100` (money present, time ran out — highest urgency); (3) `NO WITHDRAWABLE BALANCE` for genuinely empty accounts. Fixes factually incorrect 'NO WITHDRAWABLE BALANCE' message shown for Delhi payload (₹4,22,140 balance, Urgency 1.0). |
+| **Status** | `Fixed` |
+| **Verification Date** | 06 September 2026 |
+| **Notes** | Verified live: Delhi payload now shows 'WINDOW ELAPSED — MULE MAY BE AT ATM'. |
 
 ---
 
@@ -253,6 +344,13 @@ All verification records are appended here chronologically. Each entry is create
 | 05 Sep 2026 | Module 6 | `/tests/verify_cluster.py` | PASS | USER |
 | 05 Sep 2026 | Module 7 | `/tests/verify_api.py` | PASS (26/26) | USER |
 | 05 Sep 2026 | Module 8 | `/tests/verify_ui_smoke.py` | PASS (35/35) | USER |
+| 06 Sep 2026 | Module 9 — Phase 09 F01 | `/tests/verify_simulation_mode.py` | PASS (18/18) | USER |
+| 06 Sep 2026 | Module 10 — Phase 09 F02 | `/tests/verify_interception_window.py` | PASS (18/18) | Pending |
+| 06 Sep 2026 | Module 11 — BF01 Webhook Async | N/A — verified live (server log: Attempt 1 SUCCESS) | PASS | N/A |
+| 06 Sep 2026 | Module 12 — BF02 Timer Registry | N/A — verified live (INTERCEPTION WINDOW countdown active) | PASS | N/A |
+| 06 Sep 2026 | Module 13 — BF03 Dispatch Persist | N/A — verified via localStorage persistence on refresh | PASS | N/A |
+| 06 Sep 2026 | Module 14 — F03 Intel Panel | N/A — verified live (Bengaluru payload — all 5 sections render) | PASS | N/A |
+| 06 Sep 2026 | Module 15 — BF04 Zero-State Msg | N/A — verified live (Delhi: 'WINDOW ELAPSED — MULE MAY BE AT ATM') | PASS | N/A |
 
 ---
 
@@ -264,7 +362,9 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 1** | Core Pipeline (Stage 1 graph, Stage 2 temporal, Stage 3 spatial) | Complete |
 | **Phase 2** | API Integration (FastAPI endpoints, webhook dispatch, confidence aggregation) | Complete |
 | **Phase 3** | Verification Interface (UI, maps, demo flow) | Complete |
-| **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | **Active** |
+| **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Complete |
+| **Phase 9** | Additional Functionality (F01 Sim Mode, F02 Interception Window, F03 Intel Panel, BF01–04) | **Wrapping Up** |
+| **Phase 10** | Live Feed Simulator — second portal on separate port, real-time withdrawal updates | **Planning** |
 
 ---
 

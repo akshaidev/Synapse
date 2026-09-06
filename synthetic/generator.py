@@ -30,6 +30,15 @@ BANKS = [
 CHANNELS = ["UPI", "IMPS", "NEFT", "RTGS"]
 FRAUD_TYPES = ["UPI_FRAUD", "VISHING", "PHISHING", "SIM_SWAP"]
 
+# Realistic Indian complainant names (first + last, gender-neutral mix)
+COMPLAINANT_NAMES = [
+    "Rajesh Kumar", "Priya Sharma", "Anil Mehta", "Sunita Verma", "Vikram Singh",
+    "Meena Nair", "Suresh Patel", "Kavitha Reddy", "Deepak Joshi", "Lakshmi Iyer",
+    "Amit Gupta", "Rekha Yadav", "Rahul Bose", "Anita Pillai", "Manoj Tiwari",
+    "Seema Desai", "Ravi Shankar", "Pooja Agarwal", "Sanjay Mishra", "Nandini Rao",
+    "Vijay Kulkarni", "Geeta Bhatt", "Harish Choudhury", "Usha Narayanan", "Kishore Das",
+]
+
 def generate_payload(city, now):
     num_hops = random.randint(2, 7)
     initial_amount = random.uniform(50000, 500000)
@@ -130,6 +139,7 @@ def generate_payload(city, now):
             "complaint_timestamp": complaint_ts.isoformat(),
             "victim_state": city["state"],
             "victim_district": city["name"],
+            "complainant_name": random.choice(COMPLAINANT_NAMES),
             "fraud_type": random.choice(FRAUD_TYPES),
             "amount_inr": round(initial_amount, 2),
             "source_account": source_account_info

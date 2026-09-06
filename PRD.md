@@ -1,8 +1,8 @@
 # Project Synapse — Product Requirements Document
 
 > **Document Classification:** RESTRICTED — For Official Use Only  
-> **Version:** 1.3.0  
-> **Date:** 05 September 2026  
+> **Version:** 1.8.0  
+> **Date:** 06 September 2026  
 > **Author:** Principal Technical Product Manager, Synapse Programme  
 > **Sponsor:** Indian Cyber Crime Coordination Centre (I4C), Ministry of Home Affairs, Government of India  
 > **Status:** DRAFT — Pending Stakeholder Review
@@ -1528,7 +1528,8 @@ The MVP is a **single unified web application** demonstrating the end-to-end Syn
 | **I4C** | Indian Cyber Crime Coordination Centre, under MHA |
 | **Golden Hour** | First 120 minutes after the most recent fraud transaction (fraud recency clock) |
 | **Terminal Mule** | The last account in a layering chain that performs physical cash withdrawal |
-| **Drain Time** | Predicted minutes until the mule fully withdraws the accessible daily amount via ATM |
+| **Drain Time** | Internal engine term: predicted minutes until the mule fully withdraws the accessible daily amount via ATM |
+| **Interception Window** | UI-facing label for Drain Time. Displayed as `INTERCEPTION WINDOW` with subtitle *"Est. window to intercept cash-out"*. Shows `INTERCEPTION WINDOW: CLOSED` with a contextual reason when the value reaches or is already zero. |
 | **IFSC** | Indian Financial System Code (11-character bank branch identifier) |
 | **PAN** | Primary Account Number (card number — never stored in plaintext) |
 | **UTR** | Unique Transaction Reference number |
@@ -1544,7 +1545,187 @@ The MVP is a **single unified web application** demonstrating the end-to-end Syn
 | 1.1.0 | 05 Sep 2026 | Principal TPM, Synapse | Eight corrections from peer review: MPS epsilon guard, daily limit in drain time, ST-DBSCAN → haversine radius query, ATM registry internalized, dual-gate Golden Hour, cell tower marked optional, mule viability filter, daily_avg_txn_count in RiskScore |
 | 1.2.0 | 05 Sep 2026 | Principal TPM, Synapse | Three corrections from data science review: MPS recency term replaced with bounded exponential decay (fix 1D, supersedes 1A), ADM-09/ML-03 performance targets clarified as MVP vs production (fix 2-clarify), Golden Hour Gate 1 uses max(txn_timestamp) not array index (fix 3D) |
 | 1.3.0 | 05 Sep 2026 | Principal TPM, Synapse | Five corrections from mathematical consistency audit: complaint timestamp fixed (4A), drain time subtracts elapsed τ (4B), DAILY_LIMIT_EXHAUSTED urgency clamped to 0.0 (4C), CNRB-ATM-PNE-0042 set to offsite (4D), D_norm uses r_active with max(0) clamp (4E) |
+| 1.4.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Feature 01: Simulation Mode UI toggle. Gate checks moved to endpoint; sim mode bypasses gates, live mode enforces against datetime.now(UTC). Frontend drain timer registry backed by localStorage for cross-refresh continuity. |
+| 1.5.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Feature 02: UI label 'Drain Time' renamed to 'INTERCEPTION WINDOW' with subtitle 'Est. window to intercept cash-out'. Zero-state countdown improved: shows 'INTERCEPTION WINDOW: CLOSED' with contextual reason (DAILY LIMIT EXHAUSTED / NO WITHDRAWABLE BALANCE / Window expired) instead of '00:00'. |
+| 1.6.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Bug Fixes 01–03: (BF01) Webhook async deadlock fixed — httpx.Client → httpx.AsyncClient + await; (BF02) Stale localStorage drain timer registry — force-overwrite on new ingest POST; (BF03) Crew dispatch state persistence — _dispatchRegistry backed by localStorage so button state survives page refresh. |
+| 1.7.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Feature 03: Incident Intelligence Panel in View B — payload_snapshot added to IngestResponse, complainant_name added to NCRPTicket schema and generator, UI panel renders Case Overview / Source Account / Terminal Mule / Transaction Flow accordion / IP Intelligence table. |
+| 1.8.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Bug Fix 04: Interception Window zero-state messaging — corrected misleading 'NO WITHDRAWABLE BALANCE' shown when money is present but time elapsed. Now correctly shows 'WINDOW ELAPSED — MULE MAY BE AT ATM' when drainable_today_inr > 100 and drain_time = 0. |
 
 ---
+
+## 9. Phase 09 — Additional Functionality
+
+### 9.1 Feature 01: Simulation Mode UI Toggle
+
+**Status:** `Verified & Approved` — 06 September 2026
+
+#### 9.1.1 Overview
+
+A **Simulation Mode toggle** is added to the Admin Drawer of the verification dashboard (`ui/index.html`). This mode is intended for demos, testing, and evaluation where static payloads with fixed historical timestamps must be processed without triggering Golden Hour gate rejections.
+
+#### 9.1.2 Behaviour
+
+| Mode | Golden Hour Gates | Pipeline Reference Clock (`T_ref`) | Drain Timer |
+|---|---|---|---|
+| **Simulation ON** | **Bypassed** — any payload processes regardless of timestamp age | `payload.ingestion_timestamp` (deterministic, fixed scores) | Tracks real wall-clock elapsed time via `localStorage`; survives page refresh |
+| **Simulation OFF** | **Enforced** — Gate 1 (`NOW − max(txn_timestamp) ≤ 120 min`) and Gate 2 (`NOW − complaint_timestamp ≤ 240 min`) checked against `datetime.now(UTC)` | `datetime.now(UTC)` | Standard API-returned `drain_time_remaining_minutes` |
+
+#### 9.1.3 UI Elements
+
+- **Toggle switch** in Admin Drawer (top of drawer body) — amber when ON, grey when OFF.
+- **Navbar badge** `⚡ SIM MODE` (amber pill) — visible only when Simulation Mode is ON.
+- Toggle state and drain timer registry persist across page refreshes via `localStorage` keys `synapse_sim_mode` and `synapse_drain_registry`.
+
+#### 9.1.4 Timer Continuity Design
+
+The drain timer countdown must not restart when the same payload is re-submitted or when the page is refreshed. This is achieved via a **frontend timer registry** (`_drainTimerRegistry`):
+
+1. **First submission** of payload with `ncrp_ticket_id = X` in Simulation Mode → stores `{ submittedAt: Date.now(), initialDrainSeconds }` to `localStorage`.
+2. **Re-submission / page refresh** → looks up registry, computes `remaining = initialDrainSeconds − (Date.now() − submittedAt)`, starts countdown from `remaining`.
+3. **Simulation Mode toggled OFF** → registry cleared from both memory and `localStorage`.
+
+Backend pipeline output remains deterministic (same `drain_time_remaining_minutes` on every call for the same payload) because `T_ref = ingestion_timestamp` is constant.
+
+#### 9.1.5 Backend Changes
+
+- `api/schemas.py`: Golden Hour gate logic **removed** from `model_validator`. The schema now validates structure only (field types, regex, bounds). Gate logic belongs at the endpoint level where the simulation flag is available.
+- `api/main.py` (`ingest_incident`): Gate 1 and Gate 2 checks added to the endpoint. If `simulation_active`: skip gates, set `T_ref = ingestion_timestamp`. If live mode: check gates against `datetime.now(UTC)`, raise `HTTPException(422)` on failure with the same error format the UI's existing 422-handler expects.
+
+#### 9.1.6 Verification
+
+| Script | Result |
+|---|---|
+| `/tests/verify_simulation_mode.py` | 18/18 PASS |
+
+Test coverage: (1) non-sim mode rejects old payload with `GOLDEN_HOUR_EXPIRED`, (2) sim mode processes same payload as `PROCESSED` with gate-bypassed stage detail, (3) drain time is identical on two consecutive sim submissions (deterministic T_ref), (4) non-sim mode processes a fresh payload with real gate delta in stage detail.
+
+---
+
+### 9.2 Feature 02: Rename 'Drain Time' → 'INTERCEPTION WINDOW'
+
+**Status:** `Code Complete (Unverified)` — 06 September 2026  
+**PRD Version:** 1.5.0
+
+#### 9.2.1 Overview
+
+All user-facing occurrences of the term **"Drain Time"** in the verification dashboard (`ui/index.html`) are renamed to **"INTERCEPTION WINDOW"**. The internal field name `drain_time_remaining_minutes` in the API contract is **unchanged** — this is a UI-only cosmetic and UX improvement.
+
+The change also improves the zero-state display of the countdown overlay. Previously, when the interception window was zero (for any reason), the timer displayed `00:00` with a generic sub-label. This is replaced by the string `INTERCEPTION WINDOW: CLOSED` with a **contextual reason label** that communicates *why* the window is zero.
+
+#### 9.2.2 Affected Locations
+
+| Location | Before | After |
+|---|---|---|
+| View A incident table column header | `Drain Time` | `Interception Window` |
+| Countdown overlay label (View B map) | `⏱ Drain Time` | `🎯 INTERCEPTION WINDOW` |
+| Countdown overlay subtitle | *(absent)* | `Est. window to intercept cash-out` |
+| Admin Drawer result card | `Drain Time` | `Interception Window` |
+| Pipeline stage display name | `Stage 2 — Drain Time` | `Stage 2 — Interception Window` |
+
+#### 9.2.3 Zero-State Countdown Behaviour
+
+| Scenario | `cd-val` display | `cd-sub` display |
+|---|---|---|
+| Timer active, ≥ 10 min | `MM:SS` (green) | `N min elapsed since funds landed` |
+| Timer active, 5–10 min | `MM:SS` (amber) | `⚡ Urgent — act now` |
+| Timer active, < 5 min | `MM:SS` (red) | `⚠ Critical — < 5 min` |
+| **Timer reaches 0 during live countdown** | `INTERCEPTION WINDOW: CLOSED` (red) | `Window expired — cash-out complete or mule fled` |
+| **Pre-zero: `DAILY_LIMIT_EXHAUSTED`** | `INTERCEPTION WINDOW: CLOSED` (red) | `DAILY LIMIT EXHAUSTED` |
+| **Pre-zero: other / unknown reason** | `INTERCEPTION WINDOW: CLOSED` (red) | `NO WITHDRAWABLE BALANCE` |
+
+**Reason detection:** The UI parses the `STAGE_2_TEMPORAL` stage detail string returned by the API. If it contains `'DAILY_LIMIT_EXHAUSTED'`, the first contextual reason is shown; otherwise the generic fallback is used. No new API field is required.
+
+#### 9.2.4 Files Changed
+
+- **`ui/index.html`** — All label renames and `startCountdown()` logic rewrite.
+
+#### 9.2.5 Verification
+
+| Script | Result |
+|---|---|
+| `/tests/verify_interception_window.py` | 18/18 PASS |
+
+---
+
+### 9.3 Phase 09 Bug Fixes
+
+**PRD Version:** 1.6.0 — 06 September 2026  
+All three fixes are UI-only or API-internal. No schema changes. No new endpoints.
+
+---
+
+#### Bug Fix 01 — Async Webhook Dispatch Deadlock
+
+**Status:** `Fixed` — 06 September 2026
+
+| Field | Detail |
+|---|---|
+| **Root Cause** | `_dispatch_webhook()` used `httpx.Client` (sync/blocking) inside `ingest_incident` which is `async def`. Blocking I/O inside an async function freezes the uvicorn event loop. The self-referential webhook POST to `localhost:8000` could never be accepted while the loop was frozen → 10 s timeout × 4 attempts = ~75 s deadlock. |
+| **Fix** | Replaced `httpx.Client` with `httpx.AsyncClient` + `await`. `time.sleep` in retry backoff replaced with `await asyncio.sleep`. Function renamed `_dispatch_webhook_async`. `asyncio` added to imports. |
+| **Files Changed** | `api/main.py` |
+| **Test Impact** | Injectable `_WEBHOOK_HTTP_CLIENT` (TestClient, sync) path unchanged — all existing tests pass. Live server now succeeds on Attempt 1. |
+
+---
+
+#### Bug Fix 02 — Stale localStorage Drain Timer Registry
+
+**Status:** `Fixed` — 06 September 2026
+
+| Field | Detail |
+|---|---|
+| **Root Cause** | `_getSimDrainMinutes()` only registered a new entry if the `ncrp_ticket_id` key was absent from the registry. On page load, `_restoreSimMode()` reloads the registry from `localStorage`. If a prior session had processed the same ticket, the registry key already existed with an old `submittedAt` (potentially hours earlier). Computed `elapsed >> initialDrainSeconds` → `Math.max(0, …) = 0` → INTERCEPTION WINDOW showed `CLOSED` immediately despite 18.6 min remaining. |
+| **Fix** | `ingest()` in `ui/index.html` now **force-overwrites** the registry entry on every new POST, anchoring `submittedAt` to current wall time. Row-click / page-refresh path (`renderViewB`) still reads without overwriting — cross-session continuity preserved. |
+| **Files Changed** | `ui/index.html` |
+
+---
+
+#### Bug Fix 03 — Crew Dispatch State Not Persisting Across Refreshes
+
+**Status:** `Fixed` — 06 September 2026
+
+| Field | Detail |
+|---|---|
+| **Root Cause** | `acknowledge()` updated only the in-memory DOM. `renderCards()` rebuilt cards from the API-polled incident data on every row click or page refresh. The API has no dispatch state → buttons reverted to "Acknowledge & Dispatch", allowing accidental duplicate crew dispatch to the same ATM. |
+| **Fix** | Added `_dispatchRegistry` (JS `Map`) backed by `localStorage` key `synapse_dispatch_registry`. Key: `"${ncrp_ticket_id}:${atm_id}"`. On dispatch: entry written + persisted. `renderCards()` reads registry per ATM before rendering: dispatched → `done` state with `"✓ Crew Dispatched — #${rank}"`; otherwise → normal button. Other ATMs' buttons unaffected. Entries never cleared — permanent operational record. |
+| **Files Changed** | `ui/index.html` |
+
+---
+
+### 9.4 Phase 09 Feature 03 — Incident Intelligence Panel
+
+**Status:** `Code Complete` — 06 September 2026  
+**PRD Version:** 1.7.0
+
+#### 9.4.1 Problem
+
+When an officer opened an incident in View B, the only visible data was the map, confidence scores, and ATM cards. The full intelligence context — who filed the complaint, how the money moved, whose account it reached, what IPs the mule used — was invisible. Officers had no way to understand the incident depth from the dashboard.
+
+#### 9.4.2 Changes
+
+| File | Change |
+|---|---|
+| `api/schemas.py` | `complainant_name: Optional[str] = None` added to `NCRPTicket`. Fully backward-compatible — existing payloads without the field parse with `None`. |
+| `synthetic/generator.py` | 25-name Indian complainant pool added. `complainant_name` injected into all newly generated payloads. |
+| `api/main.py` | `payload_snapshot: Optional[Dict]` added to `IngestResponse`. Populated at ingest time from original `IncidentPayload` — includes `fraud_type`, `victim_state/district`, `complainant_name`, `complaint_timestamp`, `amount_inr`, `source_account`, `transactions[]`, `terminal_mule{}`, `ip_cluster[]`. `linked_card_number_hash` intentionally excluded (PAN-adjacent). |
+| `ui/index.html` | New **Incident Intelligence** section in View B below `#vb-grid`: (1) Case Overview card, (2) Source Account card, (3) Terminal Mule Account card, (4) Transaction Flow accordion (per-hop expandable), (5) IP Intelligence table. All fields render `N/A` gracefully when absent. |
+
+#### 9.4.3 Design Decisions
+
+- `payload_snapshot` is a one-time snapshot at ingest time — it does not update if the incident changes post-ingest. Live updates are out of scope for F03 (planned for Phase 10).
+- `complainant_name` uses `Optional[str] = None` so existing 3-city payloads (no field) parse cleanly. No migration needed.
+- Panel hides automatically if `payload_snapshot` is absent (incidents ingested before server restart).
+
+---
+
+#### Bug Fix 04 — Interception Window Zero-State Messaging
+
+**Status:** `Fixed` — 06 September 2026
+
+| Field | Detail |
+|---|---|
+| **Root Cause** | When `drain_time_remaining_minutes = 0` and `drainable_today_inr > 0` (money present but time elapsed), the UI showed `INTERCEPTION WINDOW: CLOSED / NO WITHDRAWABLE BALANCE` — factually wrong. The Delhi payload demonstrated this: ₹4,22,140 balance, Urgency = 1.0, yet displayed 'NO WITHDRAWABLE BALANCE'. The previous two-case logic conflated 'time ran out' with 'no money'. |
+| **Three Zero States** | (1) `DAILY LIMIT EXHAUSTED` — daily ATM cap hit (detected via `STAGE_2_TEMPORAL` detail string); (2) `WINDOW ELAPSED — MULE MAY BE AT ATM` — time ran out but `drainable_today_inr > 100`, money accessible, mule in transit — **most urgent state**; (3) `NO WITHDRAWABLE BALANCE` — `drainable_today_inr ≤ 100`, funds genuinely inaccessible. |
+| **Files Changed** | `ui/index.html` |
+| **Operational Impact** | Officers now receive an accurate threat signal. The 'WINDOW ELAPSED — MULE MAY BE AT ATM' state correctly escalates urgency rather than falsely de-escalating with 'no balance'. |
 
 *— End of Document —*
