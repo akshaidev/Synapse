@@ -92,6 +92,22 @@ _ATM_REGISTRY: List[Dict[str, Any]] = []
 # In-memory incident log (serves GET /api/v1/incidents)
 _incidents: List[Dict[str, Any]] = []
 
+# In-memory lien registry (backed by data/lien_registry.json)
+_LIEN_REGISTRY: Dict[str, Any] = {"active_liens": {}, "revocation_log": []}
+_LIEN_REGISTRY_PATH: str = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "lien_registry.json"
+)
+
+
+def _persist_lien_registry() -> None:
+    """Write the in-memory lien registry to disk (data/lien_registry.json)."""
+    try:
+        with open(_LIEN_REGISTRY_PATH, "w", encoding="utf-8") as f:
+            json.dump(_LIEN_REGISTRY, f, indent=2, default=str)
+        logger.info(f"[LIEN] Registry persisted to {_LIEN_REGISTRY_PATH}")
+    except Exception as exc:
+        logger.error(f"[LIEN] Failed to persist registry: {exc}")
+
 # Mock webhook endpoint (self-referential — receiver on the same server)
 MOCK_WEBHOOK_BASE_URL = os.environ.get("SYNAPSE_BASE_URL", "http://localhost:8000")
 MOCK_WEBHOOK_PATH = "/api/v1/freeze-card-atm"
@@ -200,6 +216,29 @@ def load_atm_registry() -> None:
         _ATM_REGISTRY = json.load(f)
 
     logger.info(f"[STARTUP] ATM registry loaded: {len(_ATM_REGISTRY)} records from {registry_path}")
+
+
+@app.on_event("startup")
+def load_lien_registry() -> None:
+    """Load the lien registry from JSON into memory at server startup."""
+    global _LIEN_REGISTRY
+    if os.path.exists(_LIEN_REGISTRY_PATH):
+        try:
+            with open(_LIEN_REGISTRY_PATH, "r", encoding="utf-8") as f:
+                _LIEN_REGISTRY = json.load(f)
+            active_count = len(_LIEN_REGISTRY.get("active_liens", {}))
+            revoke_count = len(_LIEN_REGISTRY.get("revocation_log", []))
+            logger.info(
+                f"[STARTUP] Lien registry loaded: {active_count} active liens, "
+                f"{revoke_count} revocation log entries from {_LIEN_REGISTRY_PATH}"
+            )
+        except Exception as exc:
+            logger.error(f"[STARTUP] Failed to load lien registry: {exc}. Starting empty.")
+            _LIEN_REGISTRY = {"active_liens": {}, "revocation_log": []}
+    else:
+        logger.info(f"[STARTUP] Lien registry not found at {_LIEN_REGISTRY_PATH}. Creating empty.")
+        _LIEN_REGISTRY = {"active_liens": {}, "revocation_log": []}
+        _persist_lien_registry()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -731,6 +770,25 @@ async def ingest_incident(
             wh_result = await _dispatch_webhook_async(wh_payload)
             webhook_dispatched = True
             webhook_status = wh_result
+
+            # ── Auto-seed lien registry for terminal mule on successful webhook ──
+            if wh_result == "SUCCESS":
+                mule_acct = payload.terminal_mule.mule_account_number
+                if mule_acct not in _LIEN_REGISTRY["active_liens"]:
+                    _LIEN_REGISTRY["active_liens"][mule_acct] = {
+                        "account_number": mule_acct,
+                        "bank_name": payload.terminal_mule.mule_bank,
+                        "ifsc": payload.terminal_mule.mule_ifsc,
+                        "incident_id": payload.ncrp_ticket.ticket_id,
+                        "initiated_at": datetime.now(timezone.utc).isoformat(),
+                        "source": "PIPELINE",
+                        "webhook_status": "SUCCESS",
+                    }
+                    _persist_lien_registry()
+                    logger.info(
+                        f"[LIEN] Auto-seeded lien for terminal mule {mule_acct} "
+                        f"(pipeline webhook SUCCESS)"
+                    )
         except Exception as exc:
             webhook_status = "FAILED"
             logger.error(f"[INGEST {incident_id}] Webhook build/dispatch error: {exc}")
@@ -837,6 +895,31 @@ async def ingest_incident(
             for ip in (payload.terminal_mule.ip_cluster or [])
         ],
     }
+    # Phase 10 Feature: Automatic Simulated Withdrawal
+    # The scammer naturally withdraws in 10,000 brackets when the window reaches zero.
+    import math
+    if result.drain_time_remaining_minutes is not None and result.drainable_today_inr is not None and result.drainable_today_inr > 0:
+        simulated_amt = math.floor(result.drainable_today_inr / 10000.0) * 10000.0
+        if simulated_amt > 0 and result.drain_time_remaining_minutes <= 0.0:
+            logger.info(f"[INGEST {incident_id}] Window elapsed on arrival. Simulating auto-withdrawal of ₹{simulated_amt:,.2f}")
+            mule_snap = result.payload_snapshot["terminal_mule"]
+            mule_snap["withdrawals_today_inr"] += simulated_amt
+            mule_snap["balance_inr"] = max(0.0, mule_snap["balance_inr"] - simulated_amt)
+            
+            new_drainable = max(0.0, min(
+                mule_snap["balance_inr"],
+                mule_snap["daily_limit_inr"] - mule_snap["withdrawals_today_inr"]
+            ))
+            result.drainable_today_inr = new_drainable
+            
+            if new_drainable <= 100:
+                for s in result.stages:
+                    if s.stage == "STAGE_2_TEMPORAL":
+                        if mule_snap["withdrawals_today_inr"] >= mule_snap["daily_limit_inr"]:
+                            s.detail += " | DAILY_LIMIT_EXHAUSTED"
+                        else:
+                            s.detail += " | BALANCE_EXHAUSTED"
+
     _incidents.append(result.model_dump())
 
     logger.info(
@@ -1160,3 +1243,213 @@ async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONRes
             },
         },
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/liens — Retrieve Digital Lien Registry
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get(
+    "/api/v1/liens",
+    summary="Retrieve Digital Lien Registry",
+    tags=["Lien Management"],
+)
+async def get_liens() -> JSONResponse:
+    """
+    Returns the full lien registry: active liens (keyed by account number) and
+    the append-only revocation log. The UI fetches this on page load and after
+    every lien action to render correct button states.
+    """
+    return JSONResponse(content=_LIEN_REGISTRY)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/liens — Initiate or Revoke a Digital Lien
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/liens",
+    summary="Initiate or Revoke a Digital Lien",
+    tags=["Lien Management"],
+)
+async def manage_lien(request: Request) -> JSONResponse:
+    """
+    Manages per-account digital liens.
+
+    Actions:
+        INITIATE — Dispatches a freeze webhook to /api/v1/freeze-card-atm for the
+                   specified account, then records the lien in the persistent registry.
+        REVOKE   — Removes an active lien and appends to the revocation log.
+                   Requires a mandatory 'reason' field.
+
+    Body (INITIATE):
+        {
+            "action": "INITIATE",
+            "account_number": "50100287654321",
+            "bank_name": "HDFC Bank",
+            "ifsc": "HDFC0001729",
+            "incident_id": "NCRP-2026-0045781"
+        }
+
+    Body (REVOKE):
+        {
+            "action": "REVOKE",
+            "account_number": "50100287654321",
+            "reason": "Account verified as non-mule by branch manager"
+        }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON body."})
+
+    action = body.get("action", "").upper()
+    account_number = body.get("account_number", "").strip()
+
+    if not account_number:
+        return JSONResponse(status_code=400, content={"error": "account_number is required."})
+
+    if action == "INITIATE":
+        # ── Check for duplicate ──────────────────────────────────────────────
+        if account_number in _LIEN_REGISTRY["active_liens"]:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": f"Account {account_number} already has an active lien.",
+                    "existing_lien": _LIEN_REGISTRY["active_liens"][account_number],
+                },
+            )
+
+        bank_name = body.get("bank_name", "Unknown Bank")
+        ifsc = body.get("ifsc", "UNKNOWN")
+        incident_id = body.get("incident_id", "MANUAL")
+
+        # ── Build and dispatch freeze webhook ────────────────────────────────
+        # Construct a lightweight webhook payload for this specific account.
+        ts_now = datetime.now(timezone.utc)
+        webhook_body = {
+            "webhook_version": "1.1.0",
+            "request_id": str(uuid.uuid4()),
+            "synapse_incident_id": incident_id,
+            "ncrp_ticket_id": incident_id,
+            "request_timestamp": ts_now.isoformat(),
+            "requesting_authority": {
+                "authority_name": "Indian Cyber Crime Coordination Centre (I4C), MHA",
+                "authority_code": "I4C-MHA",
+                "authorized_officer_id": "I4C-HANDLER-MANUAL",
+            },
+            "golden_hour_expiry": (ts_now + timedelta(minutes=120)).isoformat(),
+            "confidence_score": 1.0,
+            "intervention_tier": "PRIMARY_DIGITAL",
+            "card_hold": {
+                "card_number_hash": "0" * 64,
+                "hold_type": "ATM_WITHDRAWAL_BLOCK",
+                "hold_duration_minutes": 120,
+                "mule_account_number": account_number,
+                "mule_ifsc": ifsc,
+            },
+            "atm_blocks": [],
+            "justification": {
+                "drain_time_remaining_minutes": 0,
+                "drainable_today_inr": 0,
+                "fund_flow_depth": 0,
+                "total_amount_inr": 0,
+                "mule_location_method": "MANUAL_LIEN",
+            },
+            "callback_url": f"{MOCK_WEBHOOK_BASE_URL}/api/v1/webhook-callback/{incident_id}",
+        }
+
+        target_url = f"{MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
+        wh_status = "FAILED"
+        try:
+            if _WEBHOOK_HTTP_CLIENT is not None:
+                resp = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=webhook_body)
+            else:
+                async with httpx.AsyncClient(timeout=10.0) as http:
+                    resp = await http.post(target_url, json=webhook_body)
+            if resp.status_code == 200:
+                wh_status = "SUCCESS"
+            logger.info(
+                f"[LIEN] Manual webhook dispatched for {account_number} → "
+                f"HTTP {resp.status_code} ({wh_status})"
+            )
+        except Exception as exc:
+            logger.error(f"[LIEN] Manual webhook dispatch FAILED for {account_number}: {exc}")
+
+        # ── Record in registry ───────────────────────────────────────────────
+        _LIEN_REGISTRY["active_liens"][account_number] = {
+            "account_number": account_number,
+            "bank_name": bank_name,
+            "ifsc": ifsc,
+            "incident_id": incident_id,
+            "initiated_at": ts_now.isoformat(),
+            "source": "MANUAL",
+            "webhook_status": wh_status,
+        }
+        _persist_lien_registry()
+
+        logger.info(
+            f"[LIEN] INITIATED for {account_number} ({bank_name}) | "
+            f"incident={incident_id} | webhook={wh_status}"
+        )
+
+        return JSONResponse(
+            status_code=201,
+            content={
+                "status": "LIEN_INITIATED",
+                "account_number": account_number,
+                "webhook_status": wh_status,
+                "lien": _LIEN_REGISTRY["active_liens"][account_number],
+            },
+        )
+
+    elif action == "REVOKE":
+        # ── Validate active lien exists ──────────────────────────────────────
+        if account_number not in _LIEN_REGISTRY["active_liens"]:
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"No active lien found for account {account_number}."},
+            )
+
+        reason = body.get("reason", "").strip()
+        if not reason:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "A 'reason' is mandatory when revoking a digital lien."},
+            )
+
+        # ── Move from active to revocation log ───────────────────────────────
+        existing_lien = _LIEN_REGISTRY["active_liens"].pop(account_number)
+        revocation_entry = {
+            "account_number": account_number,
+            "bank_name": existing_lien.get("bank_name", "Unknown"),
+            "ifsc": existing_lien.get("ifsc", ""),
+            "incident_id": existing_lien.get("incident_id", ""),
+            "was_source": existing_lien.get("source", "UNKNOWN"),
+            "original_initiated_at": existing_lien.get("initiated_at", ""),
+            "revoked_at": datetime.now(timezone.utc).isoformat(),
+            "revoked_by": "handler",
+            "reason": reason,
+        }
+        _LIEN_REGISTRY["revocation_log"].append(revocation_entry)
+        _persist_lien_registry()
+
+        logger.info(
+            f"[LIEN] REVOKED for {account_number} | reason='{reason}' | "
+            f"was_source={existing_lien.get('source')}"
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "LIEN_REVOKED",
+                "account_number": account_number,
+                "reason": reason,
+                "revocation": revocation_entry,
+            },
+        )
+
+    else:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Unknown action '{action}'. Use 'INITIATE' or 'REVOKE'."},
+        )
+

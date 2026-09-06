@@ -1834,6 +1834,47 @@ Resolved incidents had no way to be closed. The active queue accumulated all inc
 | **Files Changed** | `ui/index.html` |
 | **Operational Impact** | Interception window countdown is now accurate across page refreshes for all submission paths (dashboard admin panel, Bank Feed Simulator, direct API POST). |
 
+### 10.5 Phase 10 Feature 05 — Automatic Simulated Withdrawal
+
+**Status:** `Verified & Approved` — 07 September 2026
+
+| Field | Detail |
+|---|---|
+| **Objective** | Automatically simulate natural mule ATM withdrawals when the interception window is already zero (or negative) at the moment of ingestion. |
+| **Logic** | During `POST /api/v1/ingest`, if `drain_time_remaining_minutes <= 0` and the mule has withdrawable balance, the system calculates `floor(drainable_today_inr / 10000) * 10000` to simulate the scammer's withdrawals in realistic ₹10,000 brackets. This simulated amount is immediately subtracted from the `terminal_mule`'s balance and added to `withdrawals_today_inr` inside the `payload_snapshot`. |
+| **Constraints** | If the initial drain time is `> 0`, the system explicitly bypasses the simulation to give human operators and automated holds a chance to intercept the funds before the window closes. |
+| **Files Changed** | `api/main.py` |
+
+---
+
+## 11. Phase 11 — Digital Lien Management System
+
+> **PRD Version:** 2.0.0  
+> **Date:** 07 September 2026
+
+---
+
+### 11.1 Phase 11 Feature 01 — Persistent Digital Liens & UI Synchronization
+
+**Status:** `Verified & Approved` — 07 September 2026
+
+#### 11.1.1 Problem
+
+Officers need manual control to initiate or revoke digital liens on mule accounts directly from the Synapse tactical dashboard. However, since the same physical account can appear multiple times in a fund flow graph (e.g., receiver in Hop 1 and sender in Hop 2), changing the lien state on one instance must instantly reflect on all other instances in the UI to prevent disjointed operational actions. Furthermore, if the Synapse pipeline automatically dispatches a webhook upon ingestion due to high confidence, this action must seed the same persistent state so the UI accurately shows the lien is already active.
+
+#### 11.1.2 Changes
+
+| File | Change |
+|---|---|
+| `api/main.py` | Implementation of `POST /api/v1/liens` (to initiate or revoke a lien) and `GET /api/v1/liens` (to query active liens). Lien state is persistently stored in `data/lien_registry.json`. Webhook logic `_dispatch_webhook_async` updated to automatically append a lien entry upon automatic dispatch (Confidence >= 0.70). |
+| `ui/index.html` | Added `fetchLienRegistry()` inside the 5-second `pollIncidents()` loop to continuously sync frontend state with the backend's `lien_registry.json` without excessive DOM thrashing. UI components (Terminal Mule, Hop flow accordions, Mark Resolved header) render dynamic "Initiate Digital Lien" or "Revoke Digital Lien" buttons based on this synced state. |
+
+#### 11.1.3 Design Decisions
+
+- **Centralized Source of Truth:** `data/lien_registry.json` acts as the definitive persistent store across the entire system. `localStorage` was intentionally rejected to ensure all logged-in tactical operators view the exact same lien states regardless of their browser session.
+- **Unified Automatic and Manual Operations:** By seeding the lien registry directly from the automated pipeline's webhook function, the system unifies automatic threat response with manual intervention. Officers clearly see if the pipeline has already acted ("Revoke Digital Lien {Pipeline}").
+- **State Synchronization via Diffing:** The frontend employs intelligent diffing against a global `_lienRegistry` set to avoid rebuilding the DOM (re-rendering incident tables) unless the lien state of an actively viewed account has explicitly changed, preserving UI performance.
+
 ---
 
 *— End of Document —*

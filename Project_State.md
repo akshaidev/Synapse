@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Project Synapse
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
-> **PRD Version:** v2.0.0 (Phase 10 complete — Bank Feed Simulator, Case Resolution, Sim Toggle, Timer Fix)  
-> **ASSUMPTIONS Version:** 41 entries (4 added — Phase 10 design decisions)  
-> **Last Updated:** 06 September 2026 — Phase 10 complete
+> **PRD Version:** v2.0.0 (Phase 11 complete — Digital Lien Management System)  
+> **ASSUMPTIONS Version:** 43 entries (6 added — Phase 10 & 11 design decisions)  
+> **Last Updated:** 07 September 2026 — Phase 11 complete
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 10 — Live Feed Simulator & Case Resolution (complete) |
-| **Last Completed Feature** | Phase 10 BF05: Drain timer reset fix for Bank Feed Simulator uploads (`Fixed` 06 Sep 2026) |
-| **Active Task** | None — Phase 10 fully complete |
+| **Current Phase** | Phase 11 — Digital Lien Management System (complete) |
+| **Last Completed Feature** | Phase 11 F01: Digital Lien Management System (`Fixed` 07 Sep 2026) |
+| **Active Task** | None |
 | **Immediate Next Task** | TBD — awaiting user direction for next phase |
-| **Known Blockers / Warnings** | Module 10 (F02) still pending user sign-off. Phase 10 modules (16–20) have no formal verification gate — verified live. |
+| **Known Blockers / Warnings** | Phase 10 and Phase 11 modules have no formal verification gate — verified live. |
 
 ---
 
@@ -396,6 +396,32 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 21: Automatic Simulated Withdrawal (Phase 10 Feature 05)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py` |
+| **PRD Reference** | PRD v2.0.0 §10.5 |
+| **Description** | `POST /api/v1/ingest` automatically simulates ATM withdrawals for scammers in ₹10,000 brackets when `drain_time_remaining_minutes <= 0` at the moment of ingestion. It immediately deducts the simulated amount from the `terminal_mule` balance and increments withdrawals. If the window is `> 0`, it intentionally leaves the payload untouched to give the police time to act. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 07 September 2026 |
+| **Notes** | Verified live — Delhi payload (`drain_time <= 0`) auto-simulated a withdrawal correctly. |
+
+---
+
+### Module 22: Digital Lien Management System (Phase 11 Feature 01)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py`, `ui/index.html` |
+| **PRD Reference** | Phase 11 Feature 01 |
+| **Description** | Fully persistent, backend-backed Digital Lien management system where Initiate = fire webhook and Revoke = cancel lien with reason. Lien buttons appear on all intermediary and terminal mule accounts in the UI. If the pipeline automatically triggers a webhook upon incident ingestion, the terminal mule's button immediately reflects the "Revoke Digital Lien {Pipeline}" state. Includes UI syncing (polling logic integrated with lien state detection). |
+| **Status** | `Code Complete` |
+| **Verification Date** | 07 September 2026 |
+| **Notes** | Verified live — automatic webhook dispatch flips terminal mule button state correctly; manual toggle triggers API calls properly; state survives page reloads. |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -421,6 +447,8 @@ All verification records are appended here chronologically. Each entry is create
 | 06 Sep 2026 | Module 18 — Case Resolution | N/A — verified live (3 cases resolved + reopened from both portals) | PASS | N/A |
 | 06 Sep 2026 | Module 19 — BF05 Timer Fix | N/A — verified live (countdown survived page refresh after Bank Feed upload) | PASS | N/A |
 | 06 Sep 2026 | Module 20 — /feed Route | N/A — verified: `localhost:8000/feed` serves simulator correctly | PASS | N/A |
+| 07 Sep 2026 | Module 21 — Auto Withdrawal | N/A — verified live (simulated withdrawal on ingestion when time <= 0) | PASS | N/A |
+| 07 Sep 2026 | Module 22 — Digital Lien System | N/A — verified live (syncs UI state with manual/pipeline webhooks) | PASS | N/A |
 
 ---
 
@@ -435,6 +463,7 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 4** | Synthetic Data & End-to-End Demo (3-city payloads, 90-second demo rehearsal) | Complete |
 | **Phase 9** | Additional Functionality (F01 Sim Mode, F02 Interception Window, F03 Intel Panel, BF01–04) | **Complete** |
 | **Phase 10** | Live Feed Simulator (Bank Feed portal, Case Resolution, Sim Toggle, Timer Fix, /feed route) | **Complete** |
+| **Phase 11** | Digital Lien Management System (Persistent manual/pipeline registry, UI Sync) | **Complete** |
 
 ---
 
