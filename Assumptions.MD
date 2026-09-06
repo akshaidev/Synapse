@@ -338,3 +338,35 @@
 * **Why Three States:** Each zero-state carries a fundamentally different operational implication and requires a different officer response: (1) `DAILY LIMIT EXHAUSTED` → mule cannot withdraw more today; threat is deferred to tomorrow; lower urgency. (2) `WINDOW ELAPSED — MULE MAY BE AT ATM` → time ran out but money is accessible; **this is the highest-urgency state** — dispatch immediately, ATM is the target NOW. (3) `NO WITHDRAWABLE BALANCE` → balance or drainable amount is ≤ ₹100; no financial threat remains. Collapsing (2) into (3) suppresses the alarm for the most time-critical scenario.
 * **System Impact:** `preZeroReason` logic in `renderViewB()` (`ui/index.html`) now checks: `DAILY_LIMIT_EXHAUSTED` in stage detail → case 1; `drainable_today_inr > 100` → case 2 (`WINDOW ELAPSED — MULE MAY BE AT ATM`); else → case 3. Threshold of ₹100 is chosen to exclude floating-point near-zero values while remaining below any meaningful withdrawal amount.
 
+---
+
+### [Architectural & Design Choice] Phase 10 Feature 01 — Single-Server Architecture for Both Portals
+
+* **Context / Decision:** The Bank Feed Simulator was initially conceived as running on a separate port (e.g., `8001`) via `python3 -m http.server`. This caused two problems: (1) The static server served `ui/index.html` as the default index, so visiting `localhost:8003/` loaded the dashboard not the feed portal; users had to manually navigate to `/feed.html`. (2) Serving from a different origin caused the feed portal to make cross-origin API calls that could hit CORS issues. Fixed by adding `GET /feed` to the FastAPI server, serving `ui/feed.html` from the same origin as all API routes.
+* **Why This Over Alternatives:** Alternative — add an `index.html` symlink or redirect in the `ui/` folder. Rejected: brittle, requires filesystem manipulation per deployment. Alternative — configure CORS headers specifically for the static server origin. Rejected: adds per-origin configuration maintenance and still requires two running processes. Single-server approach is simpler, more correct, and requires only one `uvicorn` command.
+* **System Impact:** `GET /feed` route added to `api/main.py` alongside `GET /` (dashboard). `_UI_FEED` path constant already existed (`_PROJECT_ROOT / "ui" / "feed.html"`). No changes to feed.html required. Deployment is now: `uvicorn api.main:app --reload --port 8000` → open `localhost:8000` (dashboard) and `localhost:8000/feed` (simulator) in two tabs.
+
+---
+
+### [Engineering Trade-off] Phase 10 Feature 02 — Client-Side ingestion_timestamp Mutation for Sim Mode
+
+* **Context / Decision:** In simulation mode, the interception window countdown must start from the moment of upload, not from the `ingestion_timestamp` field embedded in the saved JSON payload file (which is typically hours or days old). Two approaches: (A) mutate `ingestion_timestamp` client-side in the feed portal before POST, or (B) add a server-side parameter (e.g., `?stamp_now=true`) that causes the backend to override the timestamp.
+* **Why This Over Alternatives:** Approach B would add a new backend code path and potentially obscure what timestamp the backend actually used (making debugging harder). Approach A is transparent: the payload the backend receives already has the correct timestamp — the backend's existing sim mode logic (`T_ref = ingestion_timestamp`) works without any modification. The mutation is logged to the Feed Activity Log so the operator can verify exactly what timestamp was stamped.
+* **System Impact:** `submitPayload()` in `ui/feed.html` checks `_simMode` before POST. If true: `body.ncrp_ticket.ingestion_timestamp = new Date().toISOString()`. The mutation happens in the JavaScript object copy — the original textarea content is not modified (clearing and re-submitting would re-read the original file timestamp). Submission tagged `[SIM]` in activity log.
+
+---
+
+### [Architectural & Design Choice] Phase 10 Feature 03 — Backend-Resident Resolution State
+
+* **Context / Decision:** Case resolution state needed to be visible to both the Synapse dashboard and the Bank Feed Simulator simultaneously. Two approaches: (A) store resolution in browser `localStorage` (like dispatch registry), or (B) store resolution in the backend `_incidents` list and serve it via `GET /api/v1/incidents`.
+* **Why This Over Alternatives:** Approach A cannot be shared between two different browser origins (even on the same port, different tabs can have different `localStorage` states). Approach B leverages the existing poll loop — both portals poll `GET /api/v1/incidents` every 5 seconds and will see the resolved flag within one poll cycle. Resolution is a meaningful state change that should be authoritative (backend) rather than advisory (frontend).
+* **System Impact:** `POST /api/v1/incidents/{ncrp}/resolve` mutates `_incidents` entry in place, adding `resolved`, `resolved_at`, `resolution_reason`, `resolution_note`. `POST /api/v1/incidents/{ncrp}/unresolve` removes these fields (safety valve). `GET /api/v1/incidents` returns these fields naturally since it serializes `_incidents` directly. Both portals react within 5 s: dashboard's `renderTable()` filters `resolved` incidents to the Resolved Cases section; feed portal's `rebuildSelect()` filters them from the dropdown.
+
+---
+
+### [Engineering Trade-off] Phase 10 BF05 — Poll-Time Drain Timer Anchoring
+
+* **Context / Decision:** The `_drainTimerRegistry` anchors the interception window countdown to a wall-clock timestamp. Previously it was populated only at (1) dashboard admin panel submission and (2) lazy first row-click via `_getSimDrainMinutes()`. This meant incidents submitted via the Bank Feed Simulator had no registry entry until clicked — page refresh reset the countdown to the full initial drain value. Fix: `pollIncidents()` auto-registers every newly discovered incident immediately, anchoring `submittedAt = Date.now()`.
+* **Why This Over Alternatives:** Alternative — register at row-click time only (existing behavior). Problem: if user refreshes before clicking the row, registry was never populated. Alternative — require the Bank Feed Simulator to also write to `localStorage`. Problem: different origins share `localStorage` only on same-origin — this is fragile and couples the portals. Poll-time registration is the most reliable approach: `pollIncidents()` runs unconditionally every 5 seconds regardless of which portal submitted or whether any row has been clicked.
+* **System Impact:** `pollIncidents()` in `ui/index.html` now iterates `fresh` incidents before `renderTable()`. For each incident where `ncrp_ticket_id` is not in `_drainTimerRegistry` and `drain_time_remaining_minutes != null`, registers `{ submittedAt: Date.now(), initialDrainSeconds: Math.round(drainMins * 60) }` and sets `registryDirty = true`. After iteration, calls `_saveRegistry()` once if any new entries were added (batched write). Error delta: ≤5 s from true submission time (one poll cycle latency) — acceptable for a countdown measured in minutes.
+

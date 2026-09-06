@@ -994,9 +994,9 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
     }
 
-    /* CartoDB dark tiles already dark; slight desaturate */
+    /* OpenStreetMap standard tiles inverted for dark mode */
     .leaflet-tile-pane {
-      filter: brightness(.85) saturate(.8)
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
     }
 
     .leaflet-popup-content-wrapper {
@@ -2099,8 +2099,8 @@
     // ─── Leaflet Map ──────────────────────────────────────────────────────────────
     function initMap() {
       _map = L.map('map', { zoomControl: true, attributionControl: false });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19, subdomains: 'abcd',
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
       }).addTo(_map);
       _map.setView([20.5937, 78.9629], 5);
     }
@@ -2150,7 +2150,11 @@
       if (_layers.length) {
         try {
           const grp = L.featureGroup(_layers);
-          _map.fitBounds(grp.getBounds().pad(0.15));
+          // Wait for display:block to fully apply so Leaflet computes bounds correctly
+          setTimeout(() => {
+            _map.invalidateSize();
+            _map.fitBounds(grp.getBounds().pad(0.15));
+          }, 50);
         } catch (e) { _map.setView([lat, lon], 14); }
       }
     }
