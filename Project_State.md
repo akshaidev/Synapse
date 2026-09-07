@@ -407,16 +407,16 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
-### Module 22: Digital Lien Management System (Phase 11 Feature 01)
+### Module 22: Digital Lien Management System (Phase 11 Feature 01 + Phase 13 UX Fix)
 
 | Field | Value |
 |---|---|
 | **File** | `api/main.py`, `ui/index.html` |
 | **PRD Reference** | Phase 11 Feature 01 |
-| **Description** | Fully persistent, backend-backed Digital Lien management system where Initiate = fire webhook and Revoke = cancel lien with reason. Lien buttons appear on all intermediary and terminal mule accounts in the UI. If the pipeline automatically triggers a webhook upon incident ingestion, the terminal mule's button immediately reflects the "Revoke Digital Lien {Pipeline}" state. Includes UI syncing (polling logic integrated with lien state detection). |
+| **Description** | Fully persistent, backend-backed Digital Lien management system. Lien buttons appear on all intermediary and terminal mule accounts in the Transaction Flow accordion (victim's account at hop 1 sender is intentionally excluded). Every sender (hop > 1) and every receiver gets an "Initiate Digital Lien" or "Revoke Digital Lien" button. If the pipeline automatically triggers a webhook on ingestion, the terminal mule's button immediately reflects "Revoke Digital Lien [PIPELINE]". State synchronization: since the registry is keyed by account number, the receiver of Hop N and the sender of Hop N+1 (same account) always show the same button state. After any action, `fetchLienRegistry()` + `renderIntelPanel()` re-draws all buttons simultaneously. **Phase 13 UX Fix:** "Initiate Digital Lien" now opens a glassmorphism modal (`#lien-initiate-modal`, indigo accent) matching the existing Revoke modal (red accent). The browser `prompt()` dialog was removed. The modal collects a mandatory reason, validates it inline, shows a loading state during the async webhook dispatch, and handles server-side errors gracefully. |
 | **Status** | `Code Complete` |
 | **Verification Date** | 07 September 2026 |
-| **Notes** | Verified live — automatic webhook dispatch flips terminal mule button state correctly; manual toggle triggers API calls properly; state survives page reloads. |
+| **Notes** | Verified live (07 Sep): automatic webhook dispatch flips terminal mule button state correctly; manual toggle triggers API calls properly; state survives page reloads. Phase 13 UX fix verified live: Initiate modal opens on button click, reason required, both sender/receiver buttons for same account flip simultaneously after confirm. |
 
 ---
 

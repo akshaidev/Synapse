@@ -1,0 +1,16 @@
+{
+  "active_liens": {},
+  "revocation_log": [
+    {
+      "account_number": "84542071726385",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-6263051",
+      "was_source": "MANUAL",
+      "original_initiated_at": "2026-09-07T17:50:37.984023+00:00",
+      "revoked_at": "2026-09-07T17:51:06.645952+00:00",
+      "revoked_by": "Akshai",
+      "reason": "Account verified as non-mule"
+    }
+  ]
+}

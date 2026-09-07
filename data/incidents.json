@@ -166,11 +166,6 @@
           "last_seen": "2026-09-05T03:03:27.691205+00:00"
         }
       ]
-    },
-    "resolved": true,
-    "resolved_at": "2026-10-10T05:42:21.670312+00:00",
-    "resolution_reason": "WINDOW_ELAPSED_CASE_CLOSED",
-    "resolution_note": "Auto-closed after 30 days by system sweeper.",
-    "operator_id": "SYSTEM"
+    }
   }
 ]

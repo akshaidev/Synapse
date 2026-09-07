@@ -2495,7 +2495,8 @@
     // ─── Digital Lien Toggle Handler ─────────────────────────────────────────────
     // State held in _lienRegistry.active_liens[accountNumber] (backend-persisted).
     // After every action, re-fetch from backend and re-render the panel.
-    let _revokeTarget = null;  // { accountNumber, bankName, ifsc, incidentId }
+    let _revokeTarget = null;   // { accountNumber, bankName, ifsc, incidentId }
+    let _initiateTarget = null;  // { accountNumber, bankName, ifsc, incidentId }
 
     async function toggleLien(accountNumber, bankName, ifsc, incidentId) {
       const hasLien = _lienRegistry.active_liens && _lienRegistry.active_liens[accountNumber];
@@ -2511,7 +2512,7 @@
         document.getElementById('lien-revoke-err').textContent = '';
         _updateRevokeCustomVisibility();
       } else {
-        // Initiate — fires webhook immediately
+        // Initiate — open the Initiate Lien modal (same design as Revoke modal)
         const opInput = document.getElementById('global-operator-id');
         const operatorId = opInput ? opInput.value.trim() : '';
         if (!operatorId) {
@@ -2519,37 +2520,71 @@
           return;
         }
 
-        const reason = prompt("Please enter a reason for initiating this lien (e.g., Investigating suspicious transfers):");
-        if (!reason) return; // User cancelled
+        _initiateTarget = { accountNumber, bankName, ifsc, incidentId };
+        document.getElementById('lien-initiate-acct').textContent = accountNumber;
+        document.getElementById('lien-initiate-bank').textContent = bankName || 'N/A';
+        document.getElementById('lien-initiate-reason').value = '';
+        document.getElementById('lien-initiate-err').textContent = '';
+        document.getElementById('lien-initiate-submit-btn').disabled = false;
+        document.getElementById('lien-initiate-submit-btn').textContent = 'Confirm — Initiate Lien';
+        document.getElementById('lien-initiate-modal').style.display = 'flex';
+      }
+    }
 
-        try {
-          const res = await fetch('/api/v1/liens', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'INITIATE',
-              account_number: accountNumber,
-              operator_id: operatorId,
-              reason: reason,
-              bank_name: bankName,
-              ifsc: ifsc,
-              incident_id: incidentId,
-            }),
-          });
-          const data = await res.json();
-          if (res.ok || res.status === 201) {
-            console.log(`[LIEN] Initiated for ${accountNumber} — webhook: ${data.webhook_status}`);
-          } else if (res.status === 409) {
-            console.warn(`[LIEN] Already active for ${accountNumber}`);
-          } else {
-            console.error('[LIEN] Initiate failed:', data);
-          }
-        } catch (e) {
-          console.error('[LIEN] Initiate network error:', e);
+    function closeLienInitiateModal() {
+      document.getElementById('lien-initiate-modal').style.display = 'none';
+      _initiateTarget = null;
+    }
+
+    async function submitLienInitiate() {
+      if (!_initiateTarget) return;
+
+      const reason = document.getElementById('lien-initiate-reason').value.trim();
+      if (!reason) {
+        document.getElementById('lien-initiate-err').textContent = 'A reason is mandatory to initiate a digital lien.';
+        return;
+      }
+
+      const opInput = document.getElementById('global-operator-id');
+      const operatorId = opInput ? opInput.value.trim() : '';
+      if (!operatorId) {
+        document.getElementById('lien-initiate-err').textContent = 'Operator ID is required. Please set it in the Admin Drawer.';
+        return;
+      }
+
+      const btn = document.getElementById('lien-initiate-submit-btn');
+      btn.disabled = true; btn.textContent = 'Initiating…';
+
+      try {
+        const res = await fetch('/api/v1/liens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'INITIATE',
+            account_number: _initiateTarget.accountNumber,
+            operator_id: operatorId,
+            reason: reason,
+            bank_name: _initiateTarget.bankName,
+            ifsc: _initiateTarget.ifsc,
+            incident_id: _initiateTarget.incidentId,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok || res.status === 201) {
+          console.log(`[LIEN] Initiated for ${_initiateTarget.accountNumber} — webhook: ${data.webhook_status}`);
+          closeLienInitiateModal();
+          await fetchLienRegistry();
+          if (_selected) renderIntelPanel(_selected);
+        } else if (res.status === 409) {
+          document.getElementById('lien-initiate-err').textContent = 'A lien is already active for this account.';
+          btn.disabled = false; btn.textContent = 'Confirm — Initiate Lien';
+        } else {
+          document.getElementById('lien-initiate-err').textContent = data.error || 'Server error — could not initiate lien.';
+          btn.disabled = false; btn.textContent = 'Confirm — Initiate Lien';
         }
-        // Re-fetch and re-render
-        await fetchLienRegistry();
-        if (_selected) renderIntelPanel(_selected);
+      } catch (e) {
+        document.getElementById('lien-initiate-err').textContent = 'Network error: ' + e.message;
+        btn.disabled = false; btn.textContent = 'Confirm — Initiate Lien';
       }
     }
 
@@ -2875,6 +2910,38 @@
       <div style="display:flex;gap:.75rem">
         <button id="lien-revoke-submit-btn" onclick="submitLienRevoke()" style="flex:1;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:9px;padding:.7rem 1.25rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">Confirm Revocation</button>
         <button onclick="closeLienRevokeModal()" style="background:#0d1117;border:1px solid rgba(239,68,68,.15);color:#64748b;border-radius:9px;padding:.7rem 1rem;font-size:.82rem;cursor:pointer;font-family:inherit">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lien Initiation Modal ── -->
+  <div id="lien-initiate-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#111827;border:1px solid rgba(99,102,241,.25);border-radius:18px;padding:2rem;width:100%;max-width:480px;box-shadow:0 0 60px rgba(99,102,241,.12)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <div>
+          <div style="font-size:.65rem;color:#818cf8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem">DIGITAL LIEN INITIATION</div>
+          <div style="font-weight:800;font-size:1rem">Initiate Digital Lien</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#64748b;margin-top:.2rem">
+            <span id="lien-initiate-acct"></span> · <span id="lien-initiate-bank"></span>
+          </div>
+        </div>
+        <button onclick="closeLienInitiateModal()" style="background:none;border:none;color:#64748b;font-size:1.25rem;cursor:pointer;padding:.25rem">✕</button>
+      </div>
+
+      <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.1rem;font-size:.75rem;color:#94a3b8;line-height:1.5">
+        🔒 Initiating a lien will immediately send a freeze webhook to the bank's card management switch. This action is logged and attributed to your Operator ID.
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Reason for Initiating Lien <span style="color:#f87171">*</span></label>
+        <textarea id="lien-initiate-reason" rows="3" placeholder="e.g. Suspicious transfer pattern detected — account flagged as intermediary mule…" style="width:100%;background:#0d1117;border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none;resize:none;box-sizing:border-box"></textarea>
+      </div>
+
+      <div style="color:#fca5a5;font-size:.75rem;margin-bottom:.75rem;min-height:1rem" id="lien-initiate-err"></div>
+
+      <div style="display:flex;gap:.75rem">
+        <button id="lien-initiate-submit-btn" onclick="submitLienInitiate()" style="flex:1;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:9px;padding:.7rem 1.25rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">Confirm — Initiate Lien</button>
+        <button onclick="closeLienInitiateModal()" style="background:#0d1117;border:1px solid rgba(99,102,241,.15);color:#64748b;border-radius:9px;padding:.7rem 1rem;font-size:.82rem;cursor:pointer;font-family:inherit">Cancel</button>
       </div>
     </div>
   </div>
