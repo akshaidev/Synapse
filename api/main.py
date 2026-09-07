@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 import pathlib
+from filelock import FileLock
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -90,8 +91,20 @@ _RETRY_DELAY_SECONDS: float = float(os.environ.get("SYNAPSE_WEBHOOK_DELAY", 5.0)
 # ATM Registry (in-memory, populated at startup)
 _ATM_REGISTRY: List[Dict[str, Any]] = []
 
-# In-memory incident log (serves GET /api/v1/incidents)
+# In-memory incident log (backed by data/incidents.json)
 _incidents: List[Dict[str, Any]] = []
+_INCIDENTS_PATH: str = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "incidents.json"
+)
+
+def _persist_incidents() -> None:
+    """Write the in-memory incidents to disk (data/incidents.json)."""
+    try:
+        with FileLock(f"{_INCIDENTS_PATH}.lock", timeout=5):
+            with open(_INCIDENTS_PATH, "w", encoding="utf-8") as f:
+                json.dump(_incidents, f, indent=2, default=str)
+    except Exception as exc:
+        logger.error(f"[INCIDENTS] Failed to persist registry: {exc}")
 
 # In-memory lien registry (backed by data/lien_registry.json)
 _LIEN_REGISTRY: Dict[str, Any] = {"active_liens": {}, "revocation_log": []}
@@ -103,8 +116,9 @@ _LIEN_REGISTRY_PATH: str = os.path.join(
 def _persist_lien_registry() -> None:
     """Write the in-memory lien registry to disk (data/lien_registry.json)."""
     try:
-        with open(_LIEN_REGISTRY_PATH, "w", encoding="utf-8") as f:
-            json.dump(_LIEN_REGISTRY, f, indent=2, default=str)
+        with FileLock(f"{_LIEN_REGISTRY_PATH}.lock", timeout=5):
+            with open(_LIEN_REGISTRY_PATH, "w", encoding="utf-8") as f:
+                json.dump(_LIEN_REGISTRY, f, indent=2, default=str)
         logger.info(f"[LIEN] Registry persisted to {_LIEN_REGISTRY_PATH}")
     except Exception as exc:
         logger.error(f"[LIEN] Failed to persist registry: {exc}")
@@ -119,8 +133,9 @@ _DISPATCH_REGISTRY_PATH: str = os.path.join(
 def _persist_dispatch_registry() -> None:
     """Write the in-memory dispatch registry to disk (data/sent_crew.json)."""
     try:
-        with open(_DISPATCH_REGISTRY_PATH, "w", encoding="utf-8") as f:
-            json.dump(_DISPATCH_REGISTRY, f, indent=2, default=str)
+        with FileLock(f"{_DISPATCH_REGISTRY_PATH}.lock", timeout=5):
+            with open(_DISPATCH_REGISTRY_PATH, "w", encoding="utf-8") as f:
+                json.dump(_DISPATCH_REGISTRY, f, indent=2, default=str)
         logger.info(f"[DISPATCH] Registry persisted to {_DISPATCH_REGISTRY_PATH}")
     except Exception as exc:
         logger.error(f"[DISPATCH] Failed to persist registry: {exc}")
@@ -276,6 +291,26 @@ def load_dispatch_registry() -> None:
         logger.info(f"[STARTUP] Dispatch registry not found at {_DISPATCH_REGISTRY_PATH}. Creating empty.")
         _DISPATCH_REGISTRY = {}
         _persist_dispatch_registry()
+
+
+@app.on_event("startup")
+def load_incidents() -> None:
+    """Load the incidents from JSON into memory at server startup."""
+    global _incidents
+    if os.path.exists(_INCIDENTS_PATH):
+        try:
+            with open(_INCIDENTS_PATH, "r", encoding="utf-8") as f:
+                _incidents = json.load(f)
+            logger.info(
+                f"[STARTUP] Incidents loaded: {len(_incidents)} records from {_INCIDENTS_PATH}"
+            )
+        except Exception as exc:
+            logger.error(f"[STARTUP] Failed to load incidents: {exc}. Starting empty.")
+            _incidents = []
+    else:
+        logger.info(f"[STARTUP] Incidents not found at {_INCIDENTS_PATH}. Creating empty.")
+        _incidents = []
+        _persist_incidents()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -634,6 +669,7 @@ async def ingest_incident(
             simulation_mode=simulation_active,
         )
         _incidents.append(result.model_dump())
+        _persist_incidents()
         return result
 
     if not stage1.is_viable:
@@ -652,6 +688,7 @@ async def ingest_incident(
             simulation_mode=simulation_active,
         )
         _incidents.append(result.model_dump())
+        _persist_incidents()
         return result
 
     stages.append(PipelineStageStatus(
@@ -687,6 +724,7 @@ async def ingest_incident(
             simulation_mode=simulation_active,
         )
         _incidents.append(result.model_dump())
+        _persist_incidents()
         return result
 
     drain_tag = "DAILY_LIMIT_EXHAUSTED" if stage2.daily_limit_exhausted else f"{stage2.drain_time_remaining_minutes:.1f} min remaining"
@@ -718,6 +756,7 @@ async def ingest_incident(
             simulation_mode=simulation_active,
         )
         _incidents.append(result.model_dump())
+        _persist_incidents()
         return result
 
     try:
@@ -739,6 +778,7 @@ async def ingest_incident(
             simulation_mode=simulation_active,
         )
         _incidents.append(result.model_dump())
+        _persist_incidents()
         return result
 
     top_atm_risk = stage3.top_atms[0].risk_score if stage3.top_atms else 0.0
@@ -958,6 +998,7 @@ async def ingest_incident(
                             s.detail += " | BALANCE_EXHAUSTED"
 
     _incidents.append(result.model_dump())
+    _persist_incidents()
 
     logger.info(
         f"[INGEST {incident_id}] ✅ COMPLETE — "
@@ -1146,6 +1187,8 @@ async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONRespons
     target["resolution_reason"]  = reason
     target["resolution_note"]    = note
 
+    _persist_incidents()
+
     logger.info(
         f"[RESOLVE] ncrp={ncrp_ticket_id} | reason={reason} | note='{note}' | at={ts}"
     )
@@ -1178,6 +1221,7 @@ async def unresolve_incident(ncrp_ticket_id: str) -> JSONResponse:
             inc.pop("resolved_at", None)
             inc.pop("resolution_reason", None)
             inc.pop("resolution_note", None)
+            _persist_incidents()
             logger.info(f"[UNRESOLVE] ncrp={ncrp_ticket_id}")
             return JSONResponse(status_code=200, content={"status": "REOPENED", "ncrp_ticket_id": ncrp_ticket_id})
     return JSONResponse(status_code=404, content={"error": f"Incident '{ncrp_ticket_id}' not found."})
@@ -1257,6 +1301,9 @@ async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONRes
     target["drainable_today_inr"] = round(new_drainable, 2)
 
     ts = datetime.now(timezone.utc).isoformat()
+
+    _persist_incidents()
+
     logger.info(
         f"[LIVE-UPDATE] ncrp={ncrp_ticket_id} | "
         f"+withdrawal=₹{additional_withdrawal:,.2f} | "

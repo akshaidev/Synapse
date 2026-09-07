@@ -26,6 +26,15 @@
       "initiated_at": "2026-09-07T12:47:34.117621+00:00",
       "source": "MANUAL",
       "webhook_status": "SUCCESS"
+    },
+    "09871234567890": {
+      "account_number": "09871234567890",
+      "bank_name": "Canara Bank",
+      "ifsc": "CNRB0002341",
+      "incident_id": "NCRP-2026-0045781",
+      "initiated_at": "2026-09-07T14:13:37.576817+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
     }
   },
   "revocation_log": [
@@ -147,6 +156,17 @@
       "was_source": "PIPELINE",
       "original_initiated_at": "2026-09-07T04:47:28.859982+00:00",
       "revoked_at": "2026-09-07T12:47:39.332390+00:00",
+      "revoked_by": "handler",
+      "reason": "Account verified as non-mule"
+    },
+    {
+      "account_number": "6291087432156",
+      "bank_name": "State Bank of India",
+      "ifsc": "SBIN0011424",
+      "incident_id": "NCRP-2026-0045781",
+      "was_source": "MANUAL",
+      "original_initiated_at": "2026-09-07T14:14:36.743453+00:00",
+      "revoked_at": "2026-09-07T14:14:42.794525+00:00",
       "revoked_by": "handler",
       "reason": "Account verified as non-mule"
     }
