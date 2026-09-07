@@ -1550,6 +1550,8 @@ The MVP is a **single unified web application** demonstrating the end-to-end Syn
 | 1.6.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Bug Fixes 01–03: (BF01) Webhook async deadlock fixed — httpx.Client → httpx.AsyncClient + await; (BF02) Stale localStorage drain timer registry — force-overwrite on new ingest POST; (BF03) Crew dispatch state persistence — _dispatchRegistry backed by localStorage so button state survives page refresh. |
 | 1.7.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Feature 03: Incident Intelligence Panel in View B — payload_snapshot added to IngestResponse, complainant_name added to NCRPTicket schema and generator, UI panel renders Case Overview / Source Account / Terminal Mule / Transaction Flow accordion / IP Intelligence table. |
 | 1.8.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Bug Fix 04: Interception Window zero-state messaging — corrected misleading 'NO WITHDRAWABLE BALANCE' shown when money is present but time elapsed. Now correctly shows 'WINDOW ELAPSED — MULE MAY BE AT ATM' when drainable_today_inr > 100 and drain_time = 0. |
+| 2.0.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 12 Feature 01: Crew Dispatch Migration. Moved from `localStorage` to backend `data/sent_crew.json`. |
+| 2.1.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 1: Data Integrity & File Locking. Added `filelock` package to all JSON registry writes to prevent concurrent officer corruption. Implemented `_incidents` persistence to `data/incidents.json` to survive restarts. |
 
 ---
 

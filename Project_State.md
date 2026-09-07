@@ -11,10 +11,10 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 12 — Crew Dispatch Migration (complete) |
-| **Last Completed Feature** | Phase 12 F01: Backend Dispatch Registry (`Fixed` 07 Sep 2026) |
-| **Active Task** | None |
-| **Immediate Next Task** | TBD — awaiting user direction for next phase |
+| **Current Phase** | Phase 13 — Production Hardening & Audit Fixes |
+| **Last Completed Feature** | Phase 13 Point 1: Data Integrity & File Locking (`Fixed` 07 Sep 2026) |
+| **Active Task** | Phase 13 Point 2: Validation & Accountability (Operator ID) |
+| **Immediate Next Task** | Update schemas and endpoints for operator identity |
 | **Known Blockers / Warnings** | Phase 10 and Phase 11 modules have no formal verification gate — verified live. |
 
 ---

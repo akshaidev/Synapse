@@ -389,3 +389,18 @@
   - (3) **Pipeline Seeding vs Manual Only:** The ML pipeline's automated webhooks (`PRIMARY_DIGITAL`) perform the exact same action as the manual "Initiate" button. If the pipeline didn't seed the registry, operators would see a disconnected state (funds frozen automatically, but UI says "Initiate"). Seeding the registry during automatic dispatch unifies automated and manual actions.
 * **System Impact:** Replaced frontend-only mock toggles with robust backend logic. `api/main.py` now includes `/api/v1/liens` (GET and POST). The pipeline function `_dispatch_webhook_async` was updated to append an automatic entry into the lien registry. `ui/index.html` gained `fetchLienRegistry()` and `updateLienButtonsUI()` diffing logic to minimize DOM thrashing during the 5s poll.
 
+---
+
+### [Engineering Trade-off] Phase 13 Point 1 — FileLock over Database Migrations
+
+* **Context / Decision:** We implemented the `filelock` package (`with FileLock("...lock"):`) around all our JSON-based persistence layers (`lien_registry.json`, `sent_crew.json`, `incidents.json`) to prevent concurrent write corruption from multiple tactical officers.
+* **Why This Over Alternatives:** For a hackathon MVP, migrating the entire application state to a proper database (like PostgreSQL with Row-Level Locking) would require significant setup, migrations, and dockerization overhead. `filelock` is a highly robust, zero-configuration primitive that provides cross-process thread safety directly on the filesystem. It secures data integrity while maintaining our "zero-dependency, ultra-fast local deployment" design pillar.
+* **System Impact:** The system is now concurrent-safe for multi-officer access. The latency cost of acquiring a lock is microseconds, completely negligible.
+
+---
+
+### [Engineering Trade-off] Phase 13 Point 2 — MVP Operator Identity over Full RBAC
+
+* **Context / Decision:** We have decided to implement a manual `Operator ID` input field on state-mutating UI modals (Resolve, Lien Initiate, Lien Revoke) instead of a full Role-Based Access Control (RBAC) and JWT Authentication system as originally outlined in PRD 2.3.
+* **Why This Over Alternatives:** Full authentication (RBAC + TOTP + Session Management) is a massive scope creep for a 48-hour hackathon MVP and distracts from the core ML/fraud interception problem. However, allowing anonymous, untraceable account freezing is unacceptable. By enforcing an explicit `operator_id` parameter on critical API endpoints, we satisfy the "Accountability/Audit Log" requirement without the heavy infrastructure of an auth server.
+* **System Impact:** Hardcoded strings (`"handler"`) are replaced with traceable, user-submitted IDs in all audit registries. If left empty, the API strictly rejects the request via 422 Unprocessable Content.
