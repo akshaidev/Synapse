@@ -55,6 +55,7 @@ from api.schemas import (
     HoldType,
     Justification,
     RequestingAuthority,
+    DispatchRequest,
 )
 from core.cluster import rank_atms, Stage3Result
 from core.graph import isolate_terminal_mule, Stage1Result
@@ -107,6 +108,22 @@ def _persist_lien_registry() -> None:
         logger.info(f"[LIEN] Registry persisted to {_LIEN_REGISTRY_PATH}")
     except Exception as exc:
         logger.error(f"[LIEN] Failed to persist registry: {exc}")
+
+# In-memory dispatch registry (backed by data/sent_crew.json)
+# Format: {"{ncrp_ticket_id}:{atm_id}": {"rank": int, "atmId": str, "ncrpId": str, "dispatchedAt": str}}
+_DISPATCH_REGISTRY: Dict[str, Any] = {}
+_DISPATCH_REGISTRY_PATH: str = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "sent_crew.json"
+)
+
+def _persist_dispatch_registry() -> None:
+    """Write the in-memory dispatch registry to disk (data/sent_crew.json)."""
+    try:
+        with open(_DISPATCH_REGISTRY_PATH, "w", encoding="utf-8") as f:
+            json.dump(_DISPATCH_REGISTRY, f, indent=2, default=str)
+        logger.info(f"[DISPATCH] Registry persisted to {_DISPATCH_REGISTRY_PATH}")
+    except Exception as exc:
+        logger.error(f"[DISPATCH] Failed to persist registry: {exc}")
 
 # Mock webhook endpoint (self-referential — receiver on the same server)
 MOCK_WEBHOOK_BASE_URL = os.environ.get("SYNAPSE_BASE_URL", "http://localhost:8000")
@@ -239,6 +256,26 @@ def load_lien_registry() -> None:
         logger.info(f"[STARTUP] Lien registry not found at {_LIEN_REGISTRY_PATH}. Creating empty.")
         _LIEN_REGISTRY = {"active_liens": {}, "revocation_log": []}
         _persist_lien_registry()
+
+
+@app.on_event("startup")
+def load_dispatch_registry() -> None:
+    """Load the dispatch registry from JSON into memory at server startup."""
+    global _DISPATCH_REGISTRY
+    if os.path.exists(_DISPATCH_REGISTRY_PATH):
+        try:
+            with open(_DISPATCH_REGISTRY_PATH, "r", encoding="utf-8") as f:
+                _DISPATCH_REGISTRY = json.load(f)
+            logger.info(
+                f"[STARTUP] Dispatch registry loaded: {len(_DISPATCH_REGISTRY)} records from {_DISPATCH_REGISTRY_PATH}"
+            )
+        except Exception as exc:
+            logger.error(f"[STARTUP] Failed to load dispatch registry: {exc}. Starting empty.")
+            _DISPATCH_REGISTRY = {}
+    else:
+        logger.info(f"[STARTUP] Dispatch registry not found at {_DISPATCH_REGISTRY_PATH}. Creating empty.")
+        _DISPATCH_REGISTRY = {}
+        _persist_dispatch_registry()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1452,4 +1489,55 @@ async def manage_lien(request: Request) -> JSONResponse:
             status_code=400,
             content={"error": f"Unknown action '{action}'. Use 'INITIATE' or 'REVOKE'."},
         )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/dispatch-registry — Retrieve Dispatch Registry
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get(
+    "/api/v1/dispatch-registry",
+    summary="Retrieve Dispatch Registry",
+    description="Returns the current state of all acknowledged ATM crew dispatches."
+)
+async def get_dispatch_registry() -> Dict[str, Any]:
+    return _DISPATCH_REGISTRY
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/dispatch — Acknowledge & Dispatch Crew
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/dispatch",
+    summary="Acknowledge and Dispatch Crew",
+    description="Records a crew dispatch for a specific incident and ATM."
+)
+async def dispatch_crew(body: DispatchRequest) -> JSONResponse:
+    disp_key = f"{body.ncrp_ticket_id}:{body.atm_id}"
+    
+    if disp_key in _DISPATCH_REGISTRY:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ALREADY_DISPATCHED",
+                "dispatch": _DISPATCH_REGISTRY[disp_key]
+            }
+        )
+        
+    dispatch_entry = {
+        "rank": body.rank,
+        "atmId": body.atm_id,
+        "ncrpId": body.ncrp_ticket_id,
+        "dispatchedAt": datetime.now(timezone.utc).isoformat()
+    }
+    
+    _DISPATCH_REGISTRY[disp_key] = dispatch_entry
+    _persist_dispatch_registry()
+    
+    logger.info(f"[DISPATCH] ✓ Crew sent to Rank #{body.rank} ({body.atm_id}) for incident {body.ncrp_ticket_id}")
+    
+    return JSONResponse(
+        status_code=201,
+        content={
+            "status": "DISPATCHED",
+            "dispatch": dispatch_entry
+        }
+    )
 

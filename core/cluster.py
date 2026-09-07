@@ -281,8 +281,11 @@ def rank_atms(
 
     for atm, d_km in candidate_records:
         # (a) Proximity D_norm with [v1.3 FIX 4E] active radius normalization & clamp
+        # [v2.0 FIX] Spatial Expansion Penalty: Multiply by (base_radius / r_active)
+        # to explicitly penalize ATMs found during desperate radius expansions.
         d_norm = max(0.0, 1.0 - (d_km / r_active))
-        prox_contrib = BETA_PROXIMITY * d_norm
+        expansion_penalty = base_radius / r_active
+        prox_contrib = BETA_PROXIMITY * d_norm * expansion_penalty
 
         # (b) Bank match B_match
         atm_bank = atm["bank_name"].strip().lower()

@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Project Synapse
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
-> **PRD Version:** v2.0.0 (Phase 11 complete — Digital Lien Management System)  
+> **PRD Version:** v2.0.0 (Phase 12 complete — Crew Dispatch Migration)  
 > **ASSUMPTIONS Version:** 43 entries (6 added — Phase 10 & 11 design decisions)  
-> **Last Updated:** 07 September 2026 — Phase 11 complete
+> **Last Updated:** 07 September 2026 — Phase 12 complete
 
 ---
 
@@ -11,8 +11,8 @@
 
 | Field | Value |
 |---|---|
-| **Current Phase** | Phase 11 — Digital Lien Management System (complete) |
-| **Last Completed Feature** | Phase 11 F01: Digital Lien Management System (`Fixed` 07 Sep 2026) |
+| **Current Phase** | Phase 12 — Crew Dispatch Migration (complete) |
+| **Last Completed Feature** | Phase 12 F01: Backend Dispatch Registry (`Fixed` 07 Sep 2026) |
 | **Active Task** | None |
 | **Immediate Next Task** | TBD — awaiting user direction for next phase |
 | **Known Blockers / Warnings** | Phase 10 and Phase 11 modules have no formal verification gate — verified live. |
@@ -422,6 +422,19 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 23: Crew Dispatch Backend Migration (Phase 12 Feature 01)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py`, `ui/index.html`, `api/schemas.py` |
+| **PRD Reference** | Phase 12 Feature 01 |
+| **Description** | Migrated the ATM crew dispatch registry from frontend `localStorage` to a persistent backend JSON file (`data/sent_crew.json`). Implemented new `GET /api/v1/dispatch-registry` and `POST /api/v1/dispatch` endpoints. Frontend polls and diffs the backend registry instead of managing local state. |
+| **Status** | `Code Complete` |
+| **Verification Date** | 07 September 2026 |
+| **Notes** | Verified live — UI correctly reads dispatched crews across page refreshes based on backend API. |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -449,6 +462,7 @@ All verification records are appended here chronologically. Each entry is create
 | 06 Sep 2026 | Module 20 — /feed Route | N/A — verified: `localhost:8000/feed` serves simulator correctly | PASS | N/A |
 | 07 Sep 2026 | Module 21 — Auto Withdrawal | N/A — verified live (simulated withdrawal on ingestion when time <= 0) | PASS | N/A |
 | 07 Sep 2026 | Module 22 — Digital Lien System | N/A — verified live (syncs UI state with manual/pipeline webhooks) | PASS | N/A |
+| 07 Sep 2026 | Module 23 — Dispatch Migration | N/A — verified live (syncs UI state with backend sent_crew.json) | PASS | N/A |
 
 ---
 
@@ -464,6 +478,7 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 9** | Additional Functionality (F01 Sim Mode, F02 Interception Window, F03 Intel Panel, BF01–04) | **Complete** |
 | **Phase 10** | Live Feed Simulator (Bank Feed portal, Case Resolution, Sim Toggle, Timer Fix, /feed route) | **Complete** |
 | **Phase 11** | Digital Lien Management System (Persistent manual/pipeline registry, UI Sync) | **Complete** |
+| **Phase 12** | Crew Dispatch Backend Migration (Move dispatch registry to sent_crew.json) | **Complete** |
 
 ---
 

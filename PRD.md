@@ -1875,6 +1875,34 @@ Officers need manual control to initiate or revoke digital liens on mule account
 - **Unified Automatic and Manual Operations:** By seeding the lien registry directly from the automated pipeline's webhook function, the system unifies automatic threat response with manual intervention. Officers clearly see if the pipeline has already acted ("Revoke Digital Lien {Pipeline}").
 - **State Synchronization via Diffing:** The frontend employs intelligent diffing against a global `_lienRegistry` set to avoid rebuilding the DOM (re-rendering incident tables) unless the lien state of an actively viewed account has explicitly changed, preserving UI performance.
 
+## 12. Phase 12 — Crew Dispatch Backend Migration
+
+> **PRD Version:** 2.0.0  
+> **Date:** 07 September 2026
+
+---
+
+### 12.1 Phase 12 Feature 01 — Persistent Dispatch Registry
+
+**Status:** `Verified & Approved` — 07 September 2026
+
+#### 12.1.1 Problem
+
+The original ATM crew dispatch tracking in Phase 9 was built using frontend `localStorage` to allow button states to survive page refreshes. However, this architecture meant that dispatch actions were local to the operator's browser; if Operator A dispatched a crew, Operator B would not see this state change. To make this tool viable for collaborative tactical operations, dispatch state must be managed centrally on the backend.
+
+#### 12.1.2 Changes
+
+| File | Change |
+|---|---|
+| `api/schemas.py` | Added `DispatchRequest` schema containing `ncrp_ticket_id`, `atm_id`, and `rank`. |
+| `api/main.py` | Implementation of `POST /api/v1/dispatch` (to record a dispatch) and `GET /api/v1/dispatch-registry` (to query active dispatches). Dispatch state is persistently stored in `data/sent_crew.json`. |
+| `ui/index.html` | Removed `localStorage` dispatch code (`_LS_DISP_KEY`, `_loadDispatchRegistry`, `_saveDispatchRegistry`). Added `fetchDispatchRegistry()` inside the 5-second `pollIncidents()` loop to continuously sync frontend state with the backend's `sent_crew.json`. The `acknowledge()` button now sends a POST request instead of modifying local state. |
+
+#### 12.1.3 Design Decisions
+
+- **Shared Context vs Local State:** Moving state from `localStorage` to a backend JSON file ensures all tactical officers share the exact same dispatch state across different browsers.
+- **Unified Architecture:** This migration aligns the dispatch system with the Digital Lien Management System (which also polls a backend registry), providing a consistent pattern for persistent operational state across the dashboard.
+
 ---
 
 *— End of Document —*

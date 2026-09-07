@@ -1708,12 +1708,27 @@
     // ─── Simulation Mode — localStorage persistence ──────────────────────────────
     const _LS_SIM_KEY = 'synapse_sim_mode';
     const _LS_REG_KEY = 'synapse_drain_registry';
-    const _LS_DISP_KEY = 'synapse_dispatch_registry';
 
-    // Dispatch Registry — persists crew dispatch state across page refreshes.
-    // Key: "${ncrp_ticket_id}:${atm_id}"  Value: { rank, atmId, ncrpId, dispatchedAt }
-    // Entries are NEVER cleared — once a crew is dispatched that is a permanent operational record.
-    const _dispatchRegistry = new Map();
+    // Dispatch Registry (backend-persisted)
+    // Mirrors server-side data/sent_crew.json. NO localStorage — always fetched from backend.
+    let _dispatchRegistry = {};
+    let _dispatchRegistryStr = "";
+
+    async function fetchDispatchRegistry() {
+      try {
+        const res = await fetch('/api/v1/dispatch-registry');
+        if (res.ok) {
+          const data = await res.json();
+          const newStr = JSON.stringify(data);
+          if (newStr !== _dispatchRegistryStr) {
+            _dispatchRegistry = data;
+            _dispatchRegistryStr = newStr;
+            return true; // indicates state changed
+          }
+        }
+      } catch (e) { console.error('[DISPATCH] Error fetching registry:', e); }
+      return false;
+    }
 
     function _saveRegistry() {
       try {
@@ -1731,25 +1746,6 @@
           Object.entries(obj).forEach(([k, v]) => _drainTimerRegistry.set(k, v));
         }
       } catch (e) { console.warn('[SIM] Could not restore timer registry:', e); }
-    }
-
-    function _saveDispatchRegistry() {
-      try {
-        const obj = {};
-        _dispatchRegistry.forEach((v, k) => { obj[k] = v; });
-        localStorage.setItem(_LS_DISP_KEY, JSON.stringify(obj));
-      } catch (e) { console.warn('[DISPATCH] Could not persist dispatch registry:', e); }
-    }
-
-    function _loadDispatchRegistry() {
-      try {
-        const raw = localStorage.getItem(_LS_DISP_KEY);
-        if (raw) {
-          const obj = JSON.parse(raw);
-          Object.entries(obj).forEach(([k, v]) => _dispatchRegistry.set(k, v));
-        }
-        console.log(`[DISPATCH] Registry restored — ${_dispatchRegistry.size} dispatch(es) on record`);
-      } catch (e) { console.warn('[DISPATCH] Could not restore dispatch registry:', e); }
     }
 
     // ─── Digital Lien Registry (backend-persisted) ─────────────────────────────────
@@ -1822,7 +1818,7 @@
     // ─── Boot ─────────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
       _restoreSimMode();       // ← restore toggle + drain timer registry from localStorage FIRST
-      _loadDispatchRegistry(); // ← restore crew dispatch state so buttons survive page refresh
+      await fetchDispatchRegistry(); // ← fetch dispatch state from backend (persistent, not localStorage)
       await fetchLienRegistry(); // ← fetch lien state from backend (persistent, not localStorage)
       initMap();
       startClock();
@@ -2005,8 +2001,9 @@
         const data = await resp.json();
         const fresh = data.incidents || [];
         
-        // Fetch lien registry on every poll to stay synced with pipeline auto-seeds
+        // Fetch lien and dispatch registries on every poll to stay synced with backend
         const lienChanged = await fetchLienRegistry();
+        const dispatchChanged = await fetchDispatchRegistry();
 
         // Auto-register any newly discovered incident in the drain timer registry.
         // This runs regardless of dashboard sim mode so that incidents submitted via
@@ -2037,7 +2034,7 @@
             const prevWithd  = _selected.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
             const newDrain   = updated.drainable_today_inr;
             const newWithd   = updated.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
-            if (prevDrain !== newDrain || prevWithd !== newWithd || lienChanged) {
+            if (prevDrain !== newDrain || prevWithd !== newWithd || lienChanged || dispatchChanged) {
               // Data or lien state changed — patch local reference and refresh intel panel only.
               _selected = updated;
               renderIntelPanel(updated);
@@ -2276,7 +2273,7 @@
 
         // Check persistent dispatch registry so button state survives page refresh.
         const dispKey = `${ncrpId}:${atm.atm_id}`;
-        const alreadyDispatched = _dispatchRegistry.has(dispKey);
+        const alreadyDispatched = !!_dispatchRegistry[dispKey];
         const btnClass = alreadyDispatched ? 'dispatch-btn done' : 'dispatch-btn';
         const btnText = alreadyDispatched
           ? `✓ Crew Dispatched — #${atm.rank}`
@@ -2582,7 +2579,7 @@
       }
     }
 
-    function acknowledge(rank, atmId) {
+    async function acknowledge(rank, atmId) {
       const btn = document.getElementById(`db-${rank}`);
       const card = document.getElementById(`ac-${rank}`);
       if (!btn || btn.classList.contains('done')) return;
@@ -2590,21 +2587,27 @@
       const ncrpId = _selected?.ncrp_ticket_id || '';
       const dispKey = `${ncrpId}:${atmId}`;
 
-      // Update DOM immediately
+      // Update DOM immediately (optimistic UI)
       btn.textContent = `✓ Crew Dispatched — #${rank}`;
       btn.classList.add('done');
       if (card) card.classList.add('acked');
 
-      // Persist to dispatch registry so state survives any page refresh or row re-click.
-      _dispatchRegistry.set(dispKey, {
-        rank,
-        atmId,
-        ncrpId,
-        dispatchedAt: new Date().toISOString(),
-      });
-      _saveDispatchRegistry();
-
-      console.log(`[DISPATCH] ✓ Crew sent to Rank #${rank} (${atmId}) for incident ${ncrpId}`);
+      // POST to backend
+      try {
+        const res = await fetch('/api/v1/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ncrp_ticket_id: ncrpId, atm_id: atmId, rank: rank })
+        });
+        if (res.ok) {
+          console.log(`[DISPATCH] ✓ Crew sent to Rank #${rank} (${atmId}) for incident ${ncrpId}`);
+          await fetchDispatchRegistry();
+        } else {
+          console.error('[DISPATCH] Failed to record dispatch on backend.');
+        }
+      } catch (e) {
+        console.error('[DISPATCH] Network error:', e);
+      }
     }
 
     // ─── Case Resolution ──────────────────────────────────────────────────────────

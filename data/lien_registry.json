@@ -14,7 +14,7 @@
       "bank_name": "Punjab National Bank",
       "ifsc": "PUNB0187600",
       "incident_id": "NCRP-2026-8003261",
-      "initiated_at": "2026-09-06T21:16:12.780256+00:00",
+      "initiated_at": "2026-09-07T12:47:28.752532+00:00",
       "source": "MANUAL",
       "webhook_status": "SUCCESS"
     },
@@ -23,8 +23,8 @@
       "bank_name": "HDFC Bank",
       "ifsc": "HDFC0001729",
       "incident_id": "NCRP-2026-6263051",
-      "initiated_at": "2026-09-06T21:20:40.286684+00:00",
-      "source": "PIPELINE",
+      "initiated_at": "2026-09-07T12:47:34.117621+00:00",
+      "source": "MANUAL",
       "webhook_status": "SUCCESS"
     }
   },
@@ -114,6 +114,39 @@
       "was_source": "PIPELINE",
       "original_initiated_at": "2026-09-06T21:04:36.731673+00:00",
       "revoked_at": "2026-09-06T21:29:54.443730+00:00",
+      "revoked_by": "handler",
+      "reason": "Account verified as non-mule"
+    },
+    {
+      "account_number": "21833118921263",
+      "bank_name": "Punjab National Bank",
+      "ifsc": "PUNB0187600",
+      "incident_id": "NCRP-2026-8003261",
+      "was_source": "MANUAL",
+      "original_initiated_at": "2026-09-06T21:16:12.780256+00:00",
+      "revoked_at": "2026-09-07T12:47:27.635766+00:00",
+      "revoked_by": "handler",
+      "reason": "Account verified as non-mule"
+    },
+    {
+      "account_number": "84542071726385",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-6263051",
+      "was_source": "PIPELINE",
+      "original_initiated_at": "2026-09-06T21:20:40.286684+00:00",
+      "revoked_at": "2026-09-07T12:47:33.349383+00:00",
+      "revoked_by": "handler",
+      "reason": "Account verified as non-mule"
+    },
+    {
+      "account_number": "09871234567890",
+      "bank_name": "Canara Bank",
+      "ifsc": "CNRB0002341",
+      "incident_id": "NCRP-2026-0045790",
+      "was_source": "PIPELINE",
+      "original_initiated_at": "2026-09-07T04:47:28.859982+00:00",
+      "revoked_at": "2026-09-07T12:47:39.332390+00:00",
       "revoked_by": "handler",
       "reason": "Account verified as non-mule"
     }

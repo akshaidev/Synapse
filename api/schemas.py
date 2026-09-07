@@ -167,3 +167,9 @@ class FreezeCardATMRequest(BaseModel):
     atm_blocks: List[ATMBlock] = Field(default=[], max_length=3)
     justification: Justification
     callback_url: str
+
+# Dispatch Requests
+class DispatchRequest(BaseModel):
+    ncrp_ticket_id: str = Field(..., pattern=NCRP_REGEX)
+    atm_id: str
+    rank: int = Field(..., ge=1, le=3)
