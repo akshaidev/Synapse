@@ -1552,6 +1552,11 @@ The MVP is a **single unified web application** demonstrating the end-to-end Syn
 | 1.8.0 | 06 Sep 2026 | Principal TPM, Synapse | Phase 09 Bug Fix 04: Interception Window zero-state messaging — corrected misleading 'NO WITHDRAWABLE BALANCE' shown when money is present but time elapsed. Now correctly shows 'WINDOW ELAPSED — MULE MAY BE AT ATM' when drainable_today_inr > 100 and drain_time = 0. |
 | 2.0.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 12 Feature 01: Crew Dispatch Migration. Moved from `localStorage` to backend `data/sent_crew.json`. |
 | 2.1.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 1: Data Integrity & File Locking. Added `filelock` package to all JSON registry writes to prevent concurrent officer corruption. Implemented `_incidents` persistence to `data/incidents.json` to survive restarts. |
+| 2.2.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 2: Validation & Accountability. Added `operator_id` and `reason` requirements for incident resolution and lien revocation/initiation. Added global Operator ID input to UI Admin Drawer. |
+| 2.3.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 4: External Integrations (NCRP Outbound). Created mock endpoint `/api/v1/mock/ncrp-intimation`. Updated incident resolution to dispatch outbound webhook payload back to NCRP. |
+| 2.4.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 5: Frontend UI/UX Integration. Fully wired Operator ID, reasons, and notes across all UI modals (`resolveCase` and `toggleLien`) connecting seamlessly with the new backend validation schemas. |
+| 2.5.0 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Point 3: Lifecycle Management & Timeouts. Implemented a decoupled asynchronous Garbage Collector background task `incident_garbage_collector()` that awakens every 60 seconds to accurately transition incidents passing the 6-hour Tactical Timeout or 30-day Administratively Closed gates. |
+| 2.5.1 | 07 Sep 2026 | Principal TPM, Synapse | Phase 13 Final Verification. Verified concurrent file locking, frontend UI inputs, webhook dispatching, and asynchronous garbage collector loop logic. Phase 13 officially wrapped. |
 
 ---
 

@@ -1465,6 +1465,13 @@
         </label>
       </div>
 
+      <!-- Operator ID Field -->
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+        <label style="display:block;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Operator ID</label>
+        <input type="text" id="global-operator-id" placeholder="e.g. badge number or name" style="width:100%;background:#0d1117;border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none" onchange="localStorage.setItem('synapse_operator_id', this.value)">
+        <div style="font-size:0.65rem; color:#64748b; margin-top:0.3rem;">Required for case resolution and digital liens.</div>
+      </div>
+
       <!-- Drop zone -->
       <div id="dropzone" onclick="document.getElementById('fileIn').click()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -1783,6 +1790,13 @@
       // Restore drain timer registry so timers continue after refresh
       _loadRegistry();
       console.log(`[SIM] Restored — mode=${_simulationMode}, registry entries=${_drainTimerRegistry.size}`);
+
+      // Restore Operator ID
+      const savedOpId = localStorage.getItem('synapse_operator_id');
+      if (savedOpId) {
+        const opInput = document.getElementById('global-operator-id');
+        if (opInput) opInput.value = savedOpId;
+      }
     }
 
     function onSimToggle() {
@@ -2498,6 +2512,16 @@
         _updateRevokeCustomVisibility();
       } else {
         // Initiate — fires webhook immediately
+        const opInput = document.getElementById('global-operator-id');
+        const operatorId = opInput ? opInput.value.trim() : '';
+        if (!operatorId) {
+          alert('Operator ID is required to initiate a digital lien. Please set it in the Admin Drawer on the left.');
+          return;
+        }
+
+        const reason = prompt("Please enter a reason for initiating this lien (e.g., Investigating suspicious transfers):");
+        if (!reason) return; // User cancelled
+
         try {
           const res = await fetch('/api/v1/liens', {
             method: 'POST',
@@ -2505,6 +2529,8 @@
             body: JSON.stringify({
               action: 'INITIATE',
               account_number: accountNumber,
+              operator_id: operatorId,
+              reason: reason,
               bank_name: bankName,
               ifsc: ifsc,
               incident_id: incidentId,
@@ -2550,6 +2576,13 @@
         return;
       }
 
+      const opInput = document.getElementById('global-operator-id');
+      const operatorId = opInput ? opInput.value.trim() : '';
+      if (!operatorId) {
+        document.getElementById('lien-revoke-err').textContent = 'Operator ID is required. Please set it in the Admin Drawer.';
+        return;
+      }
+
       const btn = document.getElementById('lien-revoke-submit-btn');
       btn.disabled = true; btn.textContent = 'Revoking…';
 
@@ -2560,6 +2593,7 @@
           body: JSON.stringify({
             action: 'REVOKE',
             account_number: _revokeTarget.accountNumber,
+            operator_id: operatorId,
             reason: reason,
           }),
         });
@@ -2641,11 +2675,19 @@
       const btn = document.getElementById('resolve-submit-btn');
       btn.disabled = true; btn.textContent = 'Resolving…';
 
+      const opInput = document.getElementById('global-operator-id');
+      const operatorId = opInput ? opInput.value.trim() : '';
+      if (!operatorId) {
+        document.getElementById('resolve-submit-err').textContent = 'Operator ID is required. Please set it in the Admin Drawer on the left.';
+        btn.disabled = false; btn.textContent = 'Confirm Resolution';
+        return;
+      }
+
       try {
         const res = await fetch(`/api/v1/incidents/${encodeURIComponent(ncrp)}/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason, note }),
+          body: JSON.stringify({ reason, operator_id: operatorId, note }),
         });
         if (res.ok) {
           closeResolveModal();

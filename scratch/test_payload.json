@@ -1,0 +1,45 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "11111111-1111-1111-1111-111111111111",
+  "ingestion_timestamp": "2026-09-07T15:00:00Z",
+  "ncrp_ticket": {
+    "ticket_id": "TEST-123",
+    "fraud_type": "UPI_FRAUD",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complaint_timestamp": "2026-09-07T14:00:00Z",
+    "amount_inr": 1000,
+    "source_account": {
+      "account_number": "123",
+      "ifsc": "ABC",
+      "bank_name": "Bank"
+    }
+  },
+  "fund_flow": {
+    "depth": 1,
+    "transactions": [{
+      "hop_index": 1,
+      "txn_id": "T1",
+      "txn_timestamp": "2026-09-07T14:30:00Z",
+      "sender_account": "123",
+      "sender_ifsc": "ABC",
+      "sender_bank": "Bank",
+      "receiver_account": "456",
+      "receiver_ifsc": "DEF",
+      "receiver_bank": "Bank",
+      "amount_inr": 1000,
+      "channel": "IMPS"
+    }]
+  },
+  "terminal_mule": {
+    "mule_account_number": "456",
+    "mule_ifsc": "DEF",
+    "mule_bank": "Bank",
+    "current_balance_inr": 1000,
+    "account_type": "SAVINGS",
+    "daily_withdrawal_limit_inr": 100000,
+    "withdrawals_today_inr": 0,
+    "cell_tower_cluster": [],
+    "ip_cluster": []
+  }
+}

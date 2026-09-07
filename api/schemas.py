@@ -173,3 +173,17 @@ class DispatchRequest(BaseModel):
     ncrp_ticket_id: str = Field(..., pattern=NCRP_REGEX)
     atm_id: str
     rank: int = Field(..., ge=1, le=3)
+
+class ResolveIncidentRequest(BaseModel):
+    reason: str
+    operator_id: str
+    note: Optional[str] = ""
+
+class LienActionRequest(BaseModel):
+    action: str
+    account_number: str
+    operator_id: str
+    reason: str
+    bank_name: Optional[str] = None
+    ifsc: Optional[str] = None
+    incident_id: Optional[str] = None

@@ -57,6 +57,8 @@ from api.schemas import (
     Justification,
     RequestingAuthority,
     DispatchRequest,
+    ResolveIncidentRequest,
+    LienActionRequest,
 )
 from core.cluster import rank_atms, Stage3Result
 from core.graph import isolate_terminal_mule, Stage1Result
@@ -311,6 +313,60 @@ def load_incidents() -> None:
         logger.info(f"[STARTUP] Incidents not found at {_INCIDENTS_PATH}. Creating empty.")
         _incidents = []
         _persist_incidents()
+
+
+async def incident_garbage_collector() -> None:
+    """
+    Background task that sweeps the incidents array every 60 seconds
+    to enforce 6-hour tactical timeouts and 30-day admin closures.
+    """
+    while True:
+        await asyncio.sleep(60)
+        
+        now_dt = datetime.now(timezone.utc)
+        changed = False
+        
+        for inc in _incidents:
+            ingestion_str = inc.get("payload_snapshot", {}).get("ingestion_timestamp")
+            if not ingestion_str:
+                # Fallback to complaint_timestamp for legacy payloads
+                ingestion_str = inc.get("payload_snapshot", {}).get("complaint_timestamp")
+            if not ingestion_str:
+                continue
+                
+            try:
+                ingestion_dt = datetime.fromisoformat(ingestion_str)
+            except ValueError:
+                continue
+                
+            # 6-Hour Tactical Timeout
+            if inc.get("status") == "ACTIVE":
+                if (now_dt - ingestion_dt) > timedelta(hours=6):
+                    inc["status"] = "TACTICAL_TIMEOUT"
+                    changed = True
+                    logger.info(f"[SWEEPER] {inc['ncrp_ticket_id']} -> TACTICAL_TIMEOUT (6h elapsed)")
+            
+            # 30-Day Administratively Closed
+            if inc.get("status") not in ["RESOLVED", "ADMINISTRATIVELY_CLOSED"] and not inc.get("resolved"):
+                if (now_dt - ingestion_dt) > timedelta(days=30):
+                    inc["status"] = "ADMINISTRATIVELY_CLOSED"
+                    inc["resolved"] = True
+                    inc["resolved_at"] = now_dt.isoformat()
+                    inc["resolution_reason"] = "WINDOW_ELAPSED_CASE_CLOSED"
+                    inc["resolution_note"] = "Auto-closed after 30 days by system sweeper."
+                    inc["operator_id"] = "SYSTEM"
+                    changed = True
+                    logger.info(f"[SWEEPER] {inc['ncrp_ticket_id']} -> ADMINISTRATIVELY_CLOSED (30d elapsed)")
+                    
+        if changed:
+            _persist_incidents()
+
+
+@app.on_event("startup")
+def start_garbage_collector() -> None:
+    """Launch the background garbage collector task."""
+    logger.info("[STARTUP] Launching Incident Garbage Collector...")
+    asyncio.create_task(incident_garbage_collector())
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -925,6 +981,7 @@ async def ingest_incident(
     # Build payload_snapshot — structured subset of original payload for the UI Incident Intelligence panel.
     # complainant_name is Optional in the schema; use getattr with None fallback so legacy payloads work.
     result.payload_snapshot = {
+        "ingestion_timestamp": payload.ingestion_timestamp.isoformat(),
         "fraud_type":          payload.ncrp_ticket.fraud_type.value,
         "victim_state":        payload.ncrp_ticket.victim_state,
         "victim_district":     payload.ncrp_ticket.victim_district,
@@ -1059,6 +1116,32 @@ async def mock_freeze_card_atm(request: Request) -> JSONResponse:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/mock/ncrp-intimation — Mock NCRP Server Intimation
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/mock/ncrp-intimation",
+    summary="Mock NCRP Intimation Webhook",
+    tags=["Webhook"],
+)
+async def mock_ncrp_intimation(request: Request) -> JSONResponse:
+    """
+    Mock endpoint simulating the external NCRP server.
+    Receives final case resolution details.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    
+    logger.info(
+        f"[MOCK NCRP] 🚔 Received Case Resolution Intimation:\n"
+        f"{json.dumps(body, indent=2, default=str)}"
+    )
+    
+    return JSONResponse(status_code=200, content={"status": "ACKNOWLEDGED"})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/incidents — Incident Log for UI
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get(
@@ -1150,10 +1233,11 @@ async def health_check() -> JSONResponse:
     summary="Mark an Incident as Resolved",
     tags=["Case Management"],
 )
-async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONResponse:
+async def resolve_incident(ncrp_ticket_id: str, payload: ResolveIncidentRequest) -> JSONResponse:
     """
     Marks a case as resolved. Accepted body:
         {
+            "operator_id": "ID of the operator resolving the case",
             "reason": "FUNDS_FROZEN" | "MULE_APPREHENDED" | "FUNDS_RECOVERED" |
                       "WINDOW_ELAPSED_CASE_CLOSED" | "FALSE_POSITIVE",
             "note": "optional free-text note"
@@ -1161,13 +1245,9 @@ async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONRespons
     The resolved flag is returned in GET /api/v1/incidents so both portals
     can filter and display the resolved section.
     """
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
-
-    reason = body.get("reason", "RESOLVED")
-    note   = body.get("note", "")
+    reason = payload.reason
+    note   = payload.note
+    operator_id = payload.operator_id
 
     target = None
     for inc in _incidents:
@@ -1186,12 +1266,32 @@ async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONRespons
     target["resolved_at"]        = ts
     target["resolution_reason"]  = reason
     target["resolution_note"]    = note
+    target["operator_id"]        = operator_id
 
     _persist_incidents()
 
     logger.info(
-        f"[RESOLVE] ncrp={ncrp_ticket_id} | reason={reason} | note='{note}' | at={ts}"
+        f"[RESOLVE] ncrp={ncrp_ticket_id} | operator={operator_id} | reason={reason} | note='{note}' | at={ts}"
     )
+
+    # ── Fire outbound webhook to NCRP ────────────────────────────────────
+    webhook_payload = {
+        "ncrp_ticket_id": ncrp_ticket_id,
+        "status": "RESOLVED",
+        "operator_id": operator_id,
+        "resolution_reason": reason,
+        "resolution_note": note,
+        "resolved_at": ts
+    }
+    target_url = f"{MOCK_WEBHOOK_BASE_URL}/api/v1/mock/ncrp-intimation"
+    try:
+        if _WEBHOOK_HTTP_CLIENT is not None:
+            _WEBHOOK_HTTP_CLIENT.post("/api/v1/mock/ncrp-intimation", json=webhook_payload)
+        else:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                await http.post(target_url, json=webhook_payload)
+    except Exception as exc:
+        logger.error(f"[RESOLVE] Failed to dispatch NCRP intimation for {ncrp_ticket_id}: {exc}")
 
     return JSONResponse(
         status_code=200,
@@ -1200,6 +1300,7 @@ async def resolve_incident(ncrp_ticket_id: str, request: Request) -> JSONRespons
             "ncrp_ticket_id": ncrp_ticket_id,
             "resolution_reason": reason,
             "resolution_note": note,
+            "operator_id": operator_id,
             "resolved_at": ts,
         },
     )
@@ -1221,6 +1322,7 @@ async def unresolve_incident(ncrp_ticket_id: str) -> JSONResponse:
             inc.pop("resolved_at", None)
             inc.pop("resolution_reason", None)
             inc.pop("resolution_note", None)
+            inc.pop("operator_id", None)
             _persist_incidents()
             logger.info(f"[UNRESOLVE] ncrp={ncrp_ticket_id}")
             return JSONResponse(status_code=200, content={"status": "REOPENED", "ncrp_ticket_id": ncrp_ticket_id})
@@ -1354,7 +1456,7 @@ async def get_liens() -> JSONResponse:
     summary="Initiate or Revoke a Digital Lien",
     tags=["Lien Management"],
 )
-async def manage_lien(request: Request) -> JSONResponse:
+async def manage_lien(payload: LienActionRequest) -> JSONResponse:
     """
     Manages per-account digital liens.
 
@@ -1362,12 +1464,14 @@ async def manage_lien(request: Request) -> JSONResponse:
         INITIATE — Dispatches a freeze webhook to /api/v1/freeze-card-atm for the
                    specified account, then records the lien in the persistent registry.
         REVOKE   — Removes an active lien and appends to the revocation log.
-                   Requires a mandatory 'reason' field.
+                   Requires a mandatory 'reason' and 'operator_id' field.
 
     Body (INITIATE):
         {
             "action": "INITIATE",
             "account_number": "50100287654321",
+            "operator_id": "Officer Name",
+            "reason": "Investigating suspicious transfers",
             "bank_name": "HDFC Bank",
             "ifsc": "HDFC0001729",
             "incident_id": "NCRP-2026-0045781"
@@ -1377,16 +1481,14 @@ async def manage_lien(request: Request) -> JSONResponse:
         {
             "action": "REVOKE",
             "account_number": "50100287654321",
+            "operator_id": "Officer Name",
             "reason": "Account verified as non-mule by branch manager"
         }
     """
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse(status_code=400, content={"error": "Invalid JSON body."})
-
-    action = body.get("action", "").upper()
-    account_number = body.get("account_number", "").strip()
+    action = payload.action.upper()
+    account_number = payload.account_number.strip()
+    operator_id = payload.operator_id
+    reason = payload.reason
 
     if not account_number:
         return JSONResponse(status_code=400, content={"error": "account_number is required."})
@@ -1402,9 +1504,9 @@ async def manage_lien(request: Request) -> JSONResponse:
                 },
             )
 
-        bank_name = body.get("bank_name", "Unknown Bank")
-        ifsc = body.get("ifsc", "UNKNOWN")
-        incident_id = body.get("incident_id", "MANUAL")
+        bank_name = payload.bank_name or "Unknown Bank"
+        ifsc = payload.ifsc or "UNKNOWN"
+        incident_id = payload.incident_id or "MANUAL"
 
         # ── Build and dispatch freeze webhook ────────────────────────────────
         # Construct a lightweight webhook payload for this specific account.
@@ -1467,12 +1569,14 @@ async def manage_lien(request: Request) -> JSONResponse:
             "initiated_at": ts_now.isoformat(),
             "source": "MANUAL",
             "webhook_status": wh_status,
+            "operator_id": operator_id,
+            "reason": reason,
         }
         _persist_lien_registry()
 
         logger.info(
-            f"[LIEN] INITIATED for {account_number} ({bank_name}) | "
-            f"incident={incident_id} | webhook={wh_status}"
+            f"[LIEN] INITIATED for {account_number} ({bank_name}) by {operator_id} | "
+            f"reason='{reason}' | incident={incident_id} | webhook={wh_status}"
         )
 
         return JSONResponse(
@@ -1493,7 +1597,6 @@ async def manage_lien(request: Request) -> JSONResponse:
                 content={"error": f"No active lien found for account {account_number}."},
             )
 
-        reason = body.get("reason", "").strip()
         if not reason:
             return JSONResponse(
                 status_code=400,
@@ -1510,14 +1613,14 @@ async def manage_lien(request: Request) -> JSONResponse:
             "was_source": existing_lien.get("source", "UNKNOWN"),
             "original_initiated_at": existing_lien.get("initiated_at", ""),
             "revoked_at": datetime.now(timezone.utc).isoformat(),
-            "revoked_by": "handler",
+            "revoked_by": operator_id,
             "reason": reason,
         }
         _LIEN_REGISTRY["revocation_log"].append(revocation_entry)
         _persist_lien_registry()
 
         logger.info(
-            f"[LIEN] REVOKED for {account_number} | reason='{reason}' | "
+            f"[LIEN] REVOKED for {account_number} by {operator_id} | reason='{reason}' | "
             f"was_source={existing_lien.get('source')}"
         )
 
