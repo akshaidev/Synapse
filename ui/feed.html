@@ -604,9 +604,14 @@
         <div class="nav-sub">Project Synapse — Phase 10</div>
       </div>
     </div>
-    <div id="conn-pill" class="checking">
-      <span class="conn-dot" id="conn-dot"></span>
-      <span id="conn-text">Checking…</span>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <a href="/ui/index.html" target="_blank" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:600;color:#a5b4fc;text-decoration:none;padding:.35rem .8rem;border-radius:6px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);transition:all .2s;" onmouseover="this.style.background='rgba(99,102,241,.22)'" onmouseout="this.style.background='rgba(99,102,241,.12)'">
+        🗺 Tactical Map &amp; Dashboard ↗
+      </a>
+      <div id="conn-pill" class="checking">
+        <span class="conn-dot" id="conn-dot"></span>
+        <span id="conn-text">Checking…</span>
+      </div>
     </div>
   </nav>
 
@@ -757,8 +762,11 @@
           </div>
         </div>
         <div class="form-row" style="margin-bottom:0">
-          <label>Note / ATM ID (optional)</label>
-          <input type="text" id="withdrawal-note" placeholder="e.g. Withdrawal at ICIC-ATM-DEL-0002" />
+          <label>Target ATM (Top 3 Probable)</label>
+          <select id="atm-select" onchange="onAtmSelect()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.6rem .875rem;color:var(--text);font-family:inherit;font-size:.82rem;outline:none">
+            <option value="">— Select incident first —</option>
+          </select>
+          <div id="atm-meta" style="margin-top:.4rem;font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace"></div>
         </div>
       </div>
       <div style="margin-top:1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
@@ -1180,33 +1188,79 @@
 
     function setAmt(v) { document.getElementById('withdrawal-amt').value = v; }
 
+    function populateAtmDropdown(inc) {
+      const atmSel = document.getElementById('atm-select');
+      const atms = inc?.top_atms || [];
+      if (!atms.length) {
+        atmSel.innerHTML = '<option value="">— No ATMs ranked for incident —</option>';
+        document.getElementById('atm-meta').innerHTML = '';
+        return;
+      }
+      atmSel.innerHTML = atms.map((a, idx) => {
+        const site = a.is_onsite ? 'Onsite' : 'Offsite';
+        const rank = a.rank || (idx + 1);
+        const score = a.risk_score != null ? ((a.risk_score * 100).toFixed(1) + '%') : '';
+        return `<option value="${a.atm_id}" data-lat="${a.lat}" data-lon="${a.lon}" data-bank="${a.bank_name || ''}" data-addr="${a.address || ''}">#${rank} ${a.atm_id} — ${a.bank_name} (${site}${score ? ' · Risk ' + score : ''})</option>`;
+      }).join('');
+      onAtmSelect();
+    }
+
+    function onAtmSelect() {
+      const atmSel = document.getElementById('atm-select');
+      const meta = document.getElementById('atm-meta');
+      if (!atmSel || !meta) return;
+      const opt = atmSel.options[atmSel.selectedIndex];
+      if (!opt || !opt.value) {
+        meta.innerHTML = '';
+        return;
+      }
+      const lat = opt.getAttribute('data-lat');
+      const lon = opt.getAttribute('data-lon');
+      const addr = opt.getAttribute('data-addr');
+      meta.innerHTML = `📍 <span style="color:#6ee7b7">${lat && lon ? Number(lat).toFixed(4) + ', ' + Number(lon).toFixed(4) : ''}</span>${addr ? ' · ' + addr : ''}`;
+    }
+
     async function pushWithdrawal() {
       const ncrp = document.getElementById('inc-select').value;
       const amt = parseFloat(document.getElementById('withdrawal-amt').value);
-      const note = document.getElementById('withdrawal-note').value.trim();
+      const atmSel = document.getElementById('atm-select');
+      const atmId = atmSel ? atmSel.value : '';
       if (!ncrp) { flash('push-status', '⚠ Select an incident', '#f59e0b'); return; }
       if (!amt || amt <= 0) { flash('push-status', '⚠ Enter a withdrawal amount', '#f59e0b'); return; }
+      if (!atmId) { flash('push-status', '⚠ Select target ATM', '#f59e0b'); return; }
       const btn = document.getElementById('push-btn');
       btn.disabled = true; btn.textContent = '⏳ Pushing…'; hideR('push-result');
       try {
         const res = await fetch(`${SYNAPSE}/api/v1/incidents/${encodeURIComponent(ncrp)}/live-update`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ additional_withdrawal_inr: amt, note })
+          body: JSON.stringify({ additional_withdrawal_inr: amt, atm_id: atmId, note: `Withdrawal at ${atmId}` })
         });
         const d = await res.json();
         if (res.ok) {
           const m = d.terminal_mule || {};
           const maxed = m.withdrawals_today_inr >= m.daily_limit_inr;
+          const latStr = d.mule_estimated_lat != null ? d.mule_estimated_lat.toFixed(4) : '—';
+          const lonStr = d.mule_estimated_lon != null ? d.mule_estimated_lon.toFixed(4) : '—';
+          const hopIdx = d.new_transaction?.hop_index ?? '?';
           showR('push-result', 'success', `✓ Update pushed — ${ncrp}`, `
           <div class="update-grid">
             <div class="update-stat"><div class="update-stat-lbl">Withdrawn Today</div><div class="update-stat-val" style="color:var(--danger)">₹${fmt(m.withdrawals_today_inr)}</div></div>
             <div class="update-stat"><div class="update-stat-lbl">Balance Remaining</div><div class="update-stat-val" style="color:var(--warn)">₹${fmt(m.balance_inr)}</div></div>
             <div class="update-stat"><div class="update-stat-lbl">Still Drainable</div><div class="update-stat-val" style="color:${m.drainable_today_inr > 0 ? '#6ee7b7' : '#fca5a5'}">₹${fmt(m.drainable_today_inr)}</div></div>
           </div>
+          <div style="margin-top:.6rem;padding:.5rem .75rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;font-size:.72rem">
+            <div style="font-weight:700;color:#6ee7b7">📍 Suspect GPS Pinpointed to ATM: <code>${atmId}</code></div>
+            <div style="color:var(--muted);margin-top:.2rem">Coords: ${latStr}, ${lonStr} · Method: <code>${d.mule_location_method}</code> (ATM Terminal Telemetry) · Hop #${hopIdx}</div>
+          </div>
           ${maxed ? '<div style="margin-top:.6rem;font-size:.75rem;color:#fca5a5">⚠ Daily limit reached — Synapse will show DAILY LIMIT EXHAUSTED</div>' : ''}
-          <div style="margin-top:.5rem;font-size:.72rem;color:var(--muted)">Synapse dashboard reflects this update within 5 seconds.</div>`);
-          log('ok', `Pushed — ${ncrp} | +₹${fmt(amt)} | Total: ₹${fmt(m.withdrawals_today_inr)} | Balance: ₹${fmt(m.balance_inr)}`);
-          patchLocalCache(ncrp, m);
+          <div style="margin-top:.8rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+            <span style="font-size:.72rem;color:var(--muted)">Synapse dashboard reflects this update within 5 seconds.</span>
+            <a href="/ui/index.html?ncrp=${encodeURIComponent(ncrp)}" target="_blank" style="display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .85rem;border-radius:6px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.35);color:#a5b4fc;font-size:.75rem;font-weight:600;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(99,102,241,.25)'" onmouseout="this.style.background='rgba(99,102,241,.15)'">
+              🎯 View on Tactical Map →
+            </a>
+          </div>`);
+          log('ok', `⚡ [ATM WITHDRAWAL] ${ncrp} | +₹${fmt(amt)} at ${atmId} | GPS Pinpoint: (${latStr}, ${lonStr}) · Confirmed 3rd Location Source (ATM Terminal Telemetry) · Hop #${hopIdx}`);
+          patchLocalCache(ncrp, m, d);
         } else {
           const msg = d.error || JSON.stringify(d);
           showR('push-result', 'error', '✖ Update rejected', `<div style="margin-top:.4rem;color:#fca5a5">${msg}</div>`);
@@ -1242,17 +1296,38 @@
         o.value = inc.ncrp_ticket_id; o.textContent = label;
         sel.appendChild(o);
       });
-      if (cur && active.find(i => i.ncrp_ticket_id === cur)) { sel.value = cur; onIncidentSelect(); }
-      else { document.getElementById('inc-meta').innerHTML = ''; document.getElementById('resolve-case-btn').style.display = 'none'; }
+      if (cur && active.find(i => i.ncrp_ticket_id === cur)) {
+        sel.value = cur;
+        onIncidentSelect();
+      } else {
+        document.getElementById('inc-meta').innerHTML = '';
+        document.getElementById('resolve-case-btn').style.display = 'none';
+        const atmSel = document.getElementById('atm-select');
+        if (atmSel) atmSel.innerHTML = '<option value="">— Select incident first —</option>';
+        const atmMeta = document.getElementById('atm-meta');
+        if (atmMeta) atmMeta.innerHTML = '';
+      }
     }
 
     function onIncidentSelect() {
       const ncrp = document.getElementById('inc-select').value;
       const meta = document.getElementById('inc-meta');
       const resolveBtn = document.getElementById('resolve-case-btn');
-      if (!ncrp) { meta.innerHTML = ''; resolveBtn.style.display = 'none'; return; }
+      if (!ncrp) {
+        meta.innerHTML = '';
+        resolveBtn.style.display = 'none';
+        const atmSel = document.getElementById('atm-select');
+        if (atmSel) atmSel.innerHTML = '<option value="">— Select incident first —</option>';
+        const atmMeta = document.getElementById('atm-meta');
+        if (atmMeta) atmMeta.innerHTML = '';
+        return;
+      }
       const inc = _incidents.find(i => i.ncrp_ticket_id === ncrp);
-      if (!inc) { meta.innerHTML = ''; resolveBtn.style.display = 'none'; return; }
+      if (!inc) {
+        meta.innerHTML = '';
+        resolveBtn.style.display = 'none';
+        return;
+      }
       const m = inc.payload_snapshot?.terminal_mule || {};
       meta.innerHTML =
         `Acct: <span class="inc-meta-highlight">${m.account_number || 'N/A'}</span> · ` +
@@ -1260,6 +1335,7 @@
         `Withdrawn: <span class="inc-meta-highlight">₹${fmt(m.withdrawals_today_inr)}</span> · ` +
         `Limit: <span class="inc-meta-highlight">₹${fmt(m.daily_limit_inr)}</span>`;
       resolveBtn.style.display = 'inline-flex';
+      populateAtmDropdown(inc);
     }
 
     function openResolveModal() {
@@ -1322,12 +1398,20 @@
       }
     }
 
-    function patchLocalCache(ncrp, mule) {
+    function patchLocalCache(ncrp, mule, d) {
       const inc = _incidents.find(i => i.ncrp_ticket_id === ncrp);
-      if (inc?.payload_snapshot?.terminal_mule) {
-        inc.payload_snapshot.terminal_mule.withdrawals_today_inr = mule.withdrawals_today_inr;
-        inc.payload_snapshot.terminal_mule.balance_inr = mule.balance_inr;
-        inc.drainable_today_inr = mule.drainable_today_inr;
+      if (inc) {
+        if (inc.payload_snapshot?.terminal_mule) {
+          inc.payload_snapshot.terminal_mule.withdrawals_today_inr = mule.withdrawals_today_inr;
+          inc.payload_snapshot.terminal_mule.balance_inr = mule.balance_inr;
+          inc.drainable_today_inr = mule.drainable_today_inr;
+        }
+        if (d?.mule_estimated_lat != null) inc.mule_estimated_lat = d.mule_estimated_lat;
+        if (d?.mule_estimated_lon != null) inc.mule_estimated_lon = d.mule_estimated_lon;
+        if (d?.mule_location_method) inc.mule_location_method = d.mule_location_method;
+        if (d?.new_transaction && inc.payload_snapshot?.transactions) {
+          inc.payload_snapshot.transactions.push(d.new_transaction);
+        }
       }
       onIncidentSelect();
     }

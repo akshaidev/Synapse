@@ -966,6 +966,28 @@
       animation: mule-p 1.8s infinite;
     }
 
+    .mule-dot.confirmed {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 3px solid #ecfdf5;
+      box-shadow: 0 0 16px #10b981;
+      animation: mule-p-confirmed 1.6s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mule-dot.confirmed::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 6px #ffffff;
+    }
+
     @keyframes mule-p {
       0% {
         box-shadow: 0 0 0 0 rgba(129, 140, 248, .6)
@@ -977,6 +999,24 @@
 
       100% {
         box-shadow: 0 0 0 0 rgba(129, 140, 248, 0)
+      }
+    }
+
+    @keyframes mule-p-confirmed {
+      0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, .9), 0 0 12px rgba(16, 185, 129, .6);
+      }
+
+      50% {
+        box-shadow: 0 0 0 24px rgba(16, 185, 129, .4), 0 0 22px rgba(16, 185, 129, .45);
+      }
+
+      75% {
+        box-shadow: 0 0 0 46px rgba(16, 185, 129, 0), 0 0 32px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
       }
     }
 
@@ -1683,12 +1723,18 @@
             <div class="intel-card-title" style="margin-bottom:.75rem">🔗 Transaction Flow</div>
             <div id="intel-txns"></div>
           </div>
-          <!-- IP Intelligence -->
+          <!-- Location Intelligence & Telemetry Sources -->
           <div class="ip-section">
-            <div class="intel-card-title" style="padding:.875rem 1rem .4rem;margin-bottom:0">🌐 IP Intelligence</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:.875rem 1rem .4rem">
+              <div class="intel-card-title" style="margin-bottom:0">🌐 Location Intelligence &amp; Telemetry Sources</div>
+              <span id="location-source-badge" style="font-size:.68rem;padding:.2rem .5rem;border-radius:4px;font-weight:700"></span>
+            </div>
+            <!-- ATM 3rd Source Banner (shown if confirmed) -->
+            <div id="intel-atm-fix" style="display:none;margin:0 1rem .75rem;padding:.6rem .85rem;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;font-size:.74rem">
+            </div>
             <table class="ip-table">
               <thead><tr>
-                <th>IP Address</th><th>ASN</th><th>Lat / Lon</th><th>Last Seen (IST)</th>
+                <th>Source Type</th><th>Identifier / Network</th><th>Lat / Lon</th><th>Timestamp / Status</th>
               </tr></thead>
               <tbody id="intel-ip-tbody"></tbody>
             </table>
@@ -1703,6 +1749,10 @@
 
   <script>
     'use strict';
+
+    // ─── Formatting Helpers ──────────────────────────────────────────────────────
+    const fmt = v => Number(v).toLocaleString('en-IN');
+    const fmtINR = v => `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // ─── State ──────────────────────────────────────────────────────────────────
     let _map = null;
@@ -2149,16 +2199,41 @@
         if (_selectedNcrp && _selected) {
           const updated = fresh.find(i => i.ncrp_ticket_id === _selectedNcrp);
           if (updated) {
-            const prevDrain  = _selected.drainable_today_inr;
-            const prevWithd  = _selected.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
-            const newDrain   = updated.drainable_today_inr;
-            const newWithd   = updated.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
-            if (prevDrain !== newDrain || prevWithd !== newWithd || lienChanged || dispatchChanged) {
-              // Data or lien state changed — patch local reference and refresh intel panel only.
+            const prevDrain   = _selected.drainable_today_inr;
+            const prevWithd   = _selected.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
+            const newDrain    = updated.drainable_today_inr;
+            const newWithd    = updated.payload_snapshot?.terminal_mule?.withdrawals_today_inr;
+            const prevLat     = _selected.mule_estimated_lat;
+            const newLat      = updated.mule_estimated_lat;
+            const prevMethod  = _selected.mule_location_method;
+            const newMethod   = updated.mule_location_method;
+            const prevTxnLen  = _selected.payload_snapshot?.transactions?.length ?? 0;
+            const newTxnLen   = updated.payload_snapshot?.transactions?.length ?? 0;
+            const locChanged  = prevLat !== newLat || prevMethod !== newMethod;
+            const dataChanged = prevDrain !== newDrain || prevWithd !== newWithd || prevTxnLen !== newTxnLen;
+
+            if (dataChanged || locChanged || lienChanged || dispatchChanged) {
               _selected = updated;
-              renderIntelPanel(updated);
+              try { renderIntelPanel(updated); } catch (err) { console.warn('Intel panel live-update error:', err); }
+              if (locChanged) {
+                try { renderMap(updated); } catch (err) { console.warn('Map live-update error:', err); }
+              }
             }
           }
+        }
+
+        // Auto-select from URL parameter (?ncrp=...) on first load if nothing selected yet
+        if (!_selectedNcrp && fresh.length) {
+          try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const qNcrp = urlParams.get('ncrp');
+            if (qNcrp) {
+              const idx = fresh.findIndex(x => x.ncrp_ticket_id === qNcrp);
+              if (idx >= 0) {
+                selectRow(idx, true);
+              }
+            }
+          } catch (_) {}
         }
 
         _incidents = fresh;
@@ -2174,18 +2249,34 @@
       document.getElementById('viewB').classList.toggle('active', v === 'B');
       document.getElementById('tab-a').classList.toggle('active', v === 'A');
       document.getElementById('tab-b').classList.toggle('active', v === 'B');
-      if (v === 'B') setTimeout(() => _map && _map.invalidateSize(), 60);
+      if (v === 'B') {
+        setTimeout(() => {
+          if (_map) {
+            _map.invalidateSize();
+            if (_layers.length) {
+              try {
+                const grp = L.featureGroup(_layers);
+                const b = grp.getBounds();
+                if (b && typeof b.isValid === 'function' && b.isValid()) {
+                  _map.fitBounds(b.pad(0.15));
+                }
+              } catch (_) {}
+            }
+          }
+        }, 100);
+      }
     }
 
     // ─── Incident Selection ───────────────────────────────────────────────────────
-    function selectRow(i) {
+    function selectRow(i, andSwitch = true) {
       _selected = _incidents[i];
       _selectedNcrp = _selected?.ncrp_ticket_id || null;
-      renderViewB(_selected);
+      if (_selected) renderViewB(_selected);
+      if (andSwitch) switchView('B');
     }
     function selectByNcrp(id) {
       const i = _incidents.findIndex(x => x.ncrp_ticket_id === id);
-      if (i >= 0) { selectRow(i); switchView('B'); toggleDrawer(); }
+      if (i >= 0) { selectRow(i, true); toggleDrawer(); }
     }
 
     function renderViewB(inc) {
@@ -2234,10 +2325,10 @@
         }
       }
 
-      startCountdown(drainMins, preZeroReason);
-      renderMap(inc);
-      renderCards(inc);
-      renderIntelPanel(inc);
+      try { startCountdown(drainMins, preZeroReason); } catch (e) { console.warn('Countdown error:', e); }
+      try { renderMap(inc); } catch (e) { console.warn('renderMap error:', e); }
+      try { renderCards(inc); } catch (e) { console.warn('renderCards error:', e); }
+      try { renderIntelPanel(inc); } catch (e) { console.warn('renderIntelPanel error:', e); }
     }
 
     // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -2326,38 +2417,63 @@
     }
 
     function renderMap(inc) {
+      if (!_map) {
+        initMap();
+      }
       clearLayers();
 
-      const lat = inc.mule_estimated_lat;
-      const lon = inc.mule_estimated_lon;
-      if (!lat || !lon) return;
+      const lat = Number(inc.mule_estimated_lat);
+      const lon = Number(inc.mule_estimated_lon);
+      if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
 
-      // Pulsing mule dot
+      // Pulsing mule dot (emerald beacon if confirmed at ATM, indigo pulse otherwise)
+      const isConfirmed = inc.mule_location_method === 'ATM_WITHDRAWAL_CONFIRMED';
+      const dotClass = isConfirmed ? 'mule-dot confirmed' : 'mule-dot';
+      const iconDim = isConfirmed ? [24, 24] : [16, 16];
+      const iconAnchor = isConfirmed ? [12, 12] : [8, 8];
       const muleIco = L.divIcon({
-        className: '', html: '<div class="mule-dot"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7],
+        className: '', html: `<div class="${dotClass}"></div>`,
+        iconSize: iconDim, iconAnchor: iconAnchor,
       });
-      const muleMk = L.marker([lat, lon], { icon: muleIco })
-        .bindPopup(`<b>🔵 Estimated Mule Position</b><br>Method: <code>${inc.mule_location_method}</code><br>${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      const popupTitle = isConfirmed ? '📍 Confirmed Suspect Position (ATM Terminal Telemetry)' : '🔵 Estimated Mule Position';
+      const muleMk = L.marker([lat, lon], { icon: muleIco, zIndexOffset: isConfirmed ? 2500 : 500 })
+        .bindPopup(`<b>${popupTitle}</b><br>Method: <code>${inc.mule_location_method || 'N/A'}</code><br>Coords: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
       muleMk.addTo(_map); _layers.push(muleMk);
 
-      // 2 km accuracy ring
-      const ring = L.circle([lat, lon], {
-        radius: 2000, color: '#818cf8', fillColor: '#818cf8',
-        fillOpacity: .05, weight: 1.5, dashArray: '5 4',
-      }).addTo(_map); _layers.push(ring);
+      // Accuracy ring: 800m tactical interdiction perimeter if confirmed at ATM, 2 km circle otherwise
+      const ringRadius = isConfirmed ? 800 : 2000;
+      const ringColor = isConfirmed ? '#10b981' : '#818cf8';
+      const ringOpts = {
+        radius: ringRadius, color: ringColor, fillColor: ringColor,
+        fillOpacity: isConfirmed ? .18 : .05, weight: isConfirmed ? 2.5 : 1.5,
+      };
+      if (!isConfirmed) {
+        ringOpts.dashArray = '5 4';
+      }
+      const ring = L.circle([lat, lon], ringOpts).addTo(_map); _layers.push(ring);
+
+      if (isConfirmed) {
+        // Inner tactical cordon (300m) for high-impact visual depth
+        const innerRing = L.circle([lat, lon], {
+          radius: 300, color: '#34d399', fillColor: '#10b981',
+          fillOpacity: 0.22, weight: 1.8, dashArray: '4 4'
+        }).addTo(_map);
+        _layers.push(innerRing);
+      }
 
       // ATM markers
       const pinClr = ['#ef4444', '#f97316', '#eab308'];
       (inc.top_atms || []).forEach((atm, i) => {
-        if (!atm.lat || !atm.lon) return;
+        const aLat = Number(atm.lat);
+        const aLon = Number(atm.lon);
+        if (!aLat || !aLon || isNaN(aLat) || isNaN(aLon)) return;
         const ico = L.divIcon({
           className: '',
-          html: `<div class="atm-pin" style="background:${pinClr[i]}">${i + 1}</div>`,
+          html: `<div class="atm-pin" style="background:${pinClr[i] || '#6366f1'}">${i + 1}</div>`,
           iconSize: [24, 24], iconAnchor: [12, 12],
         });
-        const mk = L.marker([atm.lat, atm.lon], { icon: ico })
-          .bindPopup(`<b>#${i + 1} ${atm.atm_id}</b><br>${atm.bank_name}<br>Risk: ${atm.risk_score}<br>${atm.is_onsite ? 'Onsite' : '⭐ Offsite'} ATM`);
+        const mk = L.marker([aLat, aLon], { icon: ico })
+          .bindPopup(`<b>#${i + 1} ${atm.atm_id}</b><br>${atm.bank_name || ''}<br>Risk: ${atm.risk_score != null ? atm.risk_score : 'N/A'}<br>${atm.is_onsite ? 'Onsite' : '⭐ Offsite'} ATM`);
         mk.addTo(_map); _layers.push(mk);
       });
 
@@ -2367,10 +2483,19 @@
           const grp = L.featureGroup(_layers);
           // Wait for display:block to fully apply so Leaflet computes bounds correctly
           setTimeout(() => {
-            _map.invalidateSize();
-            _map.fitBounds(grp.getBounds().pad(0.15));
-          }, 50);
-        } catch (e) { _map.setView([lat, lon], 14); }
+            if (_map) {
+              _map.invalidateSize();
+              const b = grp.getBounds();
+              if (b && typeof b.isValid === 'function' && b.isValid()) {
+                _map.fitBounds(b.pad(0.15));
+              } else {
+                _map.setView([lat, lon], 14);
+              }
+            }
+          }, 60);
+        } catch (e) {
+          try { _map.setView([lat, lon], 14); } catch (_) {}
+        }
       }
     }
 
@@ -2519,17 +2644,26 @@
           const amtFmt = fmtINR(t.amount_inr);
           const tsStr = fmtDate(t.txn_timestamp) || t.txn_timestamp || 'N/A';
 
+          const isAtm = t.channel === 'ATM_CASH_WITHDRAWAL';
           // Sender lien button: only for hops > 1 (hop 1 sender = victim, excluded)
-          const senderLienHtml = (t.hop_index > 1) ? lienBtnHtml(t.sender_account, t.sender_bank, t.sender_ifsc) : '';
-          // Receiver lien button: always (every receiver is a mule account)
-          const receiverLienHtml = lienBtnHtml(t.receiver_account, t.receiver_bank, t.receiver_ifsc);
+          const senderLienHtml = (!isAtm && t.hop_index > 1) ? lienBtnHtml(t.sender_account, t.sender_bank, t.sender_ifsc) : '';
+          // Receiver lien button: always for mules, omitted for cash withdrawal
+          const receiverLienHtml = isAtm ? '' : lienBtnHtml(t.receiver_account, t.receiver_bank, t.receiver_ifsc);
+
+          const chanBadge = isAtm
+            ? `<span class="txn-channel" style="background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)">🏧 ATM CASH OUT</span>`
+            : `<span class="txn-channel">${t.channel || 'N/A'}</span>`;
+
+          const routeStr = isAtm
+            ? `<span style="color:#fca5a5;font-weight:600">${t.sender_bank || 'Mule Account'} → Physical ATM Cash Withdrawal</span>`
+            : `<span style="color:var(--text)">${t.sender_bank || 'N/A'} → ${t.receiver_bank || 'N/A'}</span>`;
 
           return `
           <button class="txn-btn" onclick="toggleTxn('${id}', this)" id="txn-btn-${i}">
             <div class="txn-btn-left">
               <span class="txn-hop">HOP ${String(t.hop_index).padStart(2,'0')}</span>
-              <span class="txn-channel">${t.channel || 'N/A'}</span>
-              <span style="color:var(--text)">${t.sender_bank || 'N/A'} → ${t.receiver_bank || 'N/A'}</span>
+              ${chanBadge}
+              ${routeStr}
             </div>
             <div style="display:flex;align-items:center;gap:.75rem">
               <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--warn)">${amtFmt}</span>
@@ -2546,7 +2680,7 @@
               </div>
               <div class="txn-arrow">→</div>
               <div class="txn-acct">
-                <div class="txn-acct-lbl">Receiver</div>
+                <div class="txn-acct-lbl">${isAtm ? 'Terminal (Cash Out)' : 'Receiver'}</div>
                 <div class="txn-acct-num">${t.receiver_account || 'N/A'}</div>
                 <div class="txn-acct-bank">${t.receiver_bank || ''} · ${t.receiver_ifsc || ''}</div>
                 ${receiverLienHtml}
@@ -2561,20 +2695,87 @@
         }).join('');
       }
 
-      // ── IP Intelligence Table ──────────────────────────────────────────────────
+      // ── Location Intelligence & Sources ────────────────────────────────────────
+      const atmFix = snap.atm_location_source || mule.last_withdrawal_atm;
+      const atmBanner = document.getElementById('intel-atm-fix');
+      const srcBadge = document.getElementById('location-source-badge');
+
+      if (srcBadge) {
+        if (atmFix || inc.mule_location_method === 'ATM_WITHDRAWAL_CONFIRMED') {
+          srcBadge.textContent = '3 Telemetry Sources Active · ATM Terminal Confirmed';
+          srcBadge.style.background = 'rgba(16,185,129,.15)';
+          srcBadge.style.color = '#6ee7b7';
+          srcBadge.style.border = '1px solid rgba(16,185,129,.3)';
+        } else {
+          srcBadge.textContent = `Method: ${inc.mule_location_method || 'IP_GEOLOCATION'}`;
+          srcBadge.style.background = 'rgba(99,102,241,.12)';
+          srcBadge.style.color = '#818cf8';
+          srcBadge.style.border = '1px solid rgba(99,102,241,.25)';
+        }
+      }
+
+      if (atmBanner) {
+        if (atmFix) {
+          atmBanner.style.display = 'block';
+          atmBanner.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+              <span style="font-weight:700;color:#6ee7b7">📍 Location Source 3: ATM Terminal Telemetry</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:#a7f3d0;font-size:.7rem">${fmtDate(atmFix.timestamp) || atmFix.timestamp || ''}</span>
+            </div>
+            <div style="margin-top:.25rem;color:var(--text);font-size:.72rem">
+              ATM Terminal: <strong style="color:#6ee7b7">${atmFix.atm_id}</strong> (${atmFix.bank_name || 'ATM'}) · 
+              Coordinates: <code style="color:#a7f3d0">${atmFix.lat != null ? atmFix.lat.toFixed(4) : '—'}, ${atmFix.lon != null ? atmFix.lon.toFixed(4) : '—'}</code>
+              ${atmFix.address ? ' · ' + atmFix.address : ''}
+              ${atmFix.amount_inr ? ' · Dispensed: <strong style="color:var(--warn)">' + fmtINR(atmFix.amount_inr) + '</strong>' : ''}
+            </div>`;
+        } else {
+          atmBanner.style.display = 'none';
+        }
+      }
+
       const ips = snap.ip_cluster || [];
+      const cells = snap.cell_tower_cluster || [];
       const tbody = document.getElementById('intel-ip-tbody');
-      if (!ips.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">No IP data available</td></tr>`;
-      } else {
-        tbody.innerHTML = ips.map(ip => `
-          <tr>
-            <td style="color:var(--primary)">${ip.ip_address || 'N/A'}</td>
-            <td style="color:var(--muted)">${ip.asn || 'N/A'}</td>
+      let rowsHtml = '';
+
+      // Source 1: Cell Tower
+      if (cells.length) {
+        cells.forEach(c => {
+          rowsHtml += `<tr>
+            <td><span style="color:#f59e0b;font-weight:600">Source 1: Cell Tower</span></td>
+            <td style="color:var(--text)">${c.tower_id || 'Tower'}</td>
+            <td>${c.lat != null ? c.lat.toFixed(4) : 'N/A'} / ${c.lon != null ? c.lon.toFixed(4) : 'N/A'}</td>
+            <td style="color:var(--muted)">${fmtDate(c.last_seen) || 'N/A'}</td>
+          </tr>`;
+        });
+      }
+
+      // Source 2: IP Observations
+      if (ips.length) {
+        ips.forEach(ip => {
+          rowsHtml += `<tr>
+            <td><span style="color:var(--primary);font-weight:600">Source 2: IP Geolocation</span></td>
+            <td style="color:var(--text)">${ip.ip_address || 'N/A'} <span style="color:var(--muted);font-size:.7rem">(${ip.asn || 'ASN'})</span></td>
             <td>${ip.geo_lat != null ? ip.geo_lat.toFixed(4) : 'N/A'} / ${ip.geo_lon != null ? ip.geo_lon.toFixed(4) : 'N/A'}</td>
             <td style="color:var(--muted)">${fmtDate(ip.last_seen) || 'N/A'}</td>
-          </tr>
-        `).join('');
+          </tr>`;
+        });
+      }
+
+      // Source 3: Confirmed ATM Terminal Telemetry
+      if (atmFix) {
+        rowsHtml += `<tr style="background:rgba(16,185,129,.05)">
+          <td><span style="color:#10b981;font-weight:700">Source 3: ATM Terminal Telemetry</span></td>
+          <td style="color:#6ee7b7;font-weight:600">${atmFix.atm_id} <span style="color:var(--muted);font-size:.7rem">(${atmFix.bank_name || 'ATM'})</span></td>
+          <td style="color:#a7f3d0;font-weight:600">${atmFix.lat != null ? atmFix.lat.toFixed(4) : 'N/A'} / ${atmFix.lon != null ? atmFix.lon.toFixed(4) : 'N/A'}</td>
+          <td style="color:#a7f3d0">${fmtDate(atmFix.timestamp) || 'N/A'}</td>
+        </tr>`;
+      }
+
+      if (!rowsHtml) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">No location telemetry available</td></tr>`;
+      } else {
+        tbody.innerHTML = rowsHtml;
       }
 
       // ── Top Level Lien Button (Terminal Mule) ──────────────────────────────────
@@ -2885,14 +3086,14 @@
               : `<span class="badge b-na">${wh}</span>`;
           const drain = r.drain_time_remaining_minutes != null ? `${r.drain_time_remaining_minutes} min` : '—';
           const conf  = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
-          return `<tr onclick="selectRow(${globalIdx})">
+          return `<tr onclick="selectRow(${globalIdx}, true)">
             <td><span class="mono">${r.ncrp_ticket_id || '—'}</span></td>
             <td>${tierBadge}</td>
             <td><span style="font-weight:800;color:var(--primary)">${conf}</span></td>
             <td><span class="mono">${drain}</span></td>
             <td><span class="mono" style="font-size:.7rem">${r.mule_location_method || '—'}</span></td>
             <td>${whBadge}</td>
-            <td><button class="map-link" onclick="event.stopPropagation();selectRow(${globalIdx});switchView('B')">Map →</button></td>
+            <td><button class="map-link" onclick="event.stopPropagation();selectRow(${globalIdx}, true)">Map →</button></td>
           </tr>`;
         }).join('');
       }

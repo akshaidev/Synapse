@@ -472,6 +472,19 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 27: ATM Live Withdrawal Integration, Suspect GPS Pinpoint, 3rd Location Telemetry Source & Transaction Logging
+
+| Field | Value |
+|---|---|
+| **File** | `api/schemas.py`, `api/main.py`, `ui/feed.html`, `ui/index.html`, `tests/verify_live_atm_withdrawal.py`, `PRD.md`, `asbuilt.html`, `Assumptions.MD` |
+| **PRD Reference** | Phase 14 (§14.1–§14.4), §10.3 Bank Feed Simulator |
+| **Description** | Replaced the free-form text note input in `ui/feed.html` with `#atm-select`, a dynamic dropdown populated with the active incident's Top 3 candidate ATMs (`inc.top_atms`). Pushing a withdrawal at a selected ATM updates suspect GPS coordinates directly to the ATM's latitude and longitude (`mule_estimated_lat`, `mule_estimated_lon`), updating `mule_location_method` to `ATM_WITHDRAWAL_CONFIRMED`. Recorded the cash-out as the 3rd Location Source (`Location Source 3: ATM Terminal Telemetry`) in the Feed Activity Log, Stage 3 Spatial details, and the dashboard's Location Intelligence panel. Updated Leaflet map rendering in `ui/index.html` to display an amplified 22px pulsing emerald radar beacon (`.mule-dot.confirmed`, z-index 2500) with an 800m tactical interdiction perimeter and a 300m inner cordon. Added `ATM_CASH_WITHDRAWAL` to `PaymentChannel` and automatically appended discrete cash-out transactions to `payload_snapshot.transactions`, rendering them in the Transaction Flow accordion. Added cross-dashboard navigation links and direct deep-linking via `?ncrp=`. |
+| **Status** | `Verified & Pending User Sign-Off` |
+| **Verification Date** | 09 September 2026 |
+| **Notes** | Verified via `tests/verify_live_atm_withdrawal.py` (23/23 PASS), `tests/verify_bulk_upload.py` (32/32 PASS), `tests/verify_feed_resolution.py` (21/21 PASS), and `tests/verify_no_viable_atm_mule.py` (10/10 PASS). |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -503,6 +516,7 @@ All verification records are appended here chronologically. Each entry is create
 | 08 Sep 2026 | Module 24 — Bank Feed Resolution (BUG-001) | `/tests/verify_feed_resolution.py` | PASS (17/17) | USER |
 | 08 Sep 2026 | Module 25 — Mule Viability Rejection | `/tests/verify_no_viable_atm_mule.py` | PASS (10/10) | USER |
 | 08 Sep 2026 | Module 26 — Bulk Upload & Dynamic Sim | `/tests/verify_bulk_upload.py` | PASS (32/32) | USER |
+| 09 Sep 2026 | Module 27 — ATM Live Withdrawal & Pinpoint | `/tests/verify_live_atm_withdrawal.py` | PASS (23/23) | PENDING USER SIGNOFF |
 
 ---
 
@@ -520,6 +534,7 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 11** | Digital Lien Management System (Persistent manual/pipeline registry, UI Sync) | **Complete** |
 | **Phase 12** | Crew Dispatch Backend Migration (Move dispatch registry to sent_crew.json) | **Complete** |
 | **Phase 13** | Bulk Ingestion Engine, Dynamic Simulation Alignment & Operational Maintenance | **Complete** |
+| **Phase 14** | Live ATM Withdrawal, Suspect GPS Pinpoint, 3rd Location Source & Transaction Flow | **Complete** |
 
 ---
 

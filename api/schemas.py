@@ -28,6 +28,7 @@ class PaymentChannel(str, Enum):
     IMPS = "IMPS"
     UPI = "UPI"
     INTERNAL_TRANSFER = "INTERNAL_TRANSFER"
+    ATM_CASH_WITHDRAWAL = "ATM_CASH_WITHDRAWAL"
 
 class AccountType(str, Enum):
     SAVINGS = "SAVINGS"
@@ -53,6 +54,7 @@ class LocationMethod(str, Enum):
     IP_GEOLOCATION = "IP_GEOLOCATION"
     COMBINED = "COMBINED"
     IFSC_BRANCH_FALLBACK = "IFSC_BRANCH_FALLBACK"
+    ATM_WITHDRAWAL_CONFIRMED = "ATM_WITHDRAWAL_CONFIRMED"
 
 # Ingestion Sub-models
 class SourceAccount(BaseModel):

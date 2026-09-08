@@ -1385,6 +1385,7 @@ async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONRes
         body = {}
 
     additional_withdrawal = float(body.get("additional_withdrawal_inr", 0.0))
+    atm_id = str(body.get("atm_id", "")).strip()
     note = body.get("note", "")
 
     # Find incident in-memory
@@ -1427,11 +1428,83 @@ async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONRes
 
     ts = datetime.now(timezone.utc).isoformat()
 
+    # Look up selected ATM
+    selected_atm = None
+    if atm_id:
+        for a in target.get("top_atms", []):
+            if a.get("atm_id") == atm_id:
+                selected_atm = a
+                break
+        if not selected_atm and _ATM_REGISTRY:
+            for a in _ATM_REGISTRY:
+                if a.get("atm_id") == atm_id:
+                    selected_atm = a
+                    break
+
+    atm_txn = None
+    if selected_atm:
+        # Update suspect GPS location directly to the ATM coordinates
+        target["mule_estimated_lat"] = selected_atm["lat"]
+        target["mule_estimated_lon"] = selected_atm["lon"]
+        target["mule_location_method"] = "ATM_WITHDRAWAL_CONFIRMED"
+
+        # Record last withdrawal ATM in terminal mule
+        mule["last_withdrawal_atm"] = {
+            "atm_id": selected_atm["atm_id"],
+            "bank_name": selected_atm.get("bank_name"),
+            "lat": selected_atm["lat"],
+            "lon": selected_atm["lon"],
+            "address": selected_atm.get("address"),
+            "timestamp": ts,
+            "amount_inr": additional_withdrawal,
+        }
+
+        # 3rd Location Source metadata
+        snap["atm_location_source"] = {
+            "source_index": 3,
+            "source_name": "ATM Physical Withdrawal Fix",
+            "atm_id": selected_atm["atm_id"],
+            "bank_name": selected_atm.get("bank_name"),
+            "lat": selected_atm["lat"],
+            "lon": selected_atm["lon"],
+            "address": selected_atm.get("address"),
+            "timestamp": ts,
+            "amount_inr": additional_withdrawal,
+        }
+
+        # Append discrete transaction to fund flow
+        txns = snap.setdefault("transactions", [])
+        new_hop = len(txns) + 1
+        atm_txn_id = f"ATM{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+        atm_txn = {
+            "hop_index": new_hop,
+            "txn_id": atm_txn_id,
+            "txn_timestamp": ts,
+            "sender_account": mule.get("account_number", "UNKNOWN"),
+            "sender_ifsc": mule.get("ifsc", "UNKNOWN"),
+            "sender_bank": mule.get("bank", "UNKNOWN"),
+            "receiver_account": f"CASH-{selected_atm['atm_id']}",
+            "receiver_ifsc": str(selected_atm.get("pin_code") or selected_atm["atm_id"]),
+            "receiver_bank": f"{selected_atm.get('bank_name', 'ATM')} (Cash Out)",
+            "amount_inr": additional_withdrawal,
+            "channel": "ATM_CASH_WITHDRAWAL",
+        }
+        txns.append(atm_txn)
+
+        # Update STAGE_3_SPATIAL details
+        for s in target.get("stages", []):
+            if s.get("stage") == "STAGE_3_SPATIAL":
+                atm_fix_info = f"Mule position CONFIRMED via ATM Cash Withdrawal at {selected_atm['atm_id']} ({selected_atm['lat']:.4f}, {selected_atm['lon']:.4f}) [Source 3: ATM_WITHDRAWAL_CONFIRMED]"
+                existing_detail = s.get("detail", "")
+                if not existing_detail.startswith("Mule position CONFIRMED"):
+                    s["detail"] = f"{atm_fix_info} | {existing_detail}"
+
     _persist_incidents()
 
     logger.info(
         f"[LIVE-UPDATE] ncrp={ncrp_ticket_id} | "
         f"+withdrawal=₹{additional_withdrawal:,.2f} | "
+        f"atm={atm_id or 'NONE'} | "
         f"withdrawn_total=₹{new_withdrawn:,.2f} | "
         f"balance_remaining=₹{new_balance:,.2f} | "
         f"note='{note}'"
@@ -1444,12 +1517,19 @@ async def live_update_incident(ncrp_ticket_id: str, request: Request) -> JSONRes
             "ncrp_ticket_id": ncrp_ticket_id,
             "applied_at_utc": ts,
             "note": note,
+            "atm_id": selected_atm["atm_id"] if selected_atm else None,
+            "mule_estimated_lat": target.get("mule_estimated_lat"),
+            "mule_estimated_lon": target.get("mule_estimated_lon"),
+            "mule_location_method": target.get("mule_location_method"),
             "terminal_mule": {
                 "withdrawals_today_inr": round(new_withdrawn, 2),
                 "balance_inr":           round(new_balance, 2),
                 "drainable_today_inr":   round(new_drainable, 2),
                 "daily_limit_inr":       daily_limit,
+                "last_withdrawal_atm":   mule.get("last_withdrawal_atm"),
             },
+            "atm_location_source": snap.get("atm_location_source"),
+            "new_transaction": atm_txn,
         },
     )
 

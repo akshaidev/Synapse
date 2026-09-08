@@ -2012,5 +2012,73 @@ Synthetic payloads previously included cities outside Synapse's ATM registry (Ch
 
 ---
 
+## 14. Phase 14 — Live ATM Withdrawal, Suspect GPS Pinpoint & Fund Flow Logging
+
+### 14.1 Phase 14 Feature 01 — Target ATM Selector Dropdown (Bank Feed Simulator)
+
+**Status:** `Verified & Approved` — 09 September 2026
+
+#### 14.1.1 Problem
+The Bank Feed Simulator's Live Withdrawal Push form previously required operators to manually type notes or ATM IDs into a free-form text input. This lacked coupling to the spatial intelligence engine and didn't present the 3 candidate ATMs already ranked by Synapse for the active incident.
+
+#### 14.1.2 Changes
+| File | Change |
+|---|---|
+| `ui/feed.html` | Replaced `#withdrawal-note` text input with `#atm-select` dropdown. |
+| `ui/feed.html` | Added `populateAtmDropdown(inc)` which dynamically populates `#atm-select` with the active incident's Top 3 probable ATMs (`inc.top_atms`), displaying rank, ATM ID, bank, onsite/offsite classification, and risk score. |
+| `ui/feed.html` | Added `onAtmSelect()` and `#atm-meta` to display coordinates and address of the selected target ATM. |
+| `ui/feed.html` | Updated `pushWithdrawal()` to pass `atm_id` to `PATCH /api/v1/incidents/{ncrp}/live-update`. |
+
+---
+
+### 14.2 Phase 14 Feature 02 — Suspect GPS Pinpointing to Confirmed ATM
+
+**Status:** `Verified & Approved` — 09 September 2026
+
+#### 14.2.1 Problem
+Simulated live withdrawals previously only mutated numerical balance ledger fields (`balance_inr`, `withdrawals_today_inr`), completely ignoring physical spatial positioning. Even after money was withdrawn at a known ATM, the suspect's estimated location remained an imprecise IP cluster centroid with a 2 km uncertainty circle.
+
+#### 14.2.2 Changes
+| File | Change |
+|---|---|
+| `api/schemas.py` | Added `LocationMethod.ATM_WITHDRAWAL_CONFIRMED = "ATM_WITHDRAWAL_CONFIRMED"`. |
+| `api/main.py` | In `live_update_incident`, looked up `atm_id` and updated `mule_estimated_lat` and `mule_estimated_lon` directly to the confirmed ATM's coordinates. Set `mule_location_method = "ATM_WITHDRAWAL_CONFIRMED"`. |
+| `ui/index.html` | Updated `pollIncidents()` to detect changes to `mule_estimated_lat` or `mule_location_method` and trigger `renderMap(updated)`. |
+| `ui/index.html` | Updated `renderMap(inc)` to detect `ATM_WITHDRAWAL_CONFIRMED`, rendering an amplified 22px pulsing emerald radar beacon (`.mule-dot.confirmed`, z-index 2500) with an 800m tactical interdiction perimeter and 300m inner cordon, and confirmed ATM popup. |
+
+---
+
+### 14.3 Phase 14 Feature 03 — 3rd Location Telemetry Source
+
+**Status:** `Verified & Approved` — 09 September 2026
+
+#### 14.3.1 Problem
+Synapse originally recognized two telemetry sources: Priority 1 Cell Tower data and Priority 2 IP Geolocation. A live ATM withdrawal represents ground truth physical evidence, but was not tracked as a discrete location source in logs or the dashboard.
+
+#### 14.3.2 Changes
+| File | Change |
+|---|---|
+| `api/main.py` | Created `snap["atm_location_source"]` with `source_index: 3`, `source_name: "ATM Physical Withdrawal Fix"`, ATM ID, bank, coords, timestamp, and amount. Updated `STAGE_3_SPATIAL` stage details. |
+| `ui/feed.html` | Updated Feed Activity Log to record confirmed ATM withdrawals: `⚡ [ATM WITHDRAWAL] {ncrp} | +₹{amt} at {atmId} | GPS Pinpoint: ({lat}, {lon}) · Confirmed 3rd Location Source (ATM Terminal Telemetry)`. Added direct deep-link to Tactical Map. |
+| `ui/index.html` | Enhanced IP Intelligence section into `🌐 Location Intelligence & Telemetry Sources` with status badge and `#intel-atm-fix` confirmed banner. Table displays Source 1 (Cell Tower), Source 2 (IP Geolocation), and Source 3 (ATM Terminal Telemetry). |
+
+---
+
+### 14.4 Phase 14 Feature 04 — Discrete Fund Flow Transaction Logging
+
+**Status:** `Verified & Approved` — 09 September 2026
+
+#### 14.4.1 Problem
+Live ATM withdrawals were not appended to the incident's fund flow transaction ledger, leaving the Transaction Flow accordion and graph without a record of the actual cash-out hop.
+
+#### 14.4.2 Changes
+| File | Change |
+|---|---|
+| `api/schemas.py` | Added `PaymentChannel.ATM_CASH_WITHDRAWAL = "ATM_CASH_WITHDRAWAL"`. |
+| `api/main.py` | Created discrete transaction with `channel = "ATM_CASH_WITHDRAWAL"`, `sender_account = mule.account_number`, `receiver_account = "CASH-{atm_id}"`, and appended it to `payload_snapshot["transactions"]`. |
+| `ui/index.html` | Updated `renderIntelPanel(inc)` to render `ATM_CASH_WITHDRAWAL` hops with distinct `🏧 ATM CASH OUT` badges and cash withdrawal destination styling. |
+
+---
+
 *— End of Document —*
 

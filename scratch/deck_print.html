@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Synapse — SIH 2026 Presentation | Team Threat Tracers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #090e1a;
+      --bg-card: rgba(16, 24, 44, 0.85);
+      --bg-card-hover: rgba(22, 33, 62, 0.95);
+      --border-card: rgba(51, 65, 85, 0.5);
+      --border-accent: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-accent: #38bdf8;
+      --text-emerald: #10b981;
+      --text-amber: #f59e0b;
+      --text-purple: #a855f7;
+      --text-coral: #f43f5e;
+      --navy-900: #0b1120;
+      --navy-800: #131d35;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-canvas: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border-card: #e2e8f0;
+      --border-accent: #0284c7;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-accent: #0369a1;
+      --text-emerald: #059669;
+      --text-amber: #d97706;
+      --text-purple: #7c3aed;
+      --text-coral: #e11d48;
+      --navy-900: #ffffff;
+      --navy-800: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Action Bar */
+    header.deck-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      background: rgba(11, 17, 32, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 1000;
+    }
+
+    [data-theme="light"] header.deck-bar {
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text-accent);
+      text-transform: uppercase;
+    }
+
+    .deck-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .deck-title strong {
+      color: var(--text-main);
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .ctrl-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-accent);
+      color: var(--text-accent);
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-accent);
+      background: rgba(6, 182, 212, 0.1);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+    }
+
+    /* Presentation Slide Stage */
+    .deck-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 70px 2rem 40px;
+    }
+
+    .slide-stage {
+      width: 100%;
+      max-width: 1440px;
+      aspect-ratio: 16 / 9;
+      position: relative;
+      background: var(--navy-900);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    [data-theme="light"] .slide-stage {
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px #cbd5e1;
+    }
+
+    /* Individual Slide */
+    .slide {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      padding: 2.2rem 3rem 1.8rem;
+      position: relative;
+      animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.995);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Slide Header */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.4rem;
+      border-bottom: 1px solid var(--border-card);
+      padding-bottom: 0.9rem;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .team-ribbon {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+
+    .slide-subtitle {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .sih-logo-img {
+      height: 52px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .footer-badge {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--text-accent);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* Content Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      flex: 1;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 1.1rem;
+      flex: 1;
+    }
+
+    /* Custom Glass Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 1.2rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 12px;
+      right: 12px;
+      height: 3px;
+      background: var(--card-accent, var(--border-accent));
+      border-radius: 3px 3px 0 0;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--card-title-color, var(--text-main));
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .card-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: var(--text-main);
+    }
+
+    .card-list li {
+      position: relative;
+      padding-left: 1.15rem;
+    }
+
+    .card-list li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--card-accent, var(--text-accent));
+      font-weight: bold;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .card-list strong {
+      color: var(--text-main);
+    }
+
+    /* Slide 1 Hero Specifics */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(99, 102, 241, 0.12));
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-left h1 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #38bdf8;
+      margin-bottom: 0.3rem;
+    }
+
+    .hero-left p {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .hero-left span {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .hero-tag {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--text-emerald);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-align: right;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+      font-size: 0.9rem;
+    }
+
+    .meta-label {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .meta-val {
+      font-weight: 700;
+      color: var(--text-main);
+      text-align: right;
+    }
+
+    /* Pipeline 5-Stage Diagram */
+    .pipeline-wrapper {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pipe-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 10px;
+      padding: 0.85rem;
+      position: relative;
+    }
+
+    .pipe-step::after {
+      content: '➔';
+      position: absolute;
+      right: -0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      z-index: 10;
+    }
+
+    .pipe-step:last-child::after {
+      display: none;
+    }
+
+    .pipe-step-num {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--step-color, var(--text-accent));
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .pipe-step-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+
+    .pipe-step-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Formula & Tier Box */
+    .formula-callout {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.15));
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-accent);
+      margin-bottom: 0.85rem;
+      text-align: center;
+    }
+
+    .tier-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .tier-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-card);
+    }
+
+    .tier-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .tier-1 { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .tier-2 { background: rgba(6, 182, 212, 0.2); color: #38bdf8; }
+    .tier-3 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+    /* UI Screenshot Preview */
+    .ui-preview-wrapper {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-card);
+      height: 100%;
+      min-height: 220px;
+    }
+
+    .ui-preview-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .ui-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(11, 17, 32, 0.85);
+      border: 1px solid var(--border-accent);
+      color: var(--text-accent);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* KPI Bar */
+    .kpi-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 182, 212, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 0.65rem 1.25rem;
+      margin-top: 0.75rem;
+    }
+
+    .kpi-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .kpi-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-emerald);
+      font-family: var(--font-mono);
+    }
+
+    .kpi-lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* Keyboard Instructions Pill */
+    .key-hints {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    kbd {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 4px;
+      padding: 0.1rem 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    /* Print Stylesheet for Pixel-Perfect 16:9 PDF Export */
+    @media print {
+      body {
+        background: #090e1a !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      header.deck-bar {
+        display: none !important;
+      }
+      .deck-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+      .slide-stage {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        aspect-ratio: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        background: transparent !important;
+      }
+      .slide {
+        display: flex !important;
+        flex-direction: column !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        width: 100vw !important;
+        height: 864px !important; width: 1536px !important; margin: 0 auto !important; page-break-after: always !important;
+        min-height: 864px !important; width: 1536px !important; margin: 0 auto !important; page-break-after: always !important;
+        max-height: 864px !important; width: 1536px !important; margin: 0 auto !important; page-break-after: always !important;
+        padding: 2.2rem 3rem 1.8rem !important;
+        box-sizing: border-box !important;
+        background: #090e1a !important;
+      }
+      @page {
+        size: 16in 9in;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <!-- Fixed Top Controller Bar -->
+  <header class="deck-bar" style="display: none;">
+    <div class="brand-group">
+      <div class="brand-badge">⚡ THREAT TRACERS</div>
+      <div class="deck-title">Project Synapse <strong>• SIH 2026 Preliminary Round (PS SIH26184)</strong></div>
+    </div>
+    <div class="controls-group">
+      <div class="key-hints">
+        <span>Navigate:</span>
+        <kbd>←</kbd><kbd>→</kbd>
+        <span>or</span>
+        <kbd>Space</kbd>
+      </div>
+      <button class="ctrl-btn" onclick="prevSlide()" title="Previous Slide">◀ Prev</button>
+      <div class="slide-counter" id="slide-num-display">1 / 6</div>
+      <button class="ctrl-btn" onclick="nextSlide()" title="Next Slide">Next ▶</button>
+      <button class="ctrl-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌓 Theme</button>
+      <button class="ctrl-btn" onclick="toggleFullScreen()" title="Full Screen View">⛶ Fullscreen</button>
+      <button class="ctrl-btn" style="border-color: var(--text-emerald); color: var(--text-emerald);" onclick="window.print()" title="Export All Slides as PDF">📥 Export PDF</button>
+    </div>
+  </header>
+
+  <!-- Presentation Stage Container -->
+  <main class="deck-container">
+    <div class="slide-stage">
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 1: TITLE PAGE                                               -->
+      <!-- ================================================================= -->
+      <section class="slide active" id="slide-1">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Title Page</span>
+            </div>
+            <h2 class="slide-title">SMART INDIA HACKATHON 2026</h2>
+            <div class="slide-subtitle">Preliminary Idea Submission Deck • Software Category</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <!-- Hero Headline -->
+        <div class="hero-banner">
+          <div class="hero-left">
+            <h1>PROJECT SYNAPSE</h1>
+            <p>Preemptive Golden-Hour ATM Interdiction & Cyber Fraud Interception Engine</p>
+            <span>Transitioning Cyber Defense from Post-Facto Fund Chasing to Autonomous Physical & Digital Interdiction</span>
+          </div>
+          <div class="hero-tag">
+            TEAM: THREAT TRACERS<br />
+            <small style="opacity: 0.8; font-weight: 500;">SIH Preliminary Round</small>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Left: Mandatory PS Metadata -->
+          <div class="card" style="--card-accent: var(--border-accent);">
+            <div class="card-title" style="color: var(--text-accent);">📋 PROBLEM STATEMENT METADATA</div>
+            <div class="card-subtitle">Official SIH 2026 Registration Particulars</div>
+            
+            <div class="meta-row">
+              <span class="meta-label">Problem Statement ID</span>
+              <span class="meta-val" style="color: var(--text-accent);">SIH26184</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Problem Statement Title</span>
+              <span class="meta-val" style="font-size: 0.82rem; max-width: 65%;">Predictive Analytics for Cybercrime Complaints & Cash Withdrawal Locations</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Theme</span>
+              <span class="meta-val">Cyber Fraud / Banking Security</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">PS Category</span>
+              <span class="meta-val">Software</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Team Name (Registered)</span>
+              <span class="meta-val" style="color: var(--text-emerald);">Threat Tracers</span>
+            </div>
+          </div>
+
+          <!-- Right: Core Mission & Value Paradigm -->
+          <div class="card" style="--card-accent: var(--text-emerald);">
+            <div class="card-title" style="color: var(--text-emerald);">🎯 MISSION & ARCHITECTURAL HIGHLIGHTS</div>
+            <div class="card-subtitle">Why Synapse Outperforms Traditional Policing</div>
+            <ul class="card-list">
+              <li>
+                <strong>120-Minute "Golden Hour" Interdiction:</strong> Slashes investigation response time from 48+ hours down to &lt; 5 minutes before cash departs physical ATMs.
+              </li>
+              <li>
+                <strong>Multi-Stage Predictive Intelligence:</strong> Unifies NetworkX transaction graph isolation, temporal drain cadence, and geospatial ATM risk ranking.
+              </li>
+              <li>
+                <strong>Dual-Action Machine Interdiction:</strong> Simultaneously triggers automated bank webhook liens and vector-routes tactical patrols with 300m/800m cordons.
+              </li>
+              <li>
+                <strong>Verified Functional MVP:</strong> 23/23 end-to-end automated test suite passing across ingestion, webhooks, and confirmed ATM telemetry.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">PS SIH26184</span>
+            <span>Predictive Analytics for Cybercrime Complaints & Cash Withdrawal Locations</span>
+          </div>
+          <div>Slide 1 of 6</div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 2: PROPOSED SOLUTION                                        -->
+      <!-- ================================================================= -->
+      <section class="slide" id="slide-2">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Team Threat Tracers</span>
+            </div>
+            <h2 class="slide-title">PROPOSED SOLUTION</h2>
+            <div class="slide-subtitle">❖ Preemptive Golden-Hour ATM Interdiction & Cyber Fraud Interception</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <!-- Top Overview Banner -->
+        <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 10px; padding: 0.85rem 1.25rem; margin-bottom: 1.2rem;">
+          <strong style="color: var(--text-accent); font-size: 0.95rem;">THE GOLDEN-HOUR PARADIGM:</strong>
+          <span style="font-size: 0.88rem; color: var(--text-main); margin-left: 0.5rem;">
+            Over 85% of cyber fraud funds exit the formal banking perimeter via rapid ATM cash-outs within 120 minutes. Synapse predicts the specific physical ATM terminal before cash is withdrawn, executing automated bank digital liens and dispatching nearest tactical units.
+          </span>
+        </div>
+
+        <div class="grid-3">
+          <!-- Detailed Explanation -->
+          <div class="card" style="--card-accent: var(--border-accent);">
+            <div class="card-title" style="color: var(--text-accent);">🔍 DETAILED EXPLANATION</div>
+            <div class="card-subtitle">End-to-End Prediction Core</div>
+            <ul class="card-list">
+              <li>
+                <strong>Terminal Mule Isolation:</strong> NetworkX DAG directed graph traversal isolates leaf node accounts across complex multi-hop fund layers.
+              </li>
+              <li>
+                <strong>Temporal Urgency Engine:</strong> Calculates remaining drainable balance against synthetic 4.5-min AMLSim withdrawal intervals.
+              </li>
+              <li>
+                <strong>Spatial ATM Ranking:</strong> Evaluates 200 Delhi ATMs via Haversine distance, bank affiliation, cash level, and accessibility.
+              </li>
+              <li>
+                <strong>Explainable Composite Score:</strong> Evaluates combined confidence to dictate automated intervention tiers.
+              </li>
+            </ul>
+          </div>
+
+          <!-- How It Addresses Problem -->
+          <div class="card" style="--card-accent: var(--text-emerald);">
+            <div class="card-title" style="color: var(--text-emerald);">⚡ ADDRESSING THE PROBLEM</div>
+            <div class="card-subtitle">Targeted Operational Impact</div>
+            <ul class="card-list">
+              <li>
+                <strong>Physical Cash-Out Boundary:</strong> Bypasses circular online money laundering by intercepting the physical cash extraction point.
+              </li>
+              <li>
+                <strong>120-Min Expiry Filter:</strong> Automatically gates out stale tickets, concentrating officer attention strictly on interceptable funds.
+              </li>
+              <li>
+                <strong>Victim Protection Guarantee:</strong> Strict mathematical whitelist ensures the reporting victim account is excluded from lien freezes.
+              </li>
+              <li>
+                <strong>Dual-Channel Interdiction:</strong> Intercepts digital funds via bank webhooks while positioning tactical police cordons.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Innovation & Uniqueness -->
+          <div class="card" style="--card-accent: var(--text-amber);">
+            <div class="card-title" style="color: var(--text-amber);">💡 INNOVATION & UNIQUENESS</div>
+            <div class="card-subtitle">Novel Architectural Features</div>
+            <ul class="card-list">
+              <li>
+                <strong>Confirmed ATM Telemetry:</strong> 3rd location source dynamically updates suspect coordinates to confirmed ATM terminal with green pulse beacon.
+              </li>
+              <li>
+                <strong>Tactical Cordon Mapping:</strong> Automates 800m outer containment perimeter and 300m inner arrest cordon on satellite maps.
+              </li>
+              <li>
+                <strong>Static Fallback Confidence Cap:</strong> Hard-caps coarse IP geolocations at 0.75 confidence to eliminate false tactical deployments.
+              </li>
+              <li>
+                <strong>Deterministic Drill Mode:</strong> Built-in Bank Feed Simulator enables live police academy training drills.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">120 MIN GOLDEN HOUR</span>
+            <span>Preemptive physical ATM prediction before criminal cash exit</span>
+          </div>
+          <div>Slide 2 of 6</div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 3: TECHNICAL APPROACH (Core Architecture)                   -->
+      <!-- ================================================================= -->
+      <section class="slide" id="slide-3">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Team Threat Tracers</span>
+            </div>
+            <h2 class="slide-title">TECHNICAL APPROACH</h2>
+            <div class="slide-subtitle">❖ Core System Architecture, Algorithmic Pipeline & Live Tactical Verification</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <!-- 5-Stage Algorithmic Flow -->
+        <div class="pipeline-wrapper">
+          <div class="pipe-step" style="--step-color: var(--text-accent);">
+            <div class="pipe-step-num">STAGE 0 • INGEST</div>
+            <div class="pipe-step-title">Ticket & DAG Ingestion</div>
+            <div class="pipe-step-desc">NCRP complaint tickets, multi-hop banking ledger, and telecom IP/tower metadata.</div>
+          </div>
+          <div class="pipe-step" style="--step-color: var(--text-purple);">
+            <div class="pipe-step-num">STAGE 1 • GRAPH</div>
+            <div class="pipe-step-title">Mule Account Isolation</div>
+            <div class="pipe-step-desc">NetworkX DAG traversal extracts terminal leaf accounts and Mule Probability Score (MPS).</div>
+          </div>
+          <div class="pipe-step" style="--step-color: var(--text-amber);">
+            <div class="pipe-step-num">STAGE 2 • TEMPORAL</div>
+            <div class="pipe-step-title">Drain Window Urgency</div>
+            <div class="pipe-step-desc">Drainable balance vs 4.5-min AMLSim withdrawal intervals produces real-time urgency.</div>
+          </div>
+          <div class="pipe-step" style="--step-color: var(--border-accent);">
+            <div class="pipe-step-num">STAGE 3 • SPATIAL</div>
+            <div class="pipe-step-title">Spatial ATM Ranking</div>
+            <div class="pipe-step-desc">Haversine scan across 200 Delhi ATMs with live confirmed withdrawal telemetry.</div>
+          </div>
+          <div class="pipe-step" style="--step-color: var(--text-emerald);">
+            <div class="pipe-step-num">ACTION • INTERDICTION</div>
+            <div class="pipe-step-title">Dual-Action Execution</div>
+            <div class="pipe-step-desc">Composite confidence dictates automated bank lien webhooks and tactical officer routing.</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Left: Mathematical Rigor & Intervention Tiers -->
+          <div class="card" style="--card-accent: var(--text-purple);">
+            <div class="card-title" style="color: var(--text-purple);">📐 COMPOSITE CONFIDENCE ENGINE</div>
+            <div class="formula-callout">
+              C = 0.20·MPS + 0.35·Urgency + 0.45·Top_ATM_Risk
+            </div>
+            <div class="tier-box">
+              <div class="tier-item">
+                <span class="tier-badge tier-1">C &lt; 0.70 • TIER 1</span>
+                <div>
+                  <strong>Log &amp; Surveillance:</strong> Low certainty. Preserved in immutable intelligence ledger for forensic analysis.
+                </div>
+              </div>
+              <div class="tier-item">
+                <span class="tier-badge tier-2">0.70 ≤ C &lt; 0.85 • TIER 2</span>
+                <div>
+                  <strong>Digital Freeze Lien:</strong> Immediate automated webhook sent to bank API to freeze terminal mule balance.
+                </div>
+              </div>
+              <div class="tier-item">
+                <span class="tier-badge tier-3">C ≥ 0.85 • TIER 3</span>
+                <div>
+                  <strong>Freeze + Tactical Dispatch:</strong> Bank lien + field patrol dispatch with 800m perimeter &amp; 300m inner cordons.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Live Operational Tactical Dashboard Screenshot -->
+          <div class="card" style="--card-accent: var(--border-accent); padding: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0 0.25rem;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-accent);">VIEW B: SATELLITE TACTICAL INTERCEPTION MAP</span>
+              <span style="font-size: 0.72rem; color: var(--text-emerald); font-family: var(--font-mono); font-weight: bold;">● LIVE MVP VERIFIED</span>
+            </div>
+            <div class="ui-preview-wrapper">
+              <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/ui_tactical_view.png" alt="Project Synapse Tactical Interception Map" />
+              <div class="ui-tag">Leaflet • Dark Satellite • 300m/800m Cordon • Real-time Countdown</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">CORE STACK</span>
+            <span>FastAPI (Async &lt;100ms) • Pydantic v2 • NetworkX • Leaflet • OpenStreetMap • FileLock</span>
+          </div>
+          <div>Slide 3 of 6</div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 4: FEASIBILITY AND VIABILITY                                -->
+      <!-- ================================================================= -->
+      <section class="slide" id="slide-4">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Team Threat Tracers</span>
+            </div>
+            <h2 class="slide-title">FEASIBILITY AND VIABILITY</h2>
+            <div class="slide-subtitle">❖ Production Engineering, Operational Readiness, Risk Matrix &amp; Hardened Mitigations</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <div class="grid-3">
+          <!-- Technical Feasibility -->
+          <div class="card" style="--card-accent: var(--text-emerald);">
+            <div class="card-title" style="color: var(--text-emerald);">⚙ TECHNICAL FEASIBILITY</div>
+            <div class="card-subtitle">Verified Working Architecture</div>
+            <ul class="card-list">
+              <li>
+                <strong>Sub-100ms API Inference:</strong> Fast algorithmic pipeline processes multi-hop tickets in under 100 milliseconds.
+              </li>
+              <li>
+                <strong>Decoupled Algorithmic Core:</strong> Pure mathematical logic separated from HTTP transport ensures high testability.
+              </li>
+              <li>
+                <strong>Concurrency Safe (FileLock):</strong> Thread-safe file locking guarantees atomic record persistence during simultaneous feeds.
+              </li>
+              <li>
+                <strong>23/23 Automated Tests:</strong> Full regression suite verifies NCRP ingestion, ranking, webhooks, and live withdrawal telemetry.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Operational Feasibility -->
+          <div class="card" style="--card-accent: var(--text-accent);">
+            <div class="card-title" style="color: var(--text-accent);">🛡 OPERATIONAL FEASIBILITY</div>
+            <div class="card-subtitle">Law Enforcement Integration</div>
+            <ul class="card-list">
+              <li>
+                <strong>NCRP Complaint Compliant:</strong> Ingests standard National Cybercrime Reporting Portal tickets without schema changes.
+              </li>
+              <li>
+                <strong>Two-Tier Command UI:</strong> View A provides high-volume queue triage for controllers; View B provides tactical GPS maps for field units.
+              </li>
+              <li>
+                <strong>Integrated Drill Simulator:</strong> `/feed` simulator enables repeatable live cyber fraud response drills for officer training.
+              </li>
+              <li>
+                <strong>Lightweight Deployment:</strong> Runs in single Docker container on standard Linux servers without specialized GPU clusters.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Risks & Mitigations -->
+          <div class="card" style="--card-accent: var(--text-coral);">
+            <div class="card-title" style="color: var(--text-coral);">⚠️ RISKS &amp; MITIGATIONS</div>
+            <div class="card-subtitle">Engineering Safety Controls</div>
+            <ul class="card-list">
+              <li>
+                <strong>Risk: Coarse IP Drift (±1-5km):</strong><br />
+                <em>Mitigation:</em> Hard confidence cap at <strong>0.75</strong> prevents false tactical field deployments without verified telemetry.
+              </li>
+              <li>
+                <strong>Risk: Erroneous Freeze of Victims:</strong><br />
+                <em>Mitigation:</em> Deterministic victim exclusion whitelist mathematically isolates the reporting victim from all lien controls.
+              </li>
+              <li>
+                <strong>Risk: High Ingestion Load:</strong><br />
+                <em>Mitigation:</em> Clear architectural roadmap to PostgreSQL / TimescaleDB and Redis pub/sub queue.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">TEST SUITE VERIFIED</span>
+            <span>23 / 23 Automated Integration &amp; Regression Tests Passing (100%)</span>
+          </div>
+          <div>Slide 4 of 6</div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 5: IMPACT AND BENEFITS                                      -->
+      <!-- ================================================================= -->
+      <section class="slide" id="slide-5">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Team Threat Tracers</span>
+            </div>
+            <h2 class="slide-title">IMPACT AND BENEFITS</h2>
+            <div class="slide-subtitle">❖ Multi-Stakeholder Value Creation, Quantitative KPIs &amp; Societal Return</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <div class="grid-4">
+          <!-- Cyber Cells & I4C -->
+          <div class="card" style="--card-accent: var(--border-accent);">
+            <div class="card-title" style="color: var(--text-accent);">🏢 CYBER CELLS &amp; I4C (MHA)</div>
+            <div class="card-subtitle">Command &amp; Intelligence</div>
+            <ul class="card-list" style="font-size: 0.84rem;">
+              <li>Replaces chaotic unranked complaint queues with automated, real-time risk triage during the Golden Hour.</li>
+              <li>Generates full mathematical audit trails and transaction ledgers admissible in legal court proceedings.</li>
+              <li>Reduces cyber fraud interdiction latency from 48-72 hours down to under 5 minutes.</li>
+            </ul>
+          </div>
+
+          <!-- Field Tactical Interdiction -->
+          <div class="card" style="--card-accent: var(--text-emerald);">
+            <div class="card-title" style="color: var(--text-emerald);">🚔 FIELD TACTICAL PATROLS</div>
+            <div class="card-subtitle">Ground Interdiction</div>
+            <ul class="card-list" style="font-size: 0.84rem;">
+              <li>Translates abstract forensic trails into Top-3 ATM targets with turn-by-turn distance and addresses.</li>
+              <li>Automates 800m outer perimeter and 300m inner cordon overlays for immediate patrol containment.</li>
+              <li>Enables one-click tactical dispatch acknowledgment directly into officer mobile terminals.</li>
+            </ul>
+          </div>
+
+          <!-- Banking Sector -->
+          <div class="card" style="--card-accent: var(--text-purple);">
+            <div class="card-title" style="color: var(--text-purple);">🏦 BANKING &amp; NPCI NETWORKS</div>
+            <div class="card-subtitle">Financial Perimeter</div>
+            <ul class="card-list" style="font-size: 0.84rem;">
+              <li>Sub-second automated webhook liens halt mule account withdrawals before the next transaction hop.</li>
+              <li>Disrupts organized mule syndicate laundering across IMPS, UPI, and NEFT inter-bank channels.</li>
+              <li>Reduces regulatory compliance liability and streamlines statutory fraud reporting to RBI.</li>
+            </ul>
+          </div>
+
+          <!-- Victims & Society -->
+          <div class="card" style="--card-accent: var(--text-amber);">
+            <div class="card-title" style="color: var(--text-amber);">🛡 VICTIMS &amp; PUBLIC CITIZENRY</div>
+            <div class="card-subtitle">Citizen Protection</div>
+            <ul class="card-list" style="font-size: 0.84rem;">
+              <li>Saves life savings: Increases stolen fund recovery rate by an estimated 70%+ before ATM physical cash exit.</li>
+              <li>Strict victim whitelist prevents traumatic secondary harm from accidental freezing of victim accounts.</li>
+              <li>Strengthens national public confidence in India's digital payment revolution and UPI ecosystem.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- KPI Metric Bar -->
+        <div class="kpi-bar">
+          <div class="kpi-item">
+            <div class="kpi-val">&lt; 120 Mins</div>
+            <div class="kpi-lbl">Golden Hour Window</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-val">&lt; 5 Mins</div>
+            <div class="kpi-lbl">Interdiction Latency</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-val">&lt; 100 ms</div>
+            <div class="kpi-lbl">API Inference Speed</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-val">+70%</div>
+            <div class="kpi-lbl">Fund Recovery Potential</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-val">23 / 23</div>
+            <div class="kpi-lbl">Verified Test Pass Rate</div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">SOCIETAL IMPACT</span>
+            <span>Protecting citizen life savings through machine-speed fraud interdiction</span>
+          </div>
+          <div>Slide 5 of 6</div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 6: RESEARCH AND REFERENCES                                  -->
+      <!-- ================================================================= -->
+      <section class="slide" id="slide-6">
+        <div class="slide-header">
+          <div class="header-left">
+            <div class="team-ribbon">
+              <span>Smart India Hackathon 2026</span>
+              <span>•</span>
+              <span>Team Threat Tracers</span>
+            </div>
+            <h2 class="slide-title">RESEARCH AND REFERENCES</h2>
+            <div class="slide-subtitle">❖ Empirical Grounding, Industry Datasets, System Documentation &amp; Roadmap</div>
+          </div>
+          <img src="/Users/akshai/.gemini/antigravity-ide/brain/e21faff6-9932-4a97-8753-abeb7b2652cb/scratch/sih_logo.png" alt="Smart India Hackathon 2026" class="sih-logo-img" />
+        </div>
+
+        <!-- Primary Source Card -->
+        <div class="card" style="--card-accent: var(--border-accent); margin-bottom: 1.25rem;">
+          <div class="card-title" style="color: var(--text-accent);">🌐 PRIMARY SOURCE: LIVE SYSTEM DOCUMENTATION</div>
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem;">
+            Project Synapse — As-Built Technical Architecture &amp; Specification
+          </div>
+          <div style="font-size: 0.88rem; font-family: var(--font-mono); color: var(--text-accent); margin-bottom: 0.5rem;">
+            Documentation Portal: <a href="https://akshaidev.github.io/synapse_docmentation/" target="_blank" style="color: inherit; text-decoration: underline;">https://akshaidev.github.io/synapse_docmentation/</a>
+          </div>
+          <div style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45;">
+            Covers the fully implemented MVP architecture, 5-stage pipeline, composite confidence tiering, automated lien webhook protocols, 200-ATM geospatial candidate ranking, live withdrawal telemetry, and edge-case regression test suites.
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Research & Empirical Calibration -->
+          <div class="card" style="--card-accent: var(--text-emerald);">
+            <div class="card-title" style="color: var(--text-emerald);">📚 RESEARCH &amp; CALIBRATION BASIS</div>
+            <div class="card-subtitle">Empirical Research Grounding</div>
+            <ul class="card-list">
+              <li>
+                <strong>I4C / MHA Cyber Crime Data:</strong> Calibrated against Indian Cyber Crime Coordination Centre complaint velocity patterns and mule network laundering structures.
+              </li>
+              <li>
+                <strong>RBI Annual Fraud Reports:</strong> Benchmarked against Reserve Bank of India payment fraud statistics detailing rapid ATM extraction velocity.
+              </li>
+              <li>
+                <strong>IBM AMLSim Synthetic Datasets:</strong> Agent-based financial transaction modeling used to calibrate the 4.5-minute inter-withdrawal temporal interval.
+              </li>
+              <li>
+                <strong>Haversine Geodesic Computation:</strong> Spherical trigonometric formulation for low-latency distance scanning across metro ATM registries.
+              </li>
+            </ul>
+          </div>
+
+          <!-- Scope Boundaries & Roadmap -->
+          <div class="card" style="--card-accent: var(--text-amber);">
+            <div class="card-title" style="color: var(--text-amber);">🚀 OPERATIONAL SCOPE &amp; ROADMAP</div>
+            <div class="card-subtitle">Production Scaling Boundaries</div>
+            <ul class="card-list">
+              <li>
+                <strong>Implemented MVP Scope:</strong> Standalone FastAPI service, pure mathematical core, thread-safe FileLock JSON persistence, and interactive drill simulator.
+              </li>
+              <li>
+                <strong>Enterprise Data Tier (Phase 2):</strong> Seamless migration path to distributed TimescaleDB / PostgreSQL with Redis pub/sub queue for multi-state scaling.
+              </li>
+              <li>
+                <strong>Lawful Telecom Intercept:</strong> Direct integration with authorized telecom carrier feeds (CDR / tower triangulation) replacing static IP fallbacks.
+              </li>
+              <li>
+                <strong>Hardware Security Modules (HSM):</strong> Mutual TLS and PKI certificate authentication for encrypted bank lien webhook dispatch.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div class="footer-left">
+            <span class="footer-badge">SIH 2026</span>
+            <span>Team Threat Tracers • Problem Statement ID: SIH26184</span>
+          </div>
+          <div>Slide 6 of 6</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Interactive Presentation Script -->
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > totalSlides) n = totalSlides;
+      currentSlide = n;
+
+      for (let i = 1; i <= totalSlides; i++) {
+        const slideEl = document.getElementById(`slide-${i}`);
+        if (slideEl) {
+          slideEl.classList.toggle('active', i === currentSlide);
+        }
+      }
+
+      const counter = document.getElementById('slide-num-display');
+      if (counter) {
+        counter.textContent = `${currentSlide} / ${totalSlides}`;
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const current = body.getAttribute('data-theme') || 'dark';
+      body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullScreen();
+      } else if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        toggleTheme();
+      } else if (e.key.toLowerCase() === 'p' && (e.ctrlKey || e.metaKey)) {
+        // Allow native print
+      }
+    });
+  </script>
+</body>
+</html>

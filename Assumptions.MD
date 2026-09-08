@@ -492,10 +492,27 @@
 ### [Architectural & Design Choice] Incident Registry Purge Endpoint for Simulation Testing (POST /api/v1/incidents/clear)
 * **Context / Decision:** We added `POST /api/v1/incidents/clear` in `api/main.py` which purges in-memory `_incidents` and writes `[]` to `data/incidents.json`, paired with a `🧹 Clear Incident Feed` button in `ui/feed.html`.
 * **Why This Over Alternatives:** Prior to this endpoint, clearing incidents required manually stopping the server and editing `data/incidents.json` on disk. Exposing a clean administrative purge endpoint allows operators to reset the tactical dashboard and incident feed between rehearsal runs with a single click.
-* **System Impact:** Facilitates repeatable, clean demonstration workflows without restarting server processes or manually mutating persistence files.
+---
 
+### [Architectural & Design Choice] Live ATM Cash-out Pinpointing & 3rd Location Telemetry Source
+* **Context / Decision:** When an operator pushes a simulated live ATM withdrawal from `ui/feed.html`:
+  - The operator selects one of the active incident's Top 3 candidate ATMs via `#atm-select`.
+  - The backend (`PATCH /api/v1/incidents/{ncrp}/live-update`) pins the suspect's GPS coordinates (`mule_estimated_lat`, `mule_estimated_lon`) directly to the selected ATM's latitude and longitude, setting `mule_location_method` to `ATM_WITHDRAWAL_CONFIRMED`.
+  - The event is logged in the Feed Activity Log and recorded in `snap["atm_location_source"]` as the **3rd Location Source (ATM Physical Withdrawal Fix)**.
+  - In `ui/index.html`, the map renders an emerald pulsing beacon (`.mule-dot.confirmed`) with a tightened 50m pinpoint accuracy ring (replacing the 2 km IP uncertainty ring).
+* **Why This Over Alternatives:**
+  - (1) **True Ground-Truth Convergence:** While IP addresses give only 1–5 km city-level estimates, an ATM debit card transaction provides physical ground truth of the suspect's exact coordinates at transaction timestamp $T_{\text{txn}}$.
+  - (2) **Omission of Dynamic Re-ranking:** Dynamic re-ranking of neighboring ATMs upon cash-out was evaluated and explicitly excluded per operator instruction. Preserving the original Top 3 candidate ATMs prevents disruptive UI layout shifts for dispatch officers while providing the exact pinpoint of the cash-out.
+* **System Impact:** Transforms the live withdrawal simulation from an isolated numerical ledger edit into an integrated geospatial and intelligence event across both portals.
 
+---
 
-
-
-
+### [Architectural & Design Choice] Discrete Fund Flow Cash-Out Transaction Logging (ATM_CASH_WITHDRAWAL)
+* **Context / Decision:** Pushing a live ATM withdrawal now creates and appends a discrete `ATM_CASH_WITHDRAWAL` transaction to `payload_snapshot.transactions`:
+  - `hop_index`: `len(existing_hops) + 1`
+  - `sender_account`: Terminal mule account
+  - `receiver_account`: `CASH-{atm_id}`
+  - `channel`: `ATM_CASH_WITHDRAWAL`
+  - `amount_inr`: Additional withdrawal amount
+* **Why This Over Alternatives:** Previously, fund flow transactions in the Incident Intelligence panel only displayed the historical bank-to-bank hops. The cash-out stage was invisible in the transaction flow accordion, creating a disconnect between the mule balance deduction and the transaction ledger. Appending an explicit cash-out hop completes the audit trail from the victim source account to the final physical cash withdrawal.
+* **System Impact:** The dashboard Transaction Flow accordion dynamically renders the final cash-out hop with dedicated `🏧 ATM CASH OUT` badges and cash destination styling.

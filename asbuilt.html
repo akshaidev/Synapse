@@ -631,13 +631,16 @@
 
     <h3>10.1 Main Dashboard — <span class="inline-code">ui/index.html</span></h3>
     <p>Single-page dashboard served at <span class="endpoint">/</span> with two views. <strong>View A</strong> shows
-        the incident queue, KPI counts, and all three status buckets (Active / Resolved / Closed-by-System).
+        the incident queue, KPI counts, and all three status buckets (Active / Resolved / Closed-by-System). Clicking anywhere on
+        an active incident row or its "Map →" action button immediately transitions to View B. Deep-linking via
+        <span class="inline-code">?ncrp={ticket_id}</span> URL parameter automatically selects and renders the target incident
+        on initial page load.
         <strong>View B</strong> shows per-incident tactical detail: the Leaflet map with the mule's estimated
-        position and ATM markers, the intelligence panel (case overview, source account, terminal mule details,
-        transaction flow accordion with per-hop lien buttons), the interception countdown, and ATM dispatch cards.
+        position, tactical accuracy perimeters, and ATM markers; the intelligence panel (case overview, source account, terminal mule details,
+        Location Intelligence &amp; Telemetry Sources table, and transaction flow accordion with per-hop lien buttons and
+        dedicated <span class="inline-code">ATM_CASH_WITHDRAWAL</span> cash-out badges); the interception countdown; and ATM dispatch cards.
         Both views poll <span class="inline-code">/api/v1/incidents</span>, <span class="inline-code">/liens</span>, and
-        <span class="inline-code">/dispatch-registry</span> every
-        5 seconds.
+        <span class="inline-code">/dispatch-registry</span> every 5 seconds.
     </p>
 
     <h3>10.2 Interception Countdown Timer</h3>
@@ -675,7 +678,7 @@
 
     <h3>10.3 Bank Feed Simulator — <span class="inline-code">ui/feed.html</span></h3>
     <p>A separate page served at <span class="endpoint">/feed</span>, used for testing and high-throughput demonstration. It has
-        six functional capabilities:</p>
+        seven functional capabilities:</p>
     <ul>
         <li><strong>Single Upload with Simulation Mode:</strong> accepts an <span
                 class="inline-code">IncidentPayload</span> JSON file. When Simulation Mode is toggled on, it
@@ -693,16 +696,19 @@
             <span class="inline-code">complaint_timestamp</span>, all <span class="inline-code">txn_timestamp</span> entries, and cluster <span class="inline-code">last_seen</span>
             timestamps by the exact same offset <span class="inline-code">&Delta; = Date.now() - T_base</span>. Because <span class="inline-code">(T_ingest + &Delta;) - (T_last_txn + &Delta;) &equiv; T_ingest - T_last_txn = &tau;</span>,
             the elapsed session time is mathematically invariant, preserving the designed non-zero interception window (e.g. 15.7m, 38.5m) and preventing premature auto-withdrawals or 6-hour sweeper timeouts.</li>
-        <li><strong>Live Withdrawal Push:</strong> a dropdown of all active incidents, an amount field, and a
-            "Push" button. Submitting hits <span class="endpoint method-patch">PATCH</span> <span
-                class="endpoint">/api/v1/incidents/{id}/live-update</span>, which adds the withdrawal amount to
-            <span class="inline-code">withdrawals_today_inr</span>, subtracts it from <span
-                class="inline-code">balance_inr</span>, and recalculates <span
-                class="inline-code">drainable_today_inr</span>. The main dashboard polls every 5 seconds and
-            automatically reflects these changes in the intelligence panel and countdown — no manual refresh
-            needed. This lets a demonstrator show the dashboard reacting in real-time to a simulated ATM
-            withdrawal happening at the mule's end.
+        <li><strong>Live Withdrawal Push with ATM Selection &amp; GPS Pinpoint:</strong> allows an operator to select an active incident
+            and choose from its Top 3 candidate ATMs via a dynamic dropdown (<span class="inline-code">#atm-select</span>), specify an amount, and
+            click "Push Update to Synapse". Submitting hits <span class="endpoint method-patch">PATCH</span> <span
+                class="endpoint">/api/v1/incidents/{id}/live-update</span>, which:
+            <ul>
+                <li>Updates the financial ledger: adds withdrawal to <span class="inline-code">withdrawals_today_inr</span>, subtracts from <span class="inline-code">balance_inr</span>, and recomputes <span class="inline-code">drainable_today_inr</span>.</li>
+                <li><strong>Pinpoints suspect GPS location:</strong> directly updates suspect coordinates (<span class="inline-code">mule_estimated_lat</span>, <span class="inline-code">mule_estimated_lon</span>) to the exact latitude and longitude of the selected ATM, and sets <span class="inline-code">mule_location_method</span> to <span class="inline-code">ATM_WITHDRAWAL_CONFIRMED</span>.</li>
+                <li><strong>Registers 3rd Location Source:</strong> records the event as the 3rd location source (<span class="inline-code">Location Source 3: ATM Terminal Telemetry</span>) in the Feed Activity Log, Stage 3 Spatial intelligence, and the dashboard's Location Intelligence &amp; Telemetry Sources panel. On the Leaflet map, the suspect beacon switches to an amplified 22px emerald radar beacon (with a 46px outer glowing pulse wave, elevated to z-index 2500 above ATM markers) surrounded by an 800-meter tactical interdiction perimeter and an inner 300-meter cordon.</li>
+                <li><strong>Logs Fund Flow Transaction:</strong> appends a discrete <span class="inline-code">ATM_CASH_WITHDRAWAL</span> hop to the incident's transaction ledger (<span class="inline-code">payload_snapshot.transactions</span>), rendering in the Transaction Flow accordion with dedicated cash-out badges.</li>
+            </ul>
+            The main dashboard polls every 5 seconds and silently refreshes the map, location telemetry, and transaction flow without resetting active countdowns.
         </li>
+        <li><strong>Cross-Dashboard Navigation:</strong> a top navbar link (<span class="inline-code">🗺 Tactical Map &amp; Dashboard ↗</span>) and a direct action button (<span class="inline-code">🎯 View on Tactical Map →</span>) on the withdrawal confirmation card enable seamless one-click deep-linking into the Tactical Dashboard with the active incident pre-loaded in View B.</li>
         <li><strong>Case Resolution:</strong> a "Mark Resolved" action surfaced next to the active incident selector
             opening a dedicated resolution modal. It synchronizes with <span class="inline-code">synapse_operator_id</span>
             in <span class="inline-code">localStorage</span>, enforces a non-blank operator identity, provides the

@@ -1,14 +1,374 @@
 {
   "active_liens": {
-    "09871234567890": {
-      "account_number": "09871234567890",
+    "26369508759003": {
+      "account_number": "26369508759003",
+      "bank_name": "Kotak Mahindra Bank",
+      "ifsc": "KKBK0000958",
+      "incident_id": "NCRP-2026-1425992",
+      "initiated_at": "2026-09-08T17:44:46.314522+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "92220578503470": {
+      "account_number": "92220578503470",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-7320446",
+      "initiated_at": "2026-09-08T17:44:56.439524+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "49683313334887": {
+      "account_number": "49683313334887",
+      "bank_name": "Axis Bank",
+      "ifsc": "UTIB0002583",
+      "incident_id": "NCRP-2026-7344883",
+      "initiated_at": "2026-09-08T17:45:01.504246+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "84184184439160": {
+      "account_number": "84184184439160",
+      "bank_name": "Axis Bank",
+      "ifsc": "UTIB0002583",
+      "incident_id": "NCRP-2026-1831032",
+      "initiated_at": "2026-09-08T17:45:11.653492+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "76933882823112": {
+      "account_number": "76933882823112",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-8906141",
+      "initiated_at": "2026-09-08T17:45:21.785384+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "98128215395364": {
+      "account_number": "98128215395364",
+      "bank_name": "Kotak Mahindra Bank",
+      "ifsc": "KKBK0000958",
+      "incident_id": "NCRP-2026-4739224",
+      "initiated_at": "2026-09-08T17:45:26.832534+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "74149648924365": {
+      "account_number": "74149648924365",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-8447140",
+      "initiated_at": "2026-09-08T17:45:31.896412+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "7426730319480": {
+      "account_number": "7426730319480",
+      "bank_name": "Bank of Baroda",
+      "ifsc": "BARB0VJPUNE",
+      "incident_id": "NCRP-2026-8401077",
+      "initiated_at": "2026-09-08T17:45:36.966544+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "46627167847248": {
+      "account_number": "46627167847248",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-2050777",
+      "initiated_at": "2026-09-08T17:45:42.033014+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "70797409275687": {
+      "account_number": "70797409275687",
       "bank_name": "Canara Bank",
       "ifsc": "CNRB0002341",
-      "incident_id": "NCRP-2026-8880001",
-      "initiated_at": "2026-09-08T15:55:37.785181+00:00",
+      "incident_id": "NCRP-2026-8114942",
+      "initiated_at": "2026-09-08T17:45:47.099100+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "17030485976108": {
+      "account_number": "17030485976108",
+      "bank_name": "Punjab National Bank",
+      "ifsc": "PUNB0187600",
+      "incident_id": "NCRP-2026-3925736",
+      "initiated_at": "2026-09-08T17:45:52.270209+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "455014552543": {
+      "account_number": "455014552543",
+      "bank_name": "State Bank of India",
+      "ifsc": "SBIN0011424",
+      "incident_id": "NCRP-2026-5564572",
+      "initiated_at": "2026-09-08T17:45:57.332231+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "77370295107261": {
+      "account_number": "77370295107261",
+      "bank_name": "IndusInd Bank",
+      "ifsc": "INDB0000001",
+      "incident_id": "NCRP-2026-4684872",
+      "initiated_at": "2026-09-08T17:47:02.333780+00:00",
+      "source": "MANUAL",
+      "webhook_status": "SUCCESS",
+      "operator_id": "Akshai",
+      "reason": "Scammer"
+    },
+    "84542071726385": {
+      "account_number": "84542071726385",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-6263051",
+      "initiated_at": "2026-09-08T18:58:30.865722+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "53786544692070": {
+      "account_number": "53786544692070",
+      "bank_name": "Punjab National Bank",
+      "ifsc": "PUNB0187600",
+      "incident_id": "NCRP-2026-6263051",
+      "initiated_at": "2026-09-08T19:02:36.287985+00:00",
+      "source": "MANUAL",
+      "webhook_status": "SUCCESS",
+      "operator_id": "Akshai",
+      "reason": "Cool"
+    },
+    "35578294576760": {
+      "account_number": "35578294576760",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-7078773",
+      "initiated_at": "2026-09-08T19:04:33.162504+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "75097869403190": {
+      "account_number": "75097869403190",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-4319511",
+      "initiated_at": "2026-09-08T19:08:21.669445+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "30656956589110": {
+      "account_number": "30656956589110",
+      "bank_name": "Canara Bank",
+      "ifsc": "CNRB0002341",
+      "incident_id": "NCRP-2026-5612492",
+      "initiated_at": "2026-09-08T19:08:28.737857+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "50407923867233": {
+      "account_number": "50407923867233",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-9408411",
+      "initiated_at": "2026-09-08T19:08:33.822054+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "85373758725687": {
+      "account_number": "85373758725687",
+      "bank_name": "Kotak Mahindra Bank",
+      "ifsc": "KKBK0000958",
+      "incident_id": "NCRP-2026-7731924",
+      "initiated_at": "2026-09-08T19:08:38.886638+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "98843477676448": {
+      "account_number": "98843477676448",
+      "bank_name": "Axis Bank",
+      "ifsc": "UTIB0002583",
+      "incident_id": "NCRP-2026-2379675",
+      "initiated_at": "2026-09-08T19:08:43.961730+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "50585068060703": {
+      "account_number": "50585068060703",
+      "bank_name": "Axis Bank",
+      "ifsc": "UTIB0002583",
+      "incident_id": "NCRP-2026-8193502",
+      "initiated_at": "2026-09-08T19:08:49.046214+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "92922853425919": {
+      "account_number": "92922853425919",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-1809658",
+      "initiated_at": "2026-09-08T19:08:54.125257+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "1549690081189": {
+      "account_number": "1549690081189",
+      "bank_name": "Bank of Baroda",
+      "ifsc": "BARB0VJPUNE",
+      "incident_id": "NCRP-2026-4611659",
+      "initiated_at": "2026-09-08T19:08:59.205990+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "27300091390203": {
+      "account_number": "27300091390203",
+      "bank_name": "Canara Bank",
+      "ifsc": "CNRB0002341",
+      "incident_id": "NCRP-2026-9015087",
+      "initiated_at": "2026-09-08T19:09:04.272647+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "38349710880552": {
+      "account_number": "38349710880552",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-6200138",
+      "initiated_at": "2026-09-08T19:09:09.351580+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "28327329392899": {
+      "account_number": "28327329392899",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-6367576",
+      "initiated_at": "2026-09-08T19:09:14.431700+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "51952949067067": {
+      "account_number": "51952949067067",
+      "bank_name": "State Bank of India",
+      "ifsc": "SBIN0011424",
+      "incident_id": "NCRP-2026-2095843",
+      "initiated_at": "2026-09-08T19:09:24.599953+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "48491135343679": {
+      "account_number": "48491135343679",
+      "bank_name": "State Bank of India",
+      "ifsc": "SBIN0011424",
+      "incident_id": "NCRP-2026-9124078",
+      "initiated_at": "2026-09-08T19:09:29.660491+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "25058388345182": {
+      "account_number": "25058388345182",
+      "bank_name": "Bank of Baroda",
+      "ifsc": "BARB0VJPUNE",
+      "incident_id": "NCRP-2026-2434502",
+      "initiated_at": "2026-09-08T19:09:34.717223+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "18301616674925": {
+      "account_number": "18301616674925",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-9192153",
+      "initiated_at": "2026-09-08T19:09:54.953615+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "3655530926962": {
+      "account_number": "3655530926962",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-9195364",
+      "initiated_at": "2026-09-08T19:10:00.062586+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "53073065803356": {
+      "account_number": "53073065803356",
+      "bank_name": "IndusInd Bank",
+      "ifsc": "INDB0000001",
+      "incident_id": "NCRP-2026-6433949",
+      "initiated_at": "2026-09-08T19:10:05.415892+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "137118909787": {
+      "account_number": "137118909787",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-1053728",
+      "initiated_at": "2026-09-08T19:10:10.489149+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "8949179559850": {
+      "account_number": "8949179559850",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-7344007",
+      "initiated_at": "2026-09-08T19:10:15.549801+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "52906993789272": {
+      "account_number": "52906993789272",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-1211305",
+      "initiated_at": "2026-09-08T19:10:20.624659+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "32436655042624": {
+      "account_number": "32436655042624",
+      "bank_name": "Bank of Baroda",
+      "ifsc": "BARB0VJPUNE",
+      "incident_id": "NCRP-2026-3934971",
+      "initiated_at": "2026-09-08T19:10:25.702677+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "22350270712657": {
+      "account_number": "22350270712657",
+      "bank_name": "HDFC Bank",
+      "ifsc": "HDFC0001729",
+      "incident_id": "NCRP-2026-1310207",
+      "initiated_at": "2026-09-08T19:10:35.954793+00:00",
       "source": "PIPELINE",
       "webhook_status": "SUCCESS"
     }
   },
-  "revocation_log": []
+  "revocation_log": [
+    {
+      "account_number": "35578294576760",
+      "bank_name": "ICICI Bank",
+      "ifsc": "ICIC0000100",
+      "incident_id": "NCRP-2026-7078773",
+      "was_source": "PIPELINE",
+      "original_initiated_at": "2026-09-08T17:39:05.428093+00:00",
+      "revoked_at": "2026-09-08T17:43:50.787139+00:00",
+      "revoked_by": "Akshai",
+      "reason": "Lien placed in error"
+    },
+    {
+      "account_number": "3936688620751",
+      "bank_name": "Punjab National Bank",
+      "ifsc": "PUNB0187600",
+      "incident_id": "NCRP-2026-4684872",
+      "was_source": "PIPELINE",
+      "original_initiated_at": "2026-09-08T17:45:16.725991+00:00",
+      "revoked_at": "2026-09-08T19:07:28.387321+00:00",
+      "revoked_by": "Akshai",
+      "reason": "Lien placed in error"
+    }
+  ]
 }
