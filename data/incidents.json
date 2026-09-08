@@ -1,55 +1,55 @@
 [
   {
-    "synapse_incident_id": "b8ed3306-ac70-4222-9c32-5611a2da6bde",
-    "ncrp_ticket_id": "NCRP-2026-6263051",
+    "synapse_incident_id": "5753ba92-153c-4dda-b17f-aeceaf8410fe",
+    "ncrp_ticket_id": "NCRP-2026-0045781",
     "status": "PROCESSED",
-    "intervention_tier": "PRIMARY_DIGITAL",
-    "confidence_score": 0.7297,
-    "mps_score": 0.7149,
-    "urgency_score": 0.9875,
-    "top_atm_risk_score": 0.5357,
-    "drain_time_remaining_minutes": 1.5,
-    "drainable_today_inr": 137830.45,
+    "intervention_tier": "SECONDARY_PHYSICAL",
+    "confidence_score": 0.9146,
+    "mps_score": 0.9035,
+    "urgency_score": 0.8449,
+    "top_atm_risk_score": 0.9738,
+    "drain_time_remaining_minutes": 18.6,
+    "drainable_today_inr": 100000.0,
     "mule_location_method": "IP_GEOLOCATION",
-    "mule_estimated_lat": 12.9418,
-    "mule_estimated_lon": 77.55328,
+    "mule_estimated_lat": 18.5195,
+    "mule_estimated_lon": 73.8549,
     "ifsc_fallback_cap_applied": false,
     "top_atms": [
       {
         "rank": 1,
-        "atm_id": "BARB-ATM-BLR-0006",
-        "bank_name": "Bank of Baroda",
-        "address": "Random Street, Bengaluru",
-        "lat": 12.97159494146688,
-        "lon": 77.54558106597518,
-        "distance_km": 3.416,
-        "risk_score": 0.5357,
+        "atm_id": "CNRB-ATM-PNE-0042",
+        "bank_name": "Canara Bank",
+        "address": "FC Road, Shivaji Nagar, Pune",
+        "lat": 18.5204,
+        "lon": 73.8567,
+        "distance_km": 0.215,
+        "risk_score": 0.9738,
         "is_onsite": false,
         "cash_status": "FULL"
       },
       {
         "rank": 2,
-        "atm_id": "SBIN-ATM-BLR-0005",
-        "bank_name": "State Bank of India",
-        "address": "Random Street, Bengaluru",
-        "lat": 12.927703590548818,
-        "lon": 77.59517368666017,
-        "distance_km": 4.803,
-        "risk_score": 0.4337,
+        "atm_id": "CNRB-ATM-PNE-0002",
+        "bank_name": "Canara Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.5285843150004,
+        "lon": 73.89959377137521,
+        "distance_km": 4.819,
+        "risk_score": 0.6987,
         "is_onsite": false,
         "cash_status": "FULL"
       },
       {
         "rank": 3,
-        "atm_id": "CNRB-ATM-BLR-0001",
-        "bank_name": "Canara Bank",
-        "address": "Random Street, Bengaluru",
-        "lat": 12.933493587048003,
-        "lon": 77.5889630705869,
-        "distance_km": 3.976,
-        "risk_score": 0.4159,
+        "atm_id": "HDFC-ATM-PNE-0004",
+        "bank_name": "HDFC Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.481569411209364,
+        "lon": 73.84473078874649,
+        "distance_km": 4.352,
+        "risk_score": 0.4889,
         "is_onsite": false,
-        "cash_status": "PARTIAL"
+        "cash_status": "FULL"
       }
     ],
     "webhook_dispatched": true,
@@ -63,118 +63,159 @@
       {
         "stage": "STAGE_1_GRAPH",
         "status": "VIABLE_ATM_MULE",
-        "detail": "Selected mule: 84542071726385 (HDFC Bank) | MPS=0.7149"
+        "detail": "Selected mule: 09871234567890 (Canara Bank) | MPS=0.9035"
       },
       {
         "stage": "STAGE_2_TEMPORAL",
         "status": "COMPLETE",
-        "detail": "Drainable: \u20b9137,830.45 | \u03c4=30.00 min | 1.5 min remaining | Urgency=0.9875"
+        "detail": "Drainable: \u20b9100,000.00 | \u03c4=3.88 min | 18.6 min remaining | Urgency=0.8449"
       },
       {
         "stage": "STAGE_3_SPATIAL",
         "status": "COMPLETE",
-        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=6 | Top ATM=BARB-ATM-BLR-0006 (score=0.5357)"
+        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=7 | Top ATM=CNRB-ATM-PNE-0042 (score=0.9738)"
       },
       {
         "stage": "CONFIDENCE_AGGREGATION",
         "status": "COMPLETE",
-        "detail": "C = \u03b31(0.2)\u00d7MPS(0.7149) + \u03b32(0.35)\u00d7Urgency(0.9875) + \u03b33(0.45)\u00d7RiskScore(0.5357) = 0.7297 \u2192 PRIMARY_DIGITAL"
+        "detail": "C = \u03b31(0.2)\u00d7MPS(0.9035) + \u03b32(0.35)\u00d7Urgency(0.8449) + \u03b33(0.45)\u00d7RiskScore(0.9738) = 0.9146 \u2192 SECONDARY_PHYSICAL"
       },
       {
         "stage": "WEBHOOK_DISPATCH",
         "status": "SUCCESS",
-        "detail": "Tier=PRIMARY_DIGITAL | URL=http://localhost:8000/api/v1/freeze-card-atm"
+        "detail": "Tier=SECONDARY_PHYSICAL | URL=http://localhost:8000/api/v1/freeze-card-atm"
       }
     ],
     "simulation_mode": true,
     "payload_snapshot": {
-      "ingestion_timestamp": "2026-09-05T03:09:27.691205+00:00",
-      "fraud_type": "VISHING",
-      "victim_state": "KA",
-      "victim_district": "Bengaluru",
+      "ingestion_timestamp": "2026-09-05T01:22:00+05:30",
+      "fraud_type": "UPI_FRAUD",
+      "victim_state": "MH",
+      "victim_district": "Pune",
       "complainant_name": null,
-      "complaint_timestamp": "2026-09-05T02:43:27.691205+00:00",
-      "amount_inr": 121115.56,
+      "complaint_timestamp": "2026-09-04T21:12:00+05:30",
+      "amount_inr": 487500.0,
       "source_account": {
-        "account_number": "55311096730422",
-        "ifsc": "CNRB0002341",
-        "bank_name": "Canara Bank"
+        "account_number": "918010045672301",
+        "ifsc": "UTIB0002583",
+        "bank_name": "Axis Bank"
       },
       "transactions": [
         {
           "hop_index": 1,
-          "txn_id": "UPI202609059303",
-          "txn_timestamp": "2026-09-05T02:19:27.691205+00:00",
-          "sender_account": "55311096730422",
-          "sender_ifsc": "CNRB0002341",
-          "sender_bank": "Canara Bank",
-          "receiver_account": "53786544692070",
-          "receiver_ifsc": "PUNB0187600",
-          "receiver_bank": "Punjab National Bank",
-          "amount_inr": 121115.56,
+          "txn_id": "UTR2026090500001234",
+          "txn_timestamp": "2026-09-05T01:06:12+05:30",
+          "sender_account": "918010045672301",
+          "sender_ifsc": "UTIB0002583",
+          "sender_bank": "Axis Bank",
+          "receiver_account": "50100287654321",
+          "receiver_ifsc": "HDFC0001729",
+          "receiver_bank": "HDFC Bank",
+          "amount_inr": 487500.0,
           "channel": "UPI"
         },
         {
           "hop_index": 2,
-          "txn_id": "NEFT202609053512",
-          "txn_timestamp": "2026-09-05T02:29:27.691205+00:00",
-          "sender_account": "53786544692070",
-          "sender_ifsc": "PUNB0187600",
-          "sender_bank": "Punjab National Bank",
-          "receiver_account": "24310362388797",
-          "receiver_ifsc": "BARB0VJPUNE",
-          "receiver_bank": "Bank of Baroda",
-          "amount_inr": 117633.0,
-          "channel": "NEFT"
+          "txn_id": "UTR2026090500001567",
+          "txn_timestamp": "2026-09-05T01:09:45+05:30",
+          "sender_account": "50100287654321",
+          "sender_ifsc": "HDFC0001729",
+          "sender_bank": "HDFC Bank",
+          "receiver_account": "6291087432156",
+          "receiver_ifsc": "SBIN0011424",
+          "receiver_bank": "State Bank of India",
+          "amount_inr": 485000.0,
+          "channel": "IMPS"
         },
         {
           "hop_index": 3,
-          "txn_id": "NEFT202609059742",
-          "txn_timestamp": "2026-09-05T02:39:27.691205+00:00",
-          "sender_account": "24310362388797",
-          "sender_ifsc": "BARB0VJPUNE",
-          "sender_bank": "Bank of Baroda",
-          "receiver_account": "84542071726385",
-          "receiver_ifsc": "HDFC0001729",
-          "receiver_bank": "HDFC Bank",
-          "amount_inr": 115180.76,
+          "txn_id": "UTR2026090500002890",
+          "txn_timestamp": "2026-09-05T01:14:22+05:30",
+          "sender_account": "6291087432156",
+          "sender_ifsc": "SBIN0011424",
+          "sender_bank": "State Bank of India",
+          "receiver_account": "37620198456732",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 240000.0,
+          "channel": "IMPS"
+        },
+        {
+          "hop_index": 4,
+          "txn_id": "UTR2026090500003201",
+          "txn_timestamp": "2026-09-05T01:18:07+05:30",
+          "sender_account": "37620198456732",
+          "sender_ifsc": "PUNB0187600",
+          "sender_bank": "Punjab National Bank",
+          "receiver_account": "09871234567890",
+          "receiver_ifsc": "CNRB0002341",
+          "receiver_bank": "Canara Bank",
+          "amount_inr": 237500.0,
           "channel": "NEFT"
         }
       ],
       "terminal_mule": {
-        "account_number": "84542071726385",
-        "ifsc": "HDFC0001729",
-        "bank": "HDFC Bank",
+        "account_number": "09871234567890",
+        "ifsc": "CNRB0002341",
+        "bank": "Canara Bank",
         "account_type": "SAVINGS",
-        "balance_inr": 137830.45,
-        "daily_limit_inr": 200000.0,
+        "balance_inr": 241350.0,
+        "daily_limit_inr": 100000.0,
         "withdrawals_today_inr": 0.0
       },
       "ip_cluster": [
         {
-          "ip_address": "195.247.36.2",
-          "asn": "AS1183",
-          "geo_lat": 13.048884824979282,
-          "geo_lon": 77.51481987015315,
-          "last_seen": "2026-09-05T02:58:27.691205+00:00"
+          "ip_address": "49.36.142.87",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5204,
+          "geo_lon": 73.8567,
+          "last_seen": "2026-09-05T01:15:08+05:30"
         },
         {
-          "ip_address": "91.239.83.94",
-          "asn": "AS5930",
-          "geo_lat": 12.834723325247607,
-          "geo_lon": 77.59174785548245,
-          "last_seen": "2026-09-05T03:03:27.691205+00:00"
+          "ip_address": "103.87.56.214",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5186,
+          "geo_lon": 73.8531,
+          "last_seen": "2026-09-05T01:10:42+05:30"
         }
       ]
-    },
-    "resolved": true,
-    "resolved_at": "2026-09-07T18:54:15.485574+00:00",
-    "resolution_reason": "FUNDS_FROZEN",
-    "resolution_note": "",
-    "operator_id": "Akshai"
+    }
   },
   {
-    "synapse_incident_id": "5d499128-92bc-4b27-a925-e490aa86de66",
+    "synapse_incident_id": "beba7000-2a1f-4633-b027-bbff37b6f5d7",
+    "ncrp_ticket_id": "NCRP-2026-0045781",
+    "status": "NO_VIABLE_ATM_MULE",
+    "intervention_tier": null,
+    "confidence_score": null,
+    "mps_score": 0.9035,
+    "urgency_score": null,
+    "top_atm_risk_score": null,
+    "drain_time_remaining_minutes": null,
+    "drainable_today_inr": null,
+    "mule_location_method": null,
+    "mule_estimated_lat": null,
+    "mule_estimated_lon": null,
+    "ifsc_fallback_cap_applied": null,
+    "top_atms": null,
+    "webhook_dispatched": false,
+    "webhook_status": null,
+    "stages": [
+      {
+        "stage": "DUAL_GATE_GOLDEN_HOUR",
+        "status": "PASS",
+        "detail": "\u26a1 Simulation mode \u2014 Golden Hour gates BYPASSED. T_ref = ingestion_timestamp (deterministic pipeline output)."
+      },
+      {
+        "stage": "STAGE_1_GRAPH",
+        "status": "NO_VIABLE_ATM_MULE",
+        "detail": "Card Linkage Check Failed: Mule account 09871234567890 has no active debit card (linked_card_number_hash is null/empty). Cash-out cannot occur via ATM terminal."
+      }
+    ],
+    "simulation_mode": true,
+    "payload_snapshot": null
+  },
+  {
+    "synapse_incident_id": "d46693ee-072d-4579-83ab-9dd72ec2424e",
     "ncrp_ticket_id": "NCRP-2026-0045781",
     "status": "PROCESSED",
     "intervention_tier": "SECONDARY_PHYSICAL",
@@ -353,11 +394,727 @@
           "last_seen": "2026-09-05T01:10:42+05:30"
         }
       ]
-    },
-    "resolved": true,
-    "resolved_at": "2026-09-07T18:54:50.051087+00:00",
-    "resolution_reason": "FUNDS_FROZEN",
-    "resolution_note": "",
-    "operator_id": "Akshai"
+    }
+  },
+  {
+    "synapse_incident_id": "1ddabc9f-f42d-4145-9328-3eb15cb6c0b5",
+    "ncrp_ticket_id": "NCRP-2026-0045781",
+    "status": "PROCESSED",
+    "intervention_tier": "TIER_1_LOG_ONLY",
+    "confidence_score": 0.6189,
+    "mps_score": 0.9035,
+    "urgency_score": 0.0,
+    "top_atm_risk_score": 0.9738,
+    "drain_time_remaining_minutes": 0.0,
+    "drainable_today_inr": 0.0,
+    "mule_location_method": "IP_GEOLOCATION",
+    "mule_estimated_lat": 18.5195,
+    "mule_estimated_lon": 73.8549,
+    "ifsc_fallback_cap_applied": false,
+    "top_atms": [
+      {
+        "rank": 1,
+        "atm_id": "CNRB-ATM-PNE-0042",
+        "bank_name": "Canara Bank",
+        "address": "FC Road, Shivaji Nagar, Pune",
+        "lat": 18.5204,
+        "lon": 73.8567,
+        "distance_km": 0.215,
+        "risk_score": 0.9738,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 2,
+        "atm_id": "CNRB-ATM-PNE-0002",
+        "bank_name": "Canara Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.5285843150004,
+        "lon": 73.89959377137521,
+        "distance_km": 4.819,
+        "risk_score": 0.6987,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 3,
+        "atm_id": "HDFC-ATM-PNE-0004",
+        "bank_name": "HDFC Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.481569411209364,
+        "lon": 73.84473078874649,
+        "distance_km": 4.352,
+        "risk_score": 0.4889,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      }
+    ],
+    "webhook_dispatched": false,
+    "webhook_status": "NOT_APPLICABLE",
+    "stages": [
+      {
+        "stage": "DUAL_GATE_GOLDEN_HOUR",
+        "status": "PASS",
+        "detail": "\u26a1 Simulation mode \u2014 Golden Hour gates BYPASSED. T_ref = ingestion_timestamp (deterministic pipeline output)."
+      },
+      {
+        "stage": "STAGE_1_GRAPH",
+        "status": "VIABLE_ATM_MULE",
+        "detail": "Selected mule: 09871234567890 (Canara Bank) | MPS=0.9035"
+      },
+      {
+        "stage": "STAGE_2_TEMPORAL",
+        "status": "COMPLETE",
+        "detail": "Drainable: \u20b90.00 | \u03c4=3.88 min | DAILY_LIMIT_EXHAUSTED | Urgency=0.0000"
+      },
+      {
+        "stage": "STAGE_3_SPATIAL",
+        "status": "COMPLETE",
+        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=7 | Top ATM=CNRB-ATM-PNE-0042 (score=0.9738)"
+      },
+      {
+        "stage": "CONFIDENCE_AGGREGATION",
+        "status": "COMPLETE",
+        "detail": "C = \u03b31(0.2)\u00d7MPS(0.9035) + \u03b32(0.35)\u00d7Urgency(0.0000) + \u03b33(0.45)\u00d7RiskScore(0.9738) = 0.6189 \u2192 TIER_1_LOG_ONLY"
+      },
+      {
+        "stage": "WEBHOOK_DISPATCH",
+        "status": "NOT_APPLICABLE",
+        "detail": "Confidence 0.6189 < 0.7 threshold. Logged only."
+      }
+    ],
+    "simulation_mode": true,
+    "payload_snapshot": {
+      "ingestion_timestamp": "2026-09-05T01:22:00+05:30",
+      "fraud_type": "UPI_FRAUD",
+      "victim_state": "MH",
+      "victim_district": "Pune",
+      "complainant_name": null,
+      "complaint_timestamp": "2026-09-05T01:19:15+05:30",
+      "amount_inr": 487500.0,
+      "source_account": {
+        "account_number": "918010045672301",
+        "ifsc": "UTIB0002583",
+        "bank_name": "Axis Bank"
+      },
+      "transactions": [
+        {
+          "hop_index": 1,
+          "txn_id": "UTR2026090500001234",
+          "txn_timestamp": "2026-09-05T01:06:12+05:30",
+          "sender_account": "918010045672301",
+          "sender_ifsc": "UTIB0002583",
+          "sender_bank": "Axis Bank",
+          "receiver_account": "50100287654321",
+          "receiver_ifsc": "HDFC0001729",
+          "receiver_bank": "HDFC Bank",
+          "amount_inr": 487500.0,
+          "channel": "UPI"
+        },
+        {
+          "hop_index": 2,
+          "txn_id": "UTR2026090500001567",
+          "txn_timestamp": "2026-09-05T01:09:45+05:30",
+          "sender_account": "50100287654321",
+          "sender_ifsc": "HDFC0001729",
+          "sender_bank": "HDFC Bank",
+          "receiver_account": "6291087432156",
+          "receiver_ifsc": "SBIN0011424",
+          "receiver_bank": "State Bank of India",
+          "amount_inr": 485000.0,
+          "channel": "IMPS"
+        },
+        {
+          "hop_index": 3,
+          "txn_id": "UTR2026090500002890",
+          "txn_timestamp": "2026-09-05T01:14:22+05:30",
+          "sender_account": "6291087432156",
+          "sender_ifsc": "SBIN0011424",
+          "sender_bank": "State Bank of India",
+          "receiver_account": "37620198456732",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 240000.0,
+          "channel": "IMPS"
+        },
+        {
+          "hop_index": 4,
+          "txn_id": "UTR2026090500003201",
+          "txn_timestamp": "2026-09-05T01:18:07+05:30",
+          "sender_account": "37620198456732",
+          "sender_ifsc": "PUNB0187600",
+          "sender_bank": "Punjab National Bank",
+          "receiver_account": "09871234567890",
+          "receiver_ifsc": "CNRB0002341",
+          "receiver_bank": "Canara Bank",
+          "amount_inr": 237500.0,
+          "channel": "NEFT"
+        }
+      ],
+      "terminal_mule": {
+        "account_number": "09871234567890",
+        "ifsc": "CNRB0002341",
+        "bank": "Canara Bank",
+        "account_type": "SAVINGS",
+        "balance_inr": 241350.0,
+        "daily_limit_inr": 100000.0,
+        "withdrawals_today_inr": 100000.0
+      },
+      "ip_cluster": [
+        {
+          "ip_address": "49.36.142.87",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5204,
+          "geo_lon": 73.8567,
+          "last_seen": "2026-09-05T01:15:08+05:30"
+        },
+        {
+          "ip_address": "103.87.56.214",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5186,
+          "geo_lon": 73.8531,
+          "last_seen": "2026-09-05T01:10:42+05:30"
+        }
+      ]
+    }
+  },
+  {
+    "synapse_incident_id": "ba865738-0a57-4de3-b277-9d113c12295b",
+    "ncrp_ticket_id": "NCRP-2026-6263051",
+    "status": "PROCESSED",
+    "intervention_tier": "PRIMARY_DIGITAL",
+    "confidence_score": 0.7297,
+    "mps_score": 0.7149,
+    "urgency_score": 0.9875,
+    "top_atm_risk_score": 0.5357,
+    "drain_time_remaining_minutes": 1.5,
+    "drainable_today_inr": 137830.45,
+    "mule_location_method": "IP_GEOLOCATION",
+    "mule_estimated_lat": 12.9418,
+    "mule_estimated_lon": 77.55328,
+    "ifsc_fallback_cap_applied": false,
+    "top_atms": [
+      {
+        "rank": 1,
+        "atm_id": "BARB-ATM-BLR-0006",
+        "bank_name": "Bank of Baroda",
+        "address": "Random Street, Bengaluru",
+        "lat": 12.97159494146688,
+        "lon": 77.54558106597518,
+        "distance_km": 3.416,
+        "risk_score": 0.5357,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 2,
+        "atm_id": "SBIN-ATM-BLR-0005",
+        "bank_name": "State Bank of India",
+        "address": "Random Street, Bengaluru",
+        "lat": 12.927703590548818,
+        "lon": 77.59517368666017,
+        "distance_km": 4.803,
+        "risk_score": 0.4337,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 3,
+        "atm_id": "CNRB-ATM-BLR-0001",
+        "bank_name": "Canara Bank",
+        "address": "Random Street, Bengaluru",
+        "lat": 12.933493587048003,
+        "lon": 77.5889630705869,
+        "distance_km": 3.976,
+        "risk_score": 0.4159,
+        "is_onsite": false,
+        "cash_status": "PARTIAL"
+      }
+    ],
+    "webhook_dispatched": true,
+    "webhook_status": "SUCCESS",
+    "stages": [
+      {
+        "stage": "DUAL_GATE_GOLDEN_HOUR",
+        "status": "PASS",
+        "detail": "\u26a1 Simulation mode \u2014 Golden Hour gates BYPASSED. T_ref = ingestion_timestamp (deterministic pipeline output)."
+      },
+      {
+        "stage": "STAGE_1_GRAPH",
+        "status": "VIABLE_ATM_MULE",
+        "detail": "Selected mule: 84542071726385 (HDFC Bank) | MPS=0.7149"
+      },
+      {
+        "stage": "STAGE_2_TEMPORAL",
+        "status": "COMPLETE",
+        "detail": "Drainable: \u20b9137,830.45 | \u03c4=30.00 min | 1.5 min remaining | Urgency=0.9875"
+      },
+      {
+        "stage": "STAGE_3_SPATIAL",
+        "status": "COMPLETE",
+        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=6 | Top ATM=BARB-ATM-BLR-0006 (score=0.5357)"
+      },
+      {
+        "stage": "CONFIDENCE_AGGREGATION",
+        "status": "COMPLETE",
+        "detail": "C = \u03b31(0.2)\u00d7MPS(0.7149) + \u03b32(0.35)\u00d7Urgency(0.9875) + \u03b33(0.45)\u00d7RiskScore(0.5357) = 0.7297 \u2192 PRIMARY_DIGITAL"
+      },
+      {
+        "stage": "WEBHOOK_DISPATCH",
+        "status": "SUCCESS",
+        "detail": "Tier=PRIMARY_DIGITAL | URL=http://localhost:8000/api/v1/freeze-card-atm"
+      }
+    ],
+    "simulation_mode": true,
+    "payload_snapshot": {
+      "ingestion_timestamp": "2026-09-05T03:09:27.691205+00:00",
+      "fraud_type": "VISHING",
+      "victim_state": "KA",
+      "victim_district": "Bengaluru",
+      "complainant_name": null,
+      "complaint_timestamp": "2026-09-05T02:43:27.691205+00:00",
+      "amount_inr": 121115.56,
+      "source_account": {
+        "account_number": "55311096730422",
+        "ifsc": "CNRB0002341",
+        "bank_name": "Canara Bank"
+      },
+      "transactions": [
+        {
+          "hop_index": 1,
+          "txn_id": "UPI202609059303",
+          "txn_timestamp": "2026-09-05T02:19:27.691205+00:00",
+          "sender_account": "55311096730422",
+          "sender_ifsc": "CNRB0002341",
+          "sender_bank": "Canara Bank",
+          "receiver_account": "53786544692070",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 121115.56,
+          "channel": "UPI"
+        },
+        {
+          "hop_index": 2,
+          "txn_id": "NEFT202609053512",
+          "txn_timestamp": "2026-09-05T02:29:27.691205+00:00",
+          "sender_account": "53786544692070",
+          "sender_ifsc": "PUNB0187600",
+          "sender_bank": "Punjab National Bank",
+          "receiver_account": "24310362388797",
+          "receiver_ifsc": "BARB0VJPUNE",
+          "receiver_bank": "Bank of Baroda",
+          "amount_inr": 117633.0,
+          "channel": "NEFT"
+        },
+        {
+          "hop_index": 3,
+          "txn_id": "NEFT202609059742",
+          "txn_timestamp": "2026-09-05T02:39:27.691205+00:00",
+          "sender_account": "24310362388797",
+          "sender_ifsc": "BARB0VJPUNE",
+          "sender_bank": "Bank of Baroda",
+          "receiver_account": "84542071726385",
+          "receiver_ifsc": "HDFC0001729",
+          "receiver_bank": "HDFC Bank",
+          "amount_inr": 115180.76,
+          "channel": "NEFT"
+        }
+      ],
+      "terminal_mule": {
+        "account_number": "84542071726385",
+        "ifsc": "HDFC0001729",
+        "bank": "HDFC Bank",
+        "account_type": "SAVINGS",
+        "balance_inr": 137830.45,
+        "daily_limit_inr": 200000.0,
+        "withdrawals_today_inr": 0.0
+      },
+      "ip_cluster": [
+        {
+          "ip_address": "195.247.36.2",
+          "asn": "AS1183",
+          "geo_lat": 13.048884824979282,
+          "geo_lon": 77.51481987015315,
+          "last_seen": "2026-09-05T02:58:27.691205+00:00"
+        },
+        {
+          "ip_address": "91.239.83.94",
+          "asn": "AS5930",
+          "geo_lat": 12.834723325247607,
+          "geo_lon": 77.59174785548245,
+          "last_seen": "2026-09-05T03:03:27.691205+00:00"
+        }
+      ]
+    }
+  },
+  {
+    "synapse_incident_id": "c39d295e-74fa-4d17-a82b-a234b7a82665",
+    "ncrp_ticket_id": "NCRP-2026-8003261",
+    "status": "PROCESSED",
+    "intervention_tier": "PRIMARY_DIGITAL",
+    "confidence_score": 0.728,
+    "mps_score": 0.7149,
+    "urgency_score": 1.0,
+    "top_atm_risk_score": 0.5223,
+    "drain_time_remaining_minutes": 0.0,
+    "drainable_today_inr": 0.0,
+    "mule_location_method": "IP_GEOLOCATION",
+    "mule_estimated_lat": 28.78312,
+    "mule_estimated_lon": 77.21611,
+    "ifsc_fallback_cap_applied": false,
+    "top_atms": [
+      {
+        "rank": 1,
+        "atm_id": "ICIC-ATM-DEL-0002",
+        "bank_name": "ICICI Bank",
+        "address": "Random Street, Delhi",
+        "lat": 28.764436597212537,
+        "lon": 77.24789697060747,
+        "distance_km": 3.73,
+        "risk_score": 0.5223,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 2,
+        "atm_id": "CNRB-ATM-DEL-0008",
+        "bank_name": "Canara Bank",
+        "address": "Random Street, Delhi",
+        "lat": 28.788190079554976,
+        "lon": 77.25023576892632,
+        "distance_km": 3.373,
+        "risk_score": 0.5222,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 3,
+        "atm_id": "UTIB-ATM-DEL-0001",
+        "bank_name": "Axis Bank",
+        "address": "Random Street, Delhi",
+        "lat": 28.782295564480123,
+        "lon": 77.20675424497209,
+        "distance_km": 0.916,
+        "risk_score": 0.4644,
+        "is_onsite": true,
+        "cash_status": "PARTIAL"
+      }
+    ],
+    "webhook_dispatched": true,
+    "webhook_status": "SUCCESS",
+    "stages": [
+      {
+        "stage": "DUAL_GATE_GOLDEN_HOUR",
+        "status": "PASS",
+        "detail": "\u26a1 Simulation mode \u2014 Golden Hour gates BYPASSED. T_ref = ingestion_timestamp (deterministic pipeline output)."
+      },
+      {
+        "stage": "STAGE_1_GRAPH",
+        "status": "VIABLE_ATM_MULE",
+        "detail": "Selected mule: 21833118921263 (Punjab National Bank) | MPS=0.7149"
+      },
+      {
+        "stage": "STAGE_2_TEMPORAL",
+        "status": "COMPLETE",
+        "detail": "Drainable: \u20b9100,000.00 | \u03c4=30.00 min | 0.0 min remaining | Urgency=1.0000 | DAILY_LIMIT_EXHAUSTED"
+      },
+      {
+        "stage": "STAGE_3_SPATIAL",
+        "status": "COMPLETE",
+        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=5 | Top ATM=ICIC-ATM-DEL-0002 (score=0.5223)"
+      },
+      {
+        "stage": "CONFIDENCE_AGGREGATION",
+        "status": "COMPLETE",
+        "detail": "C = \u03b31(0.2)\u00d7MPS(0.7149) + \u03b32(0.35)\u00d7Urgency(1.0000) + \u03b33(0.45)\u00d7RiskScore(0.5223) = 0.7280 \u2192 PRIMARY_DIGITAL"
+      },
+      {
+        "stage": "WEBHOOK_DISPATCH",
+        "status": "SUCCESS",
+        "detail": "Tier=PRIMARY_DIGITAL | URL=http://localhost:8000/api/v1/freeze-card-atm"
+      }
+    ],
+    "simulation_mode": true,
+    "payload_snapshot": {
+      "ingestion_timestamp": "2026-09-05T03:09:27.691205+00:00",
+      "fraud_type": "SIM_SWAP",
+      "victim_state": "DL",
+      "victim_district": "Delhi",
+      "complainant_name": null,
+      "complaint_timestamp": "2026-09-05T02:40:27.691205+00:00",
+      "amount_inr": 422140.2,
+      "source_account": {
+        "account_number": "42785875213478",
+        "ifsc": "HDFC0001729",
+        "bank_name": "HDFC Bank"
+      },
+      "transactions": [
+        {
+          "hop_index": 1,
+          "txn_id": "RTGS202609054633",
+          "txn_timestamp": "2026-09-05T01:59:27.691205+00:00",
+          "sender_account": "42785875213478",
+          "sender_ifsc": "HDFC0001729",
+          "sender_bank": "HDFC Bank",
+          "receiver_account": "37283725853883",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 422140.2,
+          "channel": "RTGS"
+        },
+        {
+          "hop_index": 2,
+          "txn_id": "NEFT202609058663",
+          "txn_timestamp": "2026-09-05T02:09:27.691205+00:00",
+          "sender_account": "37283725853883",
+          "sender_ifsc": "PUNB0187600",
+          "sender_bank": "Punjab National Bank",
+          "receiver_account": "6892663830505",
+          "receiver_ifsc": "SBIN0011424",
+          "receiver_bank": "State Bank of India",
+          "amount_inr": 410261.28,
+          "channel": "NEFT"
+        },
+        {
+          "hop_index": 3,
+          "txn_id": "NEFT202609051896",
+          "txn_timestamp": "2026-09-05T02:19:27.691205+00:00",
+          "sender_account": "6892663830505",
+          "sender_ifsc": "SBIN0011424",
+          "sender_bank": "State Bank of India",
+          "receiver_account": "29639273432977",
+          "receiver_ifsc": "UTIB0002583",
+          "receiver_bank": "Axis Bank",
+          "amount_inr": 394376.0,
+          "channel": "NEFT"
+        },
+        {
+          "hop_index": 4,
+          "txn_id": "NEFT202609053152",
+          "txn_timestamp": "2026-09-05T02:29:27.691205+00:00",
+          "sender_account": "29639273432977",
+          "sender_ifsc": "UTIB0002583",
+          "sender_bank": "Axis Bank",
+          "receiver_account": "63321672136355",
+          "receiver_ifsc": "BARB0VJPUNE",
+          "receiver_bank": "Bank of Baroda",
+          "amount_inr": 390103.83,
+          "channel": "NEFT"
+        },
+        {
+          "hop_index": 5,
+          "txn_id": "NEFT202609056985",
+          "txn_timestamp": "2026-09-05T02:39:27.691205+00:00",
+          "sender_account": "63321672136355",
+          "sender_ifsc": "BARB0VJPUNE",
+          "sender_bank": "Bank of Baroda",
+          "receiver_account": "21833118921263",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 376418.4,
+          "channel": "NEFT"
+        }
+      ],
+      "terminal_mule": {
+        "account_number": "21833118921263",
+        "ifsc": "PUNB0187600",
+        "bank": "Punjab National Bank",
+        "account_type": "SAVINGS",
+        "balance_inr": 300188.57,
+        "daily_limit_inr": 100000.0,
+        "withdrawals_today_inr": 100000.0
+      },
+      "ip_cluster": [
+        {
+          "ip_address": "87.154.233.99",
+          "asn": "AS4243",
+          "geo_lat": 28.783121611531453,
+          "geo_lon": 77.21611078894993,
+          "last_seen": "2026-09-05T02:46:27.691205+00:00"
+        }
+      ]
+    }
+  },
+  {
+    "synapse_incident_id": "0755f125-5361-44c1-b627-2a436fdd55a7",
+    "ncrp_ticket_id": "NCRP-2026-0045781",
+    "status": "PROCESSED",
+    "intervention_tier": "SECONDARY_PHYSICAL",
+    "confidence_score": 0.9146,
+    "mps_score": 0.9035,
+    "urgency_score": 0.8449,
+    "top_atm_risk_score": 0.9738,
+    "drain_time_remaining_minutes": 18.6,
+    "drainable_today_inr": 100000.0,
+    "mule_location_method": "IP_GEOLOCATION",
+    "mule_estimated_lat": 18.5195,
+    "mule_estimated_lon": 73.8549,
+    "ifsc_fallback_cap_applied": false,
+    "top_atms": [
+      {
+        "rank": 1,
+        "atm_id": "CNRB-ATM-PNE-0042",
+        "bank_name": "Canara Bank",
+        "address": "FC Road, Shivaji Nagar, Pune",
+        "lat": 18.5204,
+        "lon": 73.8567,
+        "distance_km": 0.215,
+        "risk_score": 0.9738,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 2,
+        "atm_id": "CNRB-ATM-PNE-0002",
+        "bank_name": "Canara Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.5285843150004,
+        "lon": 73.89959377137521,
+        "distance_km": 4.819,
+        "risk_score": 0.6987,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      },
+      {
+        "rank": 3,
+        "atm_id": "HDFC-ATM-PNE-0004",
+        "bank_name": "HDFC Bank",
+        "address": "Random Street, Pune",
+        "lat": 18.481569411209364,
+        "lon": 73.84473078874649,
+        "distance_km": 4.352,
+        "risk_score": 0.4889,
+        "is_onsite": false,
+        "cash_status": "FULL"
+      }
+    ],
+    "webhook_dispatched": true,
+    "webhook_status": "SUCCESS",
+    "stages": [
+      {
+        "stage": "DUAL_GATE_GOLDEN_HOUR",
+        "status": "PASS",
+        "detail": "\u26a1 Simulation mode \u2014 Golden Hour gates BYPASSED. T_ref = ingestion_timestamp (deterministic pipeline output)."
+      },
+      {
+        "stage": "STAGE_1_GRAPH",
+        "status": "VIABLE_ATM_MULE",
+        "detail": "Selected mule: 09871234567890 (Canara Bank) | MPS=0.9035"
+      },
+      {
+        "stage": "STAGE_2_TEMPORAL",
+        "status": "COMPLETE",
+        "detail": "Drainable: \u20b9100,000.00 | \u03c4=3.88 min | 18.6 min remaining | Urgency=0.8449"
+      },
+      {
+        "stage": "STAGE_3_SPATIAL",
+        "status": "COMPLETE",
+        "detail": "Method=IP_GEOLOCATION | r_active=5.00km | Candidates=7 | Top ATM=CNRB-ATM-PNE-0042 (score=0.9738)"
+      },
+      {
+        "stage": "CONFIDENCE_AGGREGATION",
+        "status": "COMPLETE",
+        "detail": "C = \u03b31(0.2)\u00d7MPS(0.9035) + \u03b32(0.35)\u00d7Urgency(0.8449) + \u03b33(0.45)\u00d7RiskScore(0.9738) = 0.9146 \u2192 SECONDARY_PHYSICAL"
+      },
+      {
+        "stage": "WEBHOOK_DISPATCH",
+        "status": "SUCCESS",
+        "detail": "Tier=SECONDARY_PHYSICAL | URL=http://localhost:8000/api/v1/freeze-card-atm"
+      }
+    ],
+    "simulation_mode": true,
+    "payload_snapshot": {
+      "ingestion_timestamp": "2026-09-05T01:22:00+05:30",
+      "fraud_type": "UPI_FRAUD",
+      "victim_state": "MH",
+      "victim_district": "Pune",
+      "complainant_name": null,
+      "complaint_timestamp": "2026-09-05T01:19:15+05:30",
+      "amount_inr": 487500.0,
+      "source_account": {
+        "account_number": "918010045672301",
+        "ifsc": "UTIB0002583",
+        "bank_name": "Axis Bank"
+      },
+      "transactions": [
+        {
+          "hop_index": 1,
+          "txn_id": "UTR2026090500001234",
+          "txn_timestamp": "2026-09-05T01:06:12+05:30",
+          "sender_account": "918010045672301",
+          "sender_ifsc": "UTIB0002583",
+          "sender_bank": "Axis Bank",
+          "receiver_account": "50100287654321",
+          "receiver_ifsc": "HDFC0001729",
+          "receiver_bank": "HDFC Bank",
+          "amount_inr": 487500.0,
+          "channel": "UPI"
+        },
+        {
+          "hop_index": 2,
+          "txn_id": "UTR2026090500001567",
+          "txn_timestamp": "2026-09-05T01:09:45+05:30",
+          "sender_account": "50100287654321",
+          "sender_ifsc": "HDFC0001729",
+          "sender_bank": "HDFC Bank",
+          "receiver_account": "6291087432156",
+          "receiver_ifsc": "SBIN0011424",
+          "receiver_bank": "State Bank of India",
+          "amount_inr": 485000.0,
+          "channel": "IMPS"
+        },
+        {
+          "hop_index": 3,
+          "txn_id": "UTR2026090500002890",
+          "txn_timestamp": "2026-09-05T01:14:22+05:30",
+          "sender_account": "6291087432156",
+          "sender_ifsc": "SBIN0011424",
+          "sender_bank": "State Bank of India",
+          "receiver_account": "37620198456732",
+          "receiver_ifsc": "PUNB0187600",
+          "receiver_bank": "Punjab National Bank",
+          "amount_inr": 240000.0,
+          "channel": "IMPS"
+        },
+        {
+          "hop_index": 4,
+          "txn_id": "UTR2026090500003201",
+          "txn_timestamp": "2026-09-05T01:18:07+05:30",
+          "sender_account": "37620198456732",
+          "sender_ifsc": "PUNB0187600",
+          "sender_bank": "Punjab National Bank",
+          "receiver_account": "09871234567890",
+          "receiver_ifsc": "CNRB0002341",
+          "receiver_bank": "Canara Bank",
+          "amount_inr": 237500.0,
+          "channel": "NEFT"
+        }
+      ],
+      "terminal_mule": {
+        "account_number": "09871234567890",
+        "ifsc": "CNRB0002341",
+        "bank": "Canara Bank",
+        "account_type": "SAVINGS",
+        "balance_inr": 241350.0,
+        "daily_limit_inr": 100000.0,
+        "withdrawals_today_inr": 0.0
+      },
+      "ip_cluster": [
+        {
+          "ip_address": "49.36.142.87",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5204,
+          "geo_lon": 73.8567,
+          "last_seen": "2026-09-05T01:15:08+05:30"
+        },
+        {
+          "ip_address": "103.87.56.214",
+          "asn": "AS55836 Reliance Jio Infocomm Limited",
+          "geo_lat": 18.5186,
+          "geo_lon": 73.8531,
+          "last_seen": "2026-09-05T01:10:42+05:30"
+        }
+      ]
+    }
   }
 ]

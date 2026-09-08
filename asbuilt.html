@@ -349,7 +349,8 @@
             <td>Persistence</td>
             <td>Flat JSON files under <span class="inline-code">data/</span> — <span
                     class="inline-code">incidents.json</span>, <span class="inline-code">lien_registry.json</span>,
-                <span class="inline-code">sent_crew.json</span> — no database</td>
+                <span class="inline-code">sent_crew.json</span> — no database
+            </td>
         </tr>
         <tr>
             <td>Concurrency safety</td>
@@ -499,7 +500,8 @@
         every lien record, revocation log entry, dispatch record, and resolution entry carries an
         <span class="inline-code">operator_id</span>, creating a traceable trail of who claimed to do what and
         when. If a case is later reviewed — in an audit, an NCRP inquiry, or an internal investigation — each
-        action has a named responsible party attached to it, even if that name cannot be cryptographically verified.</p>
+        action has a named responsible party attached to it, even if that name cannot be cryptographically verified.
+    </p>
     <p>The backend enforces its presence on lien actions via the <span class="inline-code">LienActionRequest</span>
         schema — an empty or missing <span class="inline-code">operator_id</span> returns HTTP 422. On the resolve
         endpoint, the same check applies: a resolution without an identified operator is rejected.</p>
@@ -510,9 +512,9 @@
             modal, not a browser <span class="inline-code">prompt()</span>). On confirmation, it checks for a
             duplicate lien, fires a freeze webhook to the mock bank switch, records the lien with
             <span class="inline-code">source: MANUAL</span>, and persists to <span
-                class="inline-code">data/lien_registry.json</span>.</li>
-        <li><strong>REVOKE</strong> requires a reason from a fixed set (Account verified as non-mule, Incorrect
-            account flagged, Operational override, Court order, Lien placed in error, Other). It moves the entry
+                class="inline-code">data/lien_registry.json</span>.
+        </li>
+        <li><strong>REVOKE</strong> requires a reason. It moves the entry
             from <span class="inline-code">active_liens</span> to <span class="inline-code">revocation_log</span> —
             the history is never deleted, only reclassified.</li>
         <li>A dedicated <span class="inline-code">asyncio.Lock</span> wraps the INITIATE path's check → webhook → write
@@ -523,22 +525,42 @@
             own lock instance and its own copy of the registry, reopening the race.</li>
         <li>If the automated pipeline dispatches a Tier-1/Tier-2 freeze, it seeds the same registry with
             <span class="inline-code">source: PIPELINE</span>, so the UI shows
-            "Revoke Digital Lien (Pipeline)" — manual and automatic actions share one source of truth.</li>
+            "Revoke Digital Lien (Pipeline)" — manual and automatic actions share one source of truth.
+        </li>
     </ul>
 
     <h2><span class="num">7.</span>Case Lifecycle, Resolution &amp; the Sweeper</h2>
 
     <h3>7.1 Human Resolution — <span class="inline-code">POST /api/v1/incidents/{ncrp_id}/resolve</span></h3>
-    <p>An operator resolves a case by submitting a resolution reason and optional note. The endpoint enforces:
-        (1) the case must exist and not already be resolved, (2) <span class="inline-code">operator_id</span> must be
-        non-empty, (3) <span class="inline-code">resolution_reason</span> must be one of a fixed taxonomy:</p>
+    <p>An operator resolves a case by submitting a resolution reason and optional note. The backend endpoint enforces:
+        (1) the case must exist, and (2) it must not already be resolved (HTTP 409 idempotency guard). In the dashboard,
+        the resolution modal enforces that <span class="inline-code">operator_id</span> is configured and restricts
+        <span class="inline-code">resolution_reason</span> to a fixed taxonomy:</p>
     <table class="ref-table">
-        <tr><th>Reason Code</th><th>Meaning</th></tr>
-        <tr><td><span class="inline-code">FUNDS_FROZEN</span></td><td>Bank confirmed card hold / lien took effect and funds are secured</td></tr>
-        <tr><td><span class="inline-code">MULE_APPREHENDED</span></td><td>Field crew detained the mule at an ATM</td></tr>
-        <tr><td><span class="inline-code">FUNDS_RECOVERED</span></td><td>Funds reversed to victim via bank reversal or court order</td></tr>
-        <tr><td><span class="inline-code">WINDOW_ELAPSED_CASE_CLOSED</span></td><td>Operator manually acknowledges the window has passed and closes the case</td></tr>
-        <tr><td><span class="inline-code">FALSE_POSITIVE</span></td><td>Incident was incorrectly flagged or based on faulty intelligence</td></tr>
+        <tr>
+            <th>Reason Code</th>
+            <th>Meaning</th>
+        </tr>
+        <tr>
+            <td><span class="inline-code">FUNDS_FROZEN</span></td>
+            <td>Bank confirmed card hold / lien took effect and funds are secured</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">MULE_APPREHENDED</span></td>
+            <td>Field crew detained the mule at an ATM</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">FUNDS_RECOVERED</span></td>
+            <td>Funds reversed to victim via bank reversal or court order</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">WINDOW_ELAPSED_CASE_CLOSED</span></td>
+            <td>Operator manually acknowledges the window has passed and closes the case</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">FALSE_POSITIVE</span></td>
+            <td>Incident was incorrectly flagged or based on faulty intelligence</td>
+        </tr>
     </table>
     <p>On a valid resolve call, the handler sets <span class="inline-code">resolved = True</span>, stamps
         <span class="inline-code">resolved_at</span>, stores <span class="inline-code">operator_id</span> and
@@ -548,7 +570,8 @@
             class="inline-code">resolved</span>, <span class="inline-code">resolved_at</span>, <span
             class="inline-code">resolution_reason</span>, and <span class="inline-code">resolution_note</span>,
         returning the incident to the Active queue. The dashboard surfaces a "Reopen" button in the Resolved section
-        for exactly this path.</p>
+        for exactly this path.
+    </p>
 
     <h3>7.2 Sweeper — Time-Based Disengagement</h3>
     <p>A background task sweeps every open incident every 60 seconds, enforcing two time-based states distinct from
@@ -559,13 +582,13 @@
             <th>Effect</th>
         </tr>
         <tr>
-            <td>6 hours since fraud recency, status still <span class="inline-code">ACTIVE</span>, and not
+            <td>6 hours since ingestion, status still <span class="inline-code">PROCESSED</span> or <span class="inline-code">ACTIVE</span>, and not
                 human-resolved</td>
             <td><span class="inline-code">status → TACTICAL_TIMEOUT</span> — real-time interception is considered moot;
                 case is not marked resolved</td>
         </tr>
         <tr>
-            <td>30 days since fraud recency, and never human-resolved</td>
+            <td>30 days since ingestion, and never human-resolved</td>
             <td><span class="inline-code">status → ADMINISTRATIVELY_CLOSED</span>, <span
                     class="inline-code">synapse_disengaged_at</span> timestamp set — again, <strong>not</strong> marked
                 resolved</td>
@@ -611,16 +634,21 @@
         <strong>View B</strong> shows per-incident tactical detail: the Leaflet map with the mule's estimated
         position and ATM markers, the intelligence panel (case overview, source account, terminal mule details,
         transaction flow accordion with per-hop lien buttons), the interception countdown, and ATM dispatch cards.
-        Both views poll <span class="inline-code">/api/v1/incidents</span>, <span
-            class="inline-code">/liens</span>, and <span class="inline-code">/dispatch-registry</span> every
-        5 seconds.</p>
+        Both views poll <span class="inline-code">/api/v1/incidents</span>, <span class="inline-code">/liens</span>, and
+        <span class="inline-code">/dispatch-registry</span> every
+        5 seconds.
+    </p>
 
     <h3>10.2 Interception Countdown Timer</h3>
     <p>Displayed prominently in View B, the timer counts down live from <span
             class="inline-code">drain_time_remaining_minutes</span> (as computed at ingestion) toward zero. It has
         three distinct terminal states, each visually differentiated:</p>
     <table class="ref-table">
-        <tr><th>Terminal State</th><th>Condition</th><th>Meaning</th></tr>
+        <tr>
+            <th>Terminal State</th>
+            <th>Condition</th>
+            <th>Meaning</th>
+        </tr>
         <tr>
             <td><span class="inline-code">INTERCEPTION WINDOW: CLOSED</span></td>
             <td>Timer hits zero during live countdown</td>
@@ -641,7 +669,8 @@
     </table>
     <p>The distinction between DAILY LIMIT EXHAUSTED and INTERCEPTION WINDOW: CLOSED is operationally important:
         the former means no urgency today (mule cannot act until midnight); the latter means urgency has
-        <em>passed</em> — a different kind of bad outcome.</p>
+        <em>passed</em> — a different kind of bad outcome.
+    </p>
 
     <h3>10.3 Bank Feed Simulator — <span class="inline-code">ui/feed.html</span></h3>
     <p>A separate page served at <span class="endpoint">/feed</span>, used for testing and demonstration. It has
@@ -661,7 +690,8 @@
                 class="inline-code">drainable_today_inr</span>. The main dashboard polls every 5 seconds and
             automatically reflects these changes in the intelligence panel and countdown — no manual refresh
             needed. This lets a demonstrator show the dashboard reacting in real-time to a simulated ATM
-            withdrawal happening at the mule's end.</li>
+            withdrawal happening at the mule's end.
+        </li>
         <li><strong>Feed Activity Log:</strong> a running per-session log of every upload, withdrawal push, and
             mode toggle — purely a demo convenience, not persisted to disk.</li>
     </ul>
@@ -675,13 +705,15 @@
     <p>Simulation Mode is toggled via a switch in the Admin Drawer on the dashboard, or by passing
         <span class="inline-code">X-Simulation-Mode: true</span> as a header (or <span
             class="inline-code">?simulate=true</span> as a query parameter) directly to the ingest endpoint.
-        When active, an amber <span class="inline-code">⚡ SIM MODE</span> badge appears in the navbar.</p>
+        When active, an amber <span class="inline-code">⚡ SIM MODE</span> badge appears in the navbar.
+    </p>
     <p>Its effect is narrow and specific: both Golden Hour gates are bypassed, and the pipeline uses the payload's
         own <span class="inline-code">ingestion_timestamp</span> field as its reference clock instead of
         <span class="inline-code">datetime.now()</span>. This means a static demo payload with a fraud timestamp
         from weeks ago can pass Gate 1 and produce a meaningful drain time, because the system evaluates "how much
         time has elapsed" relative to a baked-in anchor, not the real clock. Nothing else changes — all pipeline
-        math, confidence scores, and webhook dispatch logic run identically.</p>
+        math, confidence scores, and webhook dispatch logic run identically.
+    </p>
     <p>Simulation Mode exists purely for testing and demonstration. It is not a bypass that should ever be enabled
         in an operational deployment against real incident data.</p>
 
@@ -694,7 +726,8 @@
         drifted. Whenever the drain timer has already reached zero at ingestion, the system floors the entire
         <span class="inline-code">drainable_today_inr</span> to the nearest ₹10,000 and simulates it as fully
         withdrawn in one shot. The dashboard then reflects this adjusted balance — not the pre-cash-out figure
-        from the original payload — giving the operator a working estimate of what funds remain.</p>
+        from the original payload — giving the operator a working estimate of what funds remain.
+    </p>
     <p>This is an assumptive inference, not observed data. The actual withdrawal amounts and timing are unknown;
         the system treats the worst-case (everything drainable was already taken) as the operative assumption.
         The first thing that should change when real case outcomes become available is validating this assumption

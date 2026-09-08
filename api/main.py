@@ -345,9 +345,10 @@ async def incident_garbage_collector() -> None:
                 continue
                 
             # 6-Hour Tactical Timeout — only if not already resolved by a human
-            if inc.get("status") == "ACTIVE" and not inc.get("resolved"):
+            if inc.get("status") in["ACTIVE","PROCESSED"] and not inc.get("resolved"):
                 if (now_dt - ingestion_dt) > timedelta(hours=6):
                     inc["status"] = "TACTICAL_TIMEOUT"
+                    inc["tactical_timeout_at"] = now_dt.isoformat() 
                     changed = True
                     logger.info(f"[SWEEPER] {inc['ncrp_ticket_id']} -> TACTICAL_TIMEOUT (6h elapsed)")
             
