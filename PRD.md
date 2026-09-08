@@ -965,7 +965,7 @@ flowchart TB
    | Account Type | `account_type IN ('SAVINGS', 'BASIC_SAVINGS_BD', 'UNKNOWN')` | Current accounts with ATM-disabled profiles are excluded. `UNKNOWN` is admitted (benefit of doubt) but logged for review. |
    | Bank ATM Capability | `mule_bank` is not in the `NON_ATM_BANKS` exclusion list (e.g., payment banks, small finance banks without ATM networks like Paytm Payments Bank, Fino Payments Bank) | Accounts at banks without ATM infrastructure cannot perform ATM cash-out |
 
-   **If the filter fails:** The incident is flagged `NO_VIABLE_ATM_MULE`, no Synapse prediction is generated, and the incident is routed to CFCFRMS manual review with a note indicating the likely cash-out channel is non-ATM (crypto, wallet, POS, etc.).
+   **If the filter fails:** The ingestion is rejected with `HTTP 422 Unprocessable Entity` (`detail="NO_VIABLE_ATM_MULE: <reason>"`), consistent with Gate 1 / Gate 2 admission rejections. No Synapse prediction is generated, the payload is strictly not persisted to the active incident registry (`_incidents`), and no active dashboard card is created. The incident is routed to CFCFRMS manual review with the rejection detail indicating why the terminal mule is ineligible for ATM cash-out interception and likely cashing out via non-ATM channels (crypto, wallet, POS, etc.).
 
 **Implementation:** Python `networkx.DiGraph`, topological sort, `nx.descendants()` for sub-graph extraction.
 
@@ -1346,6 +1346,13 @@ $$\text{Urgency} = \begin{cases} 0.0 & \text{if } \texttt{DAILY\_LIMIT\_EXHAUSTE
 | `[v1.1 FIX 3A]` Synthetic Cell Tower Grid (Future State training) | 5,000 towers | GeoJSON | Static (one-time) |
 | Labeled Mule Trajectories (for ML training) | 2,000 trajectories | Parquet | Per training cycle |
 | Golden Hour Incident Payloads (for testing) | 500 complete payloads (v1.1 schema) | JSON | Weekly |
+
+### 6.7 Incident Payload Generation Utilities
+
+| Utility | File | Operational Mode | Output |
+|---|---|---|---|
+| **Batch Generator** | `synthetic/generator.py` | Interactive prompt (`Enter number of payloads... [default: 50]`) or CLI argument (`--count N`). Generates multi-dimensionally randomized payloads across 7 Indian metros, 9 banks, diverse fraud types, and 50+ complainant names. | `synthetic/payload_1.json` through `synthetic/payload_N.json` |
+| **Custom Scenario Builder** | `synthetic/generator_custom.py` | Interactive field-by-field CLI wizard prompting for city, complainant name, fraud type, amount, source bank/account, hops, and terminal mule parameters. Pressing `<Enter>` on any field auto-randomizes it. Validated against Pydantic schema. | Custom output file (defaults to `synthetic/payload_custom.json`) |
 
 ---
 
@@ -1912,4 +1919,98 @@ The original ATM crew dispatch tracking in Phase 9 was built using frontend `loc
 
 ---
 
+## 13. Phase 13 — Bulk Ingestion Engine, Dynamic Simulation Alignment & Operational Maintenance
+
+> **PRD Version:** 2.1.0  
+> **Date:** 08 September 2026
+
+---
+
+### 13.1 Phase 13 Feature 01 — Bulk Payload Upload in Bank Feed Simulator
+
+**Status:** `Verified & Approved` — 08 September 2026
+
+#### 13.1.1 Problem
+Demonstrators and test operators needed to ingest batches of 20–50 randomized incident payloads sequentially to simulate high-throughput feed environments and observe tactical queue behaviors without manual, repetitive single-file uploads.
+
+#### 13.1.2 Changes
+| File | Change |
+|---|---|
+| `ui/feed.html` | Multi-file input `<input type="file" id="bulk-file-input" multiple accept=".json,application/json">` and Browse label added alongside single-file picker. |
+| `ui/feed.html` | Staged in-memory queue engine (`stageBulkFiles`, `processNextBulkPayload`, `startBulkCountdown`). Asynchronously parses selected files, validates JSON, and preserves selection order. |
+| `ui/feed.html` | 5.0-second client-side pacing via `setInterval` tick timer. Dispatches first payload immediately, followed by staged payloads every 5 seconds. |
+| `ui/feed.html` | Live Telemetry Panel (`#bulk-progress-panel`): Total Staged, Sent (with success/failure tallies), Remaining, live countdown display (`5s` ... `0s`), animated progress bar, and active filename/ticket indicator. |
+| `ui/feed.html` | Non-blocking error handling: individual payload failures (e.g. HTTP 422 `NO_VIABLE_ATM_MULE` or network errors) log to the Feed Activity Log with ticket ID and reason, and the queue automatically advances to the next payload. |
+| `ui/feed.html` | Queue cancellation control (`cancelBulkQueue`): stops the countdown timer, clears remaining items, resets UI controls, and logs cancellation. |
+
+---
+
+### 13.2 Phase 13 Feature 02 — Dynamic Timestamp Alignment & Simulation $\tau$ Invariance
+
+**Status:** `Verified & Approved` — 08 September 2026
+
+#### 13.2.1 Problem
+When static demo payloads saved on disk hours or days earlier were ingested, setting only `ingestion_timestamp = NOW()` without adjusting transaction timestamps caused elapsed time $\tau = (T_{\text{ref}} - \max(T_{\text{txn}}))$ to exceed 80+ minutes. Because cash-out sessions span 15–45 minutes, $\tau$ exceeded session time ($D_{\text{remaining}} = \max(0, T_{\text{session}} - \tau) = 0.0\text{ min}$), forcing every bulk-uploaded incident into `0 min` drain time, triggering simulated automatic withdrawals on arrival, and causing 6-hour garbage collector sweeps.
+
+#### 13.2.2 Changes
+| File | Change |
+|---|---|
+| `ui/feed.html` | Implemented `alignPayloadTimestampsToNow(payload)`. Translates `ingestion_timestamp`, `ncrp_ticket.complaint_timestamp`, `fund_flow.transactions[*].txn_timestamp`, `ip_cluster[*].last_seen`, and `cell_tower_cluster[*].last_seen` by identical offset $\Delta = \text{Date.now()} - T_{\text{base}}$. |
+| `ui/index.html` | Added identical `alignPayloadTimestampsToNow(data)` to admin drawer `ingest(data)` function when simulation mode is active. |
+
+#### 13.2.3 Mathematical Invariance
+$$(T_{\text{ingest}} + \Delta) - (T_{\text{last\_txn}} + \Delta) \equiv T_{\text{ingest}} - T_{\text{last\_txn}} = \tau_{\text{intended}}$$
+Guarantees that each payload's intended, calibrated interception window (e.g. $15.7\text{ min}$, $38.5\text{ min}$) is preserved exactly on simulation ingest, regardless of when the JSON file was generated on disk.
+
+---
+
+### 13.3 Phase 13 Feature 03 — Simulation Mode Toggle Wiring for Bulk Ingest
+
+**Status:** `Verified & Approved` — 08 September 2026
+
+#### 13.3.1 Problem
+The bulk upload queue previously hardcoded `?simulate=true` and unconditional timestamp alignment, bypassing the operator's Simulation Mode toggle (`#sim-toggle`).
+
+#### 13.3.2 Changes
+| File | Change |
+|---|---|
+| `ui/feed.html` | `processNextBulkPayload` dynamically switches behavior based on `_simMode`: |
+| | - **Toggle ON (Sim Mode)**: Targets `POST /api/v1/ingest?simulate=true`, applies dynamic timestamp alignment, bypasses Golden Hour gates, displays `5s Pacing · Sim Mode` (amber). |
+| | - **Toggle OFF (Live Mode)**: Targets `POST /api/v1/ingest`, transmits raw payload as-is from disk without timestamp mutation, strictly enforces Gate 1 (`recency ≤ 120 min`) and Gate 2 (`freshness ≤ 240 min`) rejections (HTTP 422), displays `5s Pacing · Live Mode` (slate). |
+| `ui/feed.html` | Added `updateBulkModeBadge()` called on `onSimToggle()` and queue staging to dynamically update the UI badge. |
+
+---
+
+### 13.4 Phase 13 Feature 04 — Incident Registry Purge Endpoint & Control
+
+**Status:** `Verified & Approved` — 08 September 2026
+
+#### 13.4.1 Problem
+After running simulation runs, test incidents accumulated in memory and `data/incidents.json`. Operators had no clean UI mechanism to flush the active queue to start a new demonstration.
+
+#### 13.4.2 Changes
+| File | Change |
+|---|---|
+| `api/main.py` | Implemented `POST /api/v1/incidents/clear` endpoint. Clears in-memory `_incidents` list and persists empty array `[]` to `data/incidents.json`. Returns `{"status": "CLEARED", "total": 0}`. |
+| `ui/feed.html` | Added `🧹 Clear Incident Feed` button (`purgeAllIncidents()`) next to file browse controls with confirmation prompt. Calls `/api/v1/incidents/clear` and triggers `pollIncidents()`. |
+
+---
+
+### 13.5 Phase 13 Feature 05 — Synthetic Generator City Lockdown & Interception Window Calibration
+
+**Status:** `Verified & Approved` — 08 September 2026
+
+#### 13.5.1 Problem
+Synthetic payloads previously included cities outside Synapse's ATM registry (Chennai, Mumbai, Hyderabad, Kolkata), causing orphaned geolocation lookups. Furthermore, random session elapsed times frequently resulted in 0-minute windows.
+
+#### 13.5.2 Changes
+| File | Change |
+|---|---|
+| `synthetic/generator.py` & `synthetic/generator_custom.py` | Locked `CITIES` array strictly to cities present in `data/atm_registry.json`: Pune (MH), Bengaluru (KA), and Delhi (DL). |
+| `synthetic/generator.py` & `synthetic/generator_custom.py` | Calibrated $\tau = T_{\text{session}} - D_{\text{target}}$ where $D_{\text{target}} \in [0.25, 0.88] \times T_{\text{session}}$, guaranteeing realistic, unique, actionable countdown windows between $5.5\text{ min}$ and $38.5\text{ min}$. |
+| `synthetic/generator.py` & `synthetic/generator_custom.py` | Added random `complainant_name` selection and interactive CLI prompt support. |
+
+---
+
 *— End of Document —*
+

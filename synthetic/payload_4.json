@@ -1,0 +1,110 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "3f0ad3c4-c301-4eaa-9524-2eceb073d249",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-7320446",
+    "complaint_timestamp": "2026-09-08T07:00:40.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Divya Menon",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 102745.46,
+    "source_account": {
+      "account_number": "28871432905481",
+      "ifsc": "SBIN0011424",
+      "bank_name": "State Bank of India"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 4,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609087440",
+        "txn_timestamp": "2026-09-08T06:51:39.521196+00:00",
+        "sender_account": "28871432905481",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "30487418003946",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 102745.46,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609088605",
+        "txn_timestamp": "2026-09-08T06:48:10.721196+00:00",
+        "sender_account": "30487418003946",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "95094844259448",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 100750.65,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609086527",
+        "txn_timestamp": "2026-09-08T06:56:49.721196+00:00",
+        "sender_account": "95094844259448",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "67073048536304",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 98759.22,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "IMPS202609083154",
+        "txn_timestamp": "2026-09-08T06:59:31.121196+00:00",
+        "sender_account": "67073048536304",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "92220578503470",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 95856.1,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "92220578503470",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 117478.81,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "7d06baa1b95d6f133bc0e26466ef2e3735bee288f214a0295d5f3aa75ab80ee1",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "21.203.26.229",
+        "geo_lat": 28.7164,
+        "geo_lon": 77.1778,
+        "asn": "AS9863",
+        "last_seen": "2026-09-08T07:03:01.121196+00:00"
+      },
+      {
+        "ip_address": "139.36.213.238",
+        "geo_lat": 28.5829,
+        "geo_lon": 77.2572,
+        "asn": "AS6528",
+        "last_seen": "2026-09-08T07:03:01.121196+00:00"
+      },
+      {
+        "ip_address": "53.145.106.163",
+        "geo_lat": 28.6697,
+        "geo_lon": 77.2988,
+        "asn": "AS3644",
+        "last_seen": "2026-09-08T06:55:01.121196+00:00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "25b4d116-ac19-4f22-98f1-98833a386da1",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-5405266",
+    "complaint_timestamp": "2026-09-08T07:14:27.521196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Amit Gupta",
+    "fraud_type": "LOAN_APP_FRAUD",
+    "amount_inr": 286461.42,
+    "source_account": {
+      "account_number": "86797791127407",
+      "ifsc": "INDB0000001",
+      "bank_name": "IndusInd Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609084770",
+        "txn_timestamp": "2026-09-08T07:08:00.521196+00:00",
+        "sender_account": "86797791127407",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "1534330889440",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 286461.42,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609082219",
+        "txn_timestamp": "2026-09-08T07:12:55.121196+00:00",
+        "sender_account": "1534330889440",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "54251327070518",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 277149.87,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "54251327070518",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 308162.89,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "250f78c05c5af477a69a4c035ab6d4a9ba7e35c3a3a871f5b1109813faf71288",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 40000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "96.212.143.135",
+        "geo_lat": 12.9965,
+        "geo_lon": 77.5819,
+        "asn": "AS2382",
+        "last_seen": "2026-09-08T06:33:01.121196+00:00"
+      },
+      {
+        "ip_address": "207.140.50.125",
+        "geo_lat": 13.0388,
+        "geo_lon": 77.5775,
+        "asn": "AS1472",
+        "last_seen": "2026-09-08T06:56:01.121196+00:00"
+      },
+      {
+        "ip_address": "97.40.200.81",
+        "geo_lat": 12.9361,
+        "geo_lon": 77.6515,
+        "asn": "AS2461",
+        "last_seen": "2026-09-08T06:37:01.121196+00:00"
+      }
+    ]
+  }
+}

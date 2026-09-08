@@ -1,0 +1,90 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "52a4610e-3695-4bd8-bbfb-bc208eb3f2c1",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-7344883",
+    "complaint_timestamp": "2026-09-08T07:02:07.721196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Vijay Kulkarni",
+    "fraud_type": "LOAN_APP_FRAUD",
+    "amount_inr": 556521.72,
+    "source_account": {
+      "account_number": "94657751348934",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609088322",
+        "txn_timestamp": "2026-09-08T06:47:50.321196+00:00",
+        "sender_account": "94657751348934",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "481542811627",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 556521.72,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609086593",
+        "txn_timestamp": "2026-09-08T06:56:25.121196+00:00",
+        "sender_account": "481542811627",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "38717435133036",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 534416.14,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609083092",
+        "txn_timestamp": "2026-09-08T06:59:19.121196+00:00",
+        "sender_account": "38717435133036",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "49683313334887",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 524179.57,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "49683313334887",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 661424.39,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "af21f0c2bafabd0ba9b4f7863a30bc52224dabc7373d8723543830902b14505d",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "207.81.230.35",
+        "geo_lat": 12.9469,
+        "geo_lon": 77.6175,
+        "asn": "AS1134",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      },
+      {
+        "ip_address": "79.221.7.243",
+        "geo_lat": 12.909,
+        "geo_lon": 77.6757,
+        "asn": "AS2872",
+        "last_seen": "2026-09-08T06:40:01.121196+00:00"
+      }
+    ]
+  }
+}

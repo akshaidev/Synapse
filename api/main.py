@@ -730,23 +730,13 @@ async def ingest_incident(
         return result
 
     if not stage1.is_viable:
-        stages.append(PipelineStageStatus(
-            stage="STAGE_1_GRAPH",
-            status="NO_VIABLE_ATM_MULE",
-            detail=stage1.disqualification_reason,
-        ))
-        logger.warning(f"[INGEST {incident_id}] {stage1.disqualification_reason}")
-        result = IngestResponse(
-            synapse_incident_id=incident_id,
-            ncrp_ticket_id=payload.ncrp_ticket.ticket_id,
-            status="NO_VIABLE_ATM_MULE",
-            mps_score=stage1.mps_score,
-            stages=stages,
-            simulation_mode=simulation_active,
+        logger.warning(
+            f"[INGEST {incident_id}] REJECTED — NO_VIABLE_ATM_MULE: {stage1.disqualification_reason}"
         )
-        _incidents.append(result.model_dump())
-        _persist_incidents()
-        return result
+        raise HTTPException(
+            status_code=422,
+            detail=f"NO_VIABLE_ATM_MULE: {stage1.disqualification_reason}",
+        )
 
     stages.append(PipelineStageStatus(
         stage="STAGE_1_GRAPH",
@@ -1161,6 +1151,26 @@ async def get_incidents() -> JSONResponse:
             "incidents": list(reversed(_incidents)),
         }
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/incidents/clear — Clear Stored Incidents (Simulation Utility)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.post(
+    "/api/v1/incidents/clear",
+    summary="Clear All Stored Incidents",
+    tags=["UI Support"],
+)
+async def clear_incidents() -> JSONResponse:
+    """
+    Clears all in-memory and persisted incident records.
+    Allows operators to wipe stale simulation runs and test with clean dashboards.
+    """
+    global _incidents
+    _incidents.clear()
+    _persist_incidents()
+    logger.info("[INCIDENTS] All incidents cleared by operator request.")
+    return JSONResponse(content={"status": "CLEARED", "total": 0})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

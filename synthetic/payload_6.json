@@ -1,0 +1,97 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "447a0a74-5dad-4c77-af0d-2c8f4f6e2ad6",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-7880892",
+    "complaint_timestamp": "2026-09-08T07:05:29.921196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Shalini Trivedi",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 462611.73,
+    "source_account": {
+      "account_number": "99748124755894",
+      "ifsc": "BARB0VJPUNE",
+      "bank_name": "Bank of Baroda"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609088815",
+        "txn_timestamp": "2026-09-08T06:52:38.321196+00:00",
+        "sender_account": "99748124755894",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "42348541248758",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 462611.73,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609081758",
+        "txn_timestamp": "2026-09-08T06:59:00.521196+00:00",
+        "sender_account": "42348541248758",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "90696573646678",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 446465.88,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609089722",
+        "txn_timestamp": "2026-09-08T07:02:37.121196+00:00",
+        "sender_account": "90696573646678",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "41585640610149",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 431540.25,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "41585640610149",
+    "mule_ifsc": "INDB0000001",
+    "mule_bank": "IndusInd Bank",
+    "current_balance_inr": 507551.33,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "efce4566fa8ebde283dbe068f3d57247a8028094855d84fb052d7b3c4888e89e",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 30000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "44.37.22.224",
+        "geo_lat": 12.9979,
+        "geo_lon": 77.6424,
+        "asn": "AS1755",
+        "last_seen": "2026-09-08T06:49:01.121196+00:00"
+      },
+      {
+        "ip_address": "199.228.17.141",
+        "geo_lat": 12.9362,
+        "geo_lon": 77.6094,
+        "asn": "AS9577",
+        "last_seen": "2026-09-08T07:02:01.121196+00:00"
+      },
+      {
+        "ip_address": "50.247.66.199",
+        "geo_lat": 13.0058,
+        "geo_lon": 77.5925,
+        "asn": "AS3674",
+        "last_seen": "2026-09-08T06:50:01.121196+00:00"
+      }
+    ]
+  }
+}

@@ -2,17 +2,17 @@
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
 > **PRD Version:** v2.0.0 (Phase 12 complete — Crew Dispatch Migration)  
-> **ASSUMPTIONS Version:** 44 entries (1 added — Bank Feed Simulator Resolution Modal & Shared Operator Identity)  
-> **Last Updated:** 08 September 2026 — BUG-001 resolved & verified
+> **ASSUMPTIONS Version:** 45 entries (1 added — Ingestion Rejection on Non-Viable Terminal Mule)  
+> **Last Updated:** 08 September 2026 — NO_VIABLE_ATM_MULE HTTP 422 Rejection implemented & verified
 
 ---
 
 ## Current Status
 
 | **Current Phase** | Phase 13 — Production Hardening & Audit Fixes |
-| **Last Completed Feature** | Module 24 — Bank Feed Simulator Resolution Modal & Shared Operator Identity (`Verified` 08 Sep 2026) |
-| **Active Task** | None — All audit and bugfix tasks complete. |
-| **Immediate Next Task** | Await next project phase. |
+| **Last Completed Feature** | Module 25 — Ingestion Rejection on Non-Viable Terminal Mule (NO_VIABLE_ATM_MULE) (`Code Complete (Unverified)`) |
+| **Active Task** | User Sign-off for Module 25 (`NO_VIABLE_ATM_MULE` HTTP 422 Rejection). |
+| **Immediate Next Task** | Transition Module 25 to `Verified & Approved` upon user confirmation. |
 | **Known Blockers / Warnings** | None. All test suites verified passing (100%). |
 
 ---
@@ -446,6 +446,32 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 25: Terminal Mule Viability Ingestion Rejection (HTTP 422)
+
+| Field | Value |
+|---|---|
+| **File** | `api/main.py`, `ui/index.html`, `tests/verify_no_viable_atm_mule.py`, `tests/verify_api.py`, `PRD.md`, `asbuilt.html`, `Assumptions.MD` |
+| **PRD Reference** | §4.2 Step 5 Mule Viability Filter, §1.3 Golden Hour Admission |
+| **Description** | Corrected `NO_VIABLE_ATM_MULE` behavior in `api/main.py` from a disguised acceptance (HTTP 200 with partial payload, persisted to `_incidents`) to an immediate `HTTPException(422, detail=f"NO_VIABLE_ATM_MULE: {stage1.disqualification_reason}")`. Non-viable cases are dropped before reaching `_incidents` or the tactical dashboard, preventing zero-state rendering anomalies and corrupted UI states. Updated `ui/index.html` admin drawer 422 error handler to mark Golden Hour passed, Stage 1 failed with clean reason, subsequent stages skipped, and hide the active result card. Updated `PRD.md`, `asbuilt.html`, and `Assumptions.MD`. |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 08 September 2026 |
+| **Notes** | Verified via `tests/verify_no_viable_atm_mule.py` (10/10 PASS) and `tests/verify_api.py` (27/27 PASS). |
+
+---
+
+### Module 26: Bulk Payload Upload & Dynamic Simulation Engine
+
+| Field | Value |
+|---|---|
+| **File** | `ui/feed.html`, `ui/index.html`, `api/main.py`, `tests/verify_bulk_upload.py`, `synthetic/generator.py`, `synthetic/generator_custom.py`, `PRD.md`, `asbuilt.html`, `Assumptions.MD` |
+| **PRD Reference** | Phase 13 (§13.1–§13.5), §10.3 Bank Feed Simulator |
+| **Description** | Built a multi-file bulk payload upload engine in `ui/feed.html` with client-side 5.0-second sequential pacing, live telemetry cards, dynamic countdown display, and non-blocking error continuation. Implemented unified timestamp alignment (`alignPayloadTimestampsToNow`) across `ui/feed.html` and `ui/index.html` ensuring mathematical $\tau$ invariance ($(T_{\text{ingest}}+\Delta) - (T_{\text{txn}}+\Delta) \equiv \tau$) and preserving calibrated non-zero interception windows ($15.7\text{m}$ to $38.5\text{m}$) without triggering premature auto-withdrawals or 6-hour garbage collector sweeps. Bound the bulk queue to the `#sim-toggle` (`_simMode`) switch to separate live ingestion from simulation bypass. Added `POST /api/v1/incidents/clear` and a `🧹 Clear Incident Feed` button for clean simulation testing. Restricted synthetic generators strictly to ATM registry cities (Pune, Bengaluru, Delhi). |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 08 September 2026 |
+| **Notes** | Verified via `tests/verify_bulk_upload.py` (32/32 PASS), `tests/verify_no_viable_atm_mule.py` (10/10 PASS), `tests/verify_feed_resolution.py` (21/21 PASS), and `tests/verify_api.py` (27/27 PASS). |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -475,6 +501,8 @@ All verification records are appended here chronologically. Each entry is create
 | 07 Sep 2026 | Module 22 — Digital Lien System | N/A — verified live (syncs UI state with manual/pipeline webhooks) | PASS | N/A |
 | 07 Sep 2026 | Module 23 — Dispatch Migration | N/A — verified live (syncs UI state with backend sent_crew.json) | PASS | N/A |
 | 08 Sep 2026 | Module 24 — Bank Feed Resolution (BUG-001) | `/tests/verify_feed_resolution.py` | PASS (17/17) | USER |
+| 08 Sep 2026 | Module 25 — Mule Viability Rejection | `/tests/verify_no_viable_atm_mule.py` | PASS (10/10) | USER |
+| 08 Sep 2026 | Module 26 — Bulk Upload & Dynamic Sim | `/tests/verify_bulk_upload.py` | PASS (32/32) | USER |
 
 ---
 
@@ -491,6 +519,7 @@ All verification records are appended here chronologically. Each entry is create
 | **Phase 10** | Live Feed Simulator (Bank Feed portal, Case Resolution, Sim Toggle, Timer Fix, /feed route) | **Complete** |
 | **Phase 11** | Digital Lien Management System (Persistent manual/pipeline registry, UI Sync) | **Complete** |
 | **Phase 12** | Crew Dispatch Backend Migration (Move dispatch registry to sent_crew.json) | **Complete** |
+| **Phase 13** | Bulk Ingestion Engine, Dynamic Simulation Alignment & Operational Maintenance | **Complete** |
 
 ---
 

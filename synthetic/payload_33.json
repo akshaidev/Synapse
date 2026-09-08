@@ -1,0 +1,84 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "576e1714-a1f5-4503-bbbb-4f5bd6a6c146",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-6367576",
+    "complaint_timestamp": "2026-09-08T06:51:31.721196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Rekha Yadav",
+    "fraud_type": "UPI_FRAUD",
+    "amount_inr": 524035.21,
+    "source_account": {
+      "account_number": "3397774933728",
+      "ifsc": "ICIC0000100",
+      "bank_name": "ICICI Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609083720",
+        "txn_timestamp": "2026-09-08T06:42:56.321196+00:00",
+        "sender_account": "3397774933728",
+        "sender_ifsc": "ICIC0000100",
+        "sender_bank": "ICICI Bank",
+        "receiver_account": "56849740989275",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 524035.21,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609087624",
+        "txn_timestamp": "2026-09-08T06:48:37.121196+00:00",
+        "sender_account": "56849740989275",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "28327329392899",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 511009.77,
+        "channel": "UPI"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "28327329392899",
+    "mule_ifsc": "ICIC0000100",
+    "mule_bank": "ICICI Bank",
+    "current_balance_inr": 558742.8,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "fea2f0c1a55c493b0e8cfbac4973fc24fd113843752120aba91476480b22b55d",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "181.23.67.72",
+        "geo_lat": 18.55,
+        "geo_lon": 73.8198,
+        "asn": "AS8841",
+        "last_seen": "2026-09-08T06:59:01.121196+00:00"
+      },
+      {
+        "ip_address": "157.81.108.183",
+        "geo_lat": 18.5602,
+        "geo_lon": 73.8212,
+        "asn": "AS5411",
+        "last_seen": "2026-09-08T06:42:01.121196+00:00"
+      },
+      {
+        "ip_address": "66.184.62.80",
+        "geo_lat": 18.5827,
+        "geo_lon": 73.847,
+        "asn": "AS4812",
+        "last_seen": "2026-09-08T06:34:01.121196+00:00"
+      }
+    ]
+  }
+}

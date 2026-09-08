@@ -1,0 +1,116 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "8ed2ee90-3be0-4aea-8b4f-34cd0550f9bb",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-1425992",
+    "complaint_timestamp": "2026-09-08T07:12:07.721196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Kavitha Reddy",
+    "fraud_type": "VISHING",
+    "amount_inr": 659806.8,
+    "source_account": {
+      "account_number": "24365501699091",
+      "ifsc": "CNRB0002341",
+      "bank_name": "Canara Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 5,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609088414",
+        "txn_timestamp": "2026-09-08T06:50:04.721196+00:00",
+        "sender_account": "24365501699091",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "8309384636889",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 659806.8,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609082994",
+        "txn_timestamp": "2026-09-08T06:57:28.121196+00:00",
+        "sender_account": "8309384636889",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "63807938384712",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 645943.87,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "RTGS202609081231",
+        "txn_timestamp": "2026-09-08T06:59:11.921196+00:00",
+        "sender_account": "63807938384712",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "12284471700632",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 624107.95,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "NEFT202609088988",
+        "txn_timestamp": "2026-09-08T07:06:29.921196+00:00",
+        "sender_account": "12284471700632",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "1236130012863",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 601119.92,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "NEFT202609081202",
+        "txn_timestamp": "2026-09-08T07:10:31.121196+00:00",
+        "sender_account": "1236130012863",
+        "sender_ifsc": "ICIC0000100",
+        "sender_bank": "ICICI Bank",
+        "receiver_account": "26369508759003",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 575830.09,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "26369508759003",
+    "mule_ifsc": "KKBK0000958",
+    "mule_bank": "Kotak Mahindra Bank",
+    "current_balance_inr": 777115.88,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "2cf8c6ac95a2f735eedca348b708b4cc8997a7bd314f621eb9ededffb800bb99",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "106.143.11.15",
+        "geo_lat": 12.9538,
+        "geo_lon": 77.6178,
+        "asn": "AS8224",
+        "last_seen": "2026-09-08T06:53:01.121196+00:00"
+      },
+      {
+        "ip_address": "36.147.187.53",
+        "geo_lat": 12.9148,
+        "geo_lon": 77.5592,
+        "asn": "AS8202",
+        "last_seen": "2026-09-08T06:55:01.121196+00:00"
+      }
+    ]
+  }
+}

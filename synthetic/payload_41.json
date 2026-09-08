@@ -1,0 +1,90 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "ca50c548-c6ee-4df0-a7a9-f9af13b8f86d",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-9192153",
+    "complaint_timestamp": "2026-09-08T07:11:58.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Vijay Kulkarni",
+    "fraud_type": "VISHING",
+    "amount_inr": 638649.5,
+    "source_account": {
+      "account_number": "7044595341347",
+      "ifsc": "CNRB0002341",
+      "bank_name": "Canara Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609081954",
+        "txn_timestamp": "2026-09-08T07:03:33.521196+00:00",
+        "sender_account": "7044595341347",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "53085583058505",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 638649.5,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "RTGS202609084322",
+        "txn_timestamp": "2026-09-08T07:07:07.121196+00:00",
+        "sender_account": "53085583058505",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "98353947115522",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 615875.53,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "RTGS202609086725",
+        "txn_timestamp": "2026-09-08T07:10:13.121196+00:00",
+        "sender_account": "98353947115522",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "18301616674925",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 604519.33,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "18301616674925",
+    "mule_ifsc": "ICIC0000100",
+    "mule_bank": "ICICI Bank",
+    "current_balance_inr": 813814.12,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "7628c39aef56f827f6d2d9f17e42696fbc3e0b9308f064151d2652261535c5c0",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "72.84.71.177",
+        "geo_lat": 28.5954,
+        "geo_lon": 77.278,
+        "asn": "AS8816",
+        "last_seen": "2026-09-08T06:56:01.121196+00:00"
+      },
+      {
+        "ip_address": "124.245.166.30",
+        "geo_lat": 28.706,
+        "geo_lon": 77.2173,
+        "asn": "AS5485",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      }
+    ]
+  }
+}

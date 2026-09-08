@@ -1,0 +1,129 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "440938b1-2a80-4b24-82a9-4b86e73d006e",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-1310207",
+    "complaint_timestamp": "2026-09-08T07:05:10.121196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Sneha Kulkarni",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 399177.2,
+    "source_account": {
+      "account_number": "5641608479648",
+      "ifsc": "INDB0000001",
+      "bank_name": "IndusInd Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 6,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609089011",
+        "txn_timestamp": "2026-09-08T06:30:46.121196+00:00",
+        "sender_account": "5641608479648",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "87807458167072",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 399177.2,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "RTGS202609087150",
+        "txn_timestamp": "2026-09-08T06:39:38.321196+00:00",
+        "sender_account": "87807458167072",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "99506928366403",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 391473.14,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609082248",
+        "txn_timestamp": "2026-09-08T06:48:14.321196+00:00",
+        "sender_account": "99506928366403",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "77489848955095",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 382781.94,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609081311",
+        "txn_timestamp": "2026-09-08T06:55:51.521196+00:00",
+        "sender_account": "77489848955095",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "74683541715646",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 369948.88,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "NEFT202609089651",
+        "txn_timestamp": "2026-09-08T06:59:46.721196+00:00",
+        "sender_account": "74683541715646",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "10211772913614",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 362081.46,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 6,
+        "txn_id": "UPI202609084485",
+        "txn_timestamp": "2026-09-08T07:02:31.121196+00:00",
+        "sender_account": "10211772913614",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "22350270712657",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 354303.45,
+        "channel": "UPI"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "22350270712657",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 473501.9,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "f520df0f0259f64d3ab644a6f1e7f099dccbdf3fab4541cfb95435c9233fbb5b",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "208.102.185.114",
+        "geo_lat": 12.9266,
+        "geo_lon": 77.5569,
+        "asn": "AS3341",
+        "last_seen": "2026-09-08T07:12:01.121196+00:00"
+      },
+      {
+        "ip_address": "221.180.56.235",
+        "geo_lat": 12.9485,
+        "geo_lon": 77.6464,
+        "asn": "AS3039",
+        "last_seen": "2026-09-08T06:45:01.121196+00:00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "04f3fdf6-af63-4625-a78d-dbc36d264336",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-8906141",
+    "complaint_timestamp": "2026-09-08T07:13:56.921196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Madhavi Pillai",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 68587.6,
+    "source_account": {
+      "account_number": "95974439318707",
+      "ifsc": "BARB0VJPUNE",
+      "bank_name": "Bank of Baroda"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609081957",
+        "txn_timestamp": "2026-09-08T06:59:41.921196+00:00",
+        "sender_account": "95974439318707",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "96724263441840",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 68587.6,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609088818",
+        "txn_timestamp": "2026-09-08T07:06:06.521196+00:00",
+        "sender_account": "96724263441840",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "85794864118666",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 67532.44,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "IMPS202609083430",
+        "txn_timestamp": "2026-09-08T07:12:31.121196+00:00",
+        "sender_account": "85794864118666",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "76933882823112",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 65524.7,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "76933882823112",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 86582.74,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "534d659327a83388510b1342ddd95b4d63ff143f78f081fa5f7b70f872164eb5",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "109.34.9.179",
+        "geo_lat": 12.908,
+        "geo_lon": 77.6162,
+        "asn": "AS3167",
+        "last_seen": "2026-09-08T06:56:01.121196+00:00"
+      },
+      {
+        "ip_address": "112.28.228.67",
+        "geo_lat": 13.039,
+        "geo_lon": 77.6497,
+        "asn": "AS4785",
+        "last_seen": "2026-09-08T06:45:01.121196+00:00"
+      },
+      {
+        "ip_address": "40.70.88.98",
+        "geo_lat": 12.9722,
+        "geo_lon": 77.5431,
+        "asn": "AS5791",
+        "last_seen": "2026-09-08T07:12:01.121196+00:00"
+      }
+    ]
+  }
+}

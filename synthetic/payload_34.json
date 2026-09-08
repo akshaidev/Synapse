@@ -1,0 +1,116 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "295c2c9a-4ec2-4d4a-9b33-eb840ec36655",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-4098602",
+    "complaint_timestamp": "2026-09-08T07:01:55.721196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Kavitha Reddy",
+    "fraud_type": "VISHING",
+    "amount_inr": 600603.1,
+    "source_account": {
+      "account_number": "71611347882464",
+      "ifsc": "BARB0VJPUNE",
+      "bank_name": "Bank of Baroda"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 5,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "RTGS202609084193",
+        "txn_timestamp": "2026-09-08T06:49:43.121196+00:00",
+        "sender_account": "71611347882464",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "69228936409657",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 600603.1,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609084836",
+        "txn_timestamp": "2026-09-08T06:41:38.321196+00:00",
+        "sender_account": "69228936409657",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "45900558868648",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 588350.27,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "RTGS202609086999",
+        "txn_timestamp": "2026-09-08T06:49:20.321196+00:00",
+        "sender_account": "45900558868648",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "5837156640676",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 571131.53,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609083972",
+        "txn_timestamp": "2026-09-08T06:54:25.721196+00:00",
+        "sender_account": "5837156640676",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "78843912651621",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 556030.55,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "NEFT202609082572",
+        "txn_timestamp": "2026-09-08T07:00:07.121196+00:00",
+        "sender_account": "78843912651621",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "10489571993743",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 545975.5,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "10489571993743",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 695820.72,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "95418f2ead35cb72218d8d574e4615bbd1eb31ef144a024e8d7506c33ea96bb4",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "69.161.152.90",
+        "geo_lat": 18.6122,
+        "geo_lon": 73.8014,
+        "asn": "AS8637",
+        "last_seen": "2026-09-08T07:03:01.121196+00:00"
+      },
+      {
+        "ip_address": "53.222.124.165",
+        "geo_lat": 18.6153,
+        "geo_lon": 73.886,
+        "asn": "AS8607",
+        "last_seen": "2026-09-08T06:39:01.121196+00:00"
+      }
+    ]
+  }
+}

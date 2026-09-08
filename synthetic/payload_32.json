@@ -1,0 +1,103 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "3aa0a5f0-e097-44cc-b79c-2fe4b7faec35",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-6200138",
+    "complaint_timestamp": "2026-09-08T07:01:32.321196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Geeta Bhatt",
+    "fraud_type": "PHISHING",
+    "amount_inr": 377210.61,
+    "source_account": {
+      "account_number": "91171601828115",
+      "ifsc": "KKBK0000958",
+      "bank_name": "Kotak Mahindra Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 4,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609086418",
+        "txn_timestamp": "2026-09-08T06:50:13.721196+00:00",
+        "sender_account": "91171601828115",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "16273817505157",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 377210.61,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609088958",
+        "txn_timestamp": "2026-09-08T06:53:46.721196+00:00",
+        "sender_account": "16273817505157",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "60287215732871",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 364534.02,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609086600",
+        "txn_timestamp": "2026-09-08T06:57:06.521196+00:00",
+        "sender_account": "60287215732871",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "1434900550525",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 355534.36,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609082561",
+        "txn_timestamp": "2026-09-08T07:00:13.121196+00:00",
+        "sender_account": "1434900550525",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "38349710880552",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 349910.33,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "38349710880552",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 458418.81,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "5a1b7e79961945d0bb06363cbdbcba8744750000586966ebfe14d0db0df2177d",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 20000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "100.4.119.38",
+        "geo_lat": 28.6624,
+        "geo_lon": 77.2545,
+        "asn": "AS5940",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      },
+      {
+        "ip_address": "183.60.222.238",
+        "geo_lat": 28.7126,
+        "geo_lon": 77.1948,
+        "asn": "AS8524",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      }
+    ]
+  }
+}

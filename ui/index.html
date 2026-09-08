@@ -1935,6 +1935,78 @@
       if (det && detail) det.textContent = detail.length > 90 ? detail.slice(0, 90) + '…' : detail;
     }
 
+    // Aligns all timestamps in a payload relative to Date.now()
+    // Preserves exact relative delta τ = (ingestion_timestamp - max(txn_timestamp)),
+    // ensuring non-zero drain time, valid Golden Hour gates, and avoiding 6-hour sweeper timeout.
+    function alignPayloadTimestampsToNow(payload) {
+      if (!payload) return payload;
+      const clone = JSON.parse(JSON.stringify(payload));
+      
+      const refTimeStr = clone.ingestion_timestamp || (clone.ncrp_ticket && clone.ncrp_ticket.complaint_timestamp);
+      if (!refTimeStr) {
+        clone.ingestion_timestamp = new Date().toISOString();
+        return clone;
+      }
+      
+      const baseMs = Date.parse(refTimeStr);
+      if (isNaN(baseMs)) {
+        clone.ingestion_timestamp = new Date().toISOString();
+        return clone;
+      }
+
+      const nowMs = Date.now();
+      const deltaMs = nowMs - baseMs;
+
+      // 1. Shift ingestion_timestamp to now
+      clone.ingestion_timestamp = new Date(nowMs).toISOString();
+
+      // 2. Shift complaint_timestamp by same delta
+      if (clone.ncrp_ticket && clone.ncrp_ticket.complaint_timestamp) {
+        const cMs = Date.parse(clone.ncrp_ticket.complaint_timestamp);
+        if (!isNaN(cMs)) {
+          clone.ncrp_ticket.complaint_timestamp = new Date(cMs + deltaMs).toISOString();
+        }
+      }
+
+      // 3. Shift all fund flow transactions by same delta
+      if (clone.fund_flow && Array.isArray(clone.fund_flow.transactions)) {
+        clone.fund_flow.transactions.forEach(t => {
+          if (t.txn_timestamp) {
+            const tMs = Date.parse(t.txn_timestamp);
+            if (!isNaN(tMs)) {
+              t.txn_timestamp = new Date(tMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      // 4. Shift IP cluster last_seen
+      if (clone.terminal_mule && Array.isArray(clone.terminal_mule.ip_cluster)) {
+        clone.terminal_mule.ip_cluster.forEach(ip => {
+          if (ip.last_seen) {
+            const ipMs = Date.parse(ip.last_seen);
+            if (!isNaN(ipMs)) {
+              ip.last_seen = new Date(ipMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      // 5. Shift cell tower cluster last_seen if present
+      if (clone.terminal_mule && Array.isArray(clone.terminal_mule.cell_tower_cluster)) {
+        clone.terminal_mule.cell_tower_cluster.forEach(ct => {
+          if (ct.last_seen) {
+            const ctMs = Date.parse(ct.last_seen);
+            if (!isNaN(ctMs)) {
+              ct.last_seen = new Date(ctMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      return clone;
+    }
+
     async function ingest(data) {
       initSteps();
       // Mark all as running
@@ -1951,22 +2023,33 @@
       const hdrs = simActive
         ? { 'Content-Type': 'application/json', 'X-Simulation-Mode': 'true' }
         : { 'Content-Type': 'application/json' };
+      const reqData = simActive ? alignPayloadTimestampsToNow(data) : data;
 
       let result;
       try {
-        const resp = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(data) });
+        const resp = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(reqData) });
 
         if (resp.status === 422) {
           const err = await resp.json();
-          const msg = JSON.stringify(err.detail);
-          const detail = msg.includes('GOLDEN_HOUR_EXPIRED')
-            ? '❌ Gate 1: fraud recency > 120 min (GOLDEN_HOUR_EXPIRED) — enable Simulation Mode'
-            : msg.includes('STALE_PAYLOAD')
-              ? '❌ Gate 2: complaint > 240 min (STALE_PAYLOAD) — enable Simulation Mode'
-              : '❌ Validation error: ' + msg.slice(0, 100);
-          setStep('DUAL_GATE_GOLDEN_HOUR', false, detail);
-          ['STAGE_1_GRAPH', 'STAGE_2_TEMPORAL', 'STAGE_3_SPATIAL', 'CONFIDENCE_AGGREGATION', 'WEBHOOK_DISPATCH']
-            .forEach(k => setStep(k, false, 'Skipped'));
+          const detailRaw = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail || '');
+          if (detailRaw.includes('NO_VIABLE_ATM_MULE')) {
+            const cleanReason = detailRaw.replace(/^NO_VIABLE_ATM_MULE:\s*/i, '').replace(/^"|"$/g, '');
+            setStep('DUAL_GATE_GOLDEN_HOUR', true, simActive ? 'Gates bypassed (Simulation Mode)' : 'Dual-gate Golden Hour passed');
+            setStep('STAGE_1_GRAPH', false, '❌ ' + cleanReason);
+            ['STAGE_2_TEMPORAL', 'STAGE_3_SPATIAL', 'CONFIDENCE_AGGREGATION', 'WEBHOOK_DISPATCH']
+              .forEach(k => setStep(k, false, 'Skipped — non-viable mule'));
+          } else {
+            const detail = detailRaw.includes('GOLDEN_HOUR_EXPIRED')
+              ? '❌ Gate 1: fraud recency > 120 min (GOLDEN_HOUR_EXPIRED) — enable Simulation Mode'
+              : detailRaw.includes('STALE_PAYLOAD')
+                ? '❌ Gate 2: complaint > 240 min (STALE_PAYLOAD) — enable Simulation Mode'
+                : '❌ Validation error: ' + detailRaw.slice(0, 100);
+            setStep('DUAL_GATE_GOLDEN_HOUR', false, detail);
+            ['STAGE_1_GRAPH', 'STAGE_2_TEMPORAL', 'STAGE_3_SPATIAL', 'CONFIDENCE_AGGREGATION', 'WEBHOOK_DISPATCH']
+              .forEach(k => setStep(k, false, 'Skipped'));
+          }
+          const card = document.getElementById('result-card');
+          if (card) card.style.display = 'none';
           return;
         }
         result = await resp.json();

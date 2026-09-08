@@ -274,6 +274,63 @@
       gap: 1rem;
     }
 
+    /* Bulk Ingestion Panel */
+    .bulk-progress-card {
+      background: rgba(17, 24, 39, .85);
+      border: 1px solid rgba(249, 115, 22, .25);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+      backdrop-filter: blur(8px);
+    }
+
+    .bulk-progress-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .75rem;
+      margin-top: .6rem;
+    }
+
+    .bulk-stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .6rem .75rem;
+      text-align: center;
+    }
+
+    .bulk-stat-lbl {
+      font-size: .65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: .25rem;
+      font-weight: 600;
+    }
+
+    .bulk-stat-val {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bulk-bar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 99px;
+      overflow: hidden;
+      margin: .85rem 0 .6rem 0;
+    }
+
+    .bulk-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f97316, #818cf8);
+      border-radius: 99px;
+      transition: width .3s ease;
+    }
+
     /* Buttons */
     .btn {
       display: inline-flex;
@@ -590,17 +647,74 @@
 
       <div class="form-row">
         <label>Select Payload JSON from Device</label>
-        <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
           <label for="payload-file-input"
             style="display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;margin:0;transition:all .2s;"
             onmouseover="this.style.borderColor='var(--feed-accent)';this.style.color='var(--feed-accent)'"
             onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
-            📂 Browse JSON File
+            📂 Browse Single File
           </label>
           <input type="file" id="payload-file-input" accept=".json,application/json" style="display:none"
             onchange="loadLocalFile(this)" />
+
+          <label for="bulk-file-input"
+            style="display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1rem;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.35);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--feed-accent);text-transform:none;letter-spacing:0;margin:0;transition:all .2s;"
+            onmouseover="this.style.background='rgba(249,115,22,.15)';this.style.borderColor='var(--feed-accent)'"
+            onmouseout="this.style.background='rgba(249,115,22,.08)';this.style.borderColor='rgba(249,115,22,.35)'">
+            📦 Browse Multiple Files (Bulk Queue)
+          </label>
+          <input type="file" id="bulk-file-input" multiple accept=".json,application/json" style="display:none"
+            onchange="stageBulkFiles(this)" />
+
+          <button type="button" class="btn btn-ghost" style="padding:.6rem 1rem;font-size:.8rem;color:#fca5a5;border-color:rgba(239,68,68,.3)"
+            onclick="purgeAllIncidents()" title="Clear all stored incidents to start a fresh simulation run">
+            🧹 Clear Incident Feed
+          </button>
+
           <span id="file-name-display"
             style="font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace"></span>
+        </div>
+      </div>
+
+      <!-- Bulk Ingestion Progress Panel -->
+      <div id="bulk-progress-panel" class="bulk-progress-card" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;" id="bulk-status-dot" class="pulse"></span>
+            <span style="font-size:.8rem;font-weight:700;color:var(--text);letter-spacing:.02em">Bulk Ingestion Queue</span>
+            <span id="bulk-mode-badge" style="font-size:.65rem;padding:.15rem .45rem;border-radius:4px;background:rgba(251,191,36,.15);color:#fbbf24;font-weight:600">5s Pacing</span>
+          </div>
+          <button id="bulk-cancel-btn" class="btn btn-ghost" style="padding:.3rem .75rem;font-size:.72rem;color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick="cancelBulkQueue()">⏹ Cancel</button>
+        </div>
+
+        <div class="bulk-progress-grid">
+          <div class="bulk-stat-box">
+            <div class="bulk-stat-lbl">Total Staged</div>
+            <div class="bulk-stat-val" id="bulk-stat-total">0</div>
+          </div>
+          <div class="bulk-stat-box">
+            <div class="bulk-stat-lbl">Sent / Processed</div>
+            <div class="bulk-stat-val" style="color:#6ee7b7" id="bulk-stat-sent">0</div>
+          </div>
+          <div class="bulk-stat-box">
+            <div class="bulk-stat-lbl">Remaining</div>
+            <div class="bulk-stat-val" style="color:#fbbf24" id="bulk-stat-remaining">0</div>
+          </div>
+          <div class="bulk-stat-box">
+            <div class="bulk-stat-lbl">Next Ingest In</div>
+            <div class="bulk-stat-val" style="color:var(--feed-accent)" id="bulk-stat-countdown">--</div>
+          </div>
+        </div>
+
+        <div class="bulk-bar-track">
+          <div class="bulk-bar-fill" id="bulk-progress-bar"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:.72rem;color:var(--muted)">
+          <div id="bulk-current-item" style="font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%">
+            Idle
+          </div>
+          <div id="bulk-rate-lbl">1 payload / 5s</div>
         </div>
       </div>
       <div class="form-row">
@@ -701,8 +815,302 @@
       hideR('submit-result');
     }
 
+    // ── Bulk Payload Staging & Sequential Queue Engine ────────────────────────
+    // Aligns all timestamps in a payload relative to Date.now()
+    // Preserves exact relative delta τ = (ingestion_timestamp - max(txn_timestamp)),
+    // ensuring non-zero drain time, valid Golden Hour gates, and avoiding 6-hour sweeper timeout.
+    function alignPayloadTimestampsToNow(payload) {
+      if (!payload) return payload;
+      const clone = JSON.parse(JSON.stringify(payload));
+      
+      const refTimeStr = clone.ingestion_timestamp || (clone.ncrp_ticket && clone.ncrp_ticket.complaint_timestamp);
+      if (!refTimeStr) {
+        clone.ingestion_timestamp = new Date().toISOString();
+        return clone;
+      }
+      
+      const baseMs = Date.parse(refTimeStr);
+      if (isNaN(baseMs)) {
+        clone.ingestion_timestamp = new Date().toISOString();
+        return clone;
+      }
+
+      const nowMs = Date.now();
+      const deltaMs = nowMs - baseMs;
+
+      // 1. Shift ingestion_timestamp to now
+      clone.ingestion_timestamp = new Date(nowMs).toISOString();
+
+      // 2. Shift complaint_timestamp by same delta
+      if (clone.ncrp_ticket && clone.ncrp_ticket.complaint_timestamp) {
+        const cMs = Date.parse(clone.ncrp_ticket.complaint_timestamp);
+        if (!isNaN(cMs)) {
+          clone.ncrp_ticket.complaint_timestamp = new Date(cMs + deltaMs).toISOString();
+        }
+      }
+
+      // 3. Shift all fund flow transactions by same delta
+      if (clone.fund_flow && Array.isArray(clone.fund_flow.transactions)) {
+        clone.fund_flow.transactions.forEach(t => {
+          if (t.txn_timestamp) {
+            const tMs = Date.parse(t.txn_timestamp);
+            if (!isNaN(tMs)) {
+              t.txn_timestamp = new Date(tMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      // 4. Shift IP cluster last_seen
+      if (clone.terminal_mule && Array.isArray(clone.terminal_mule.ip_cluster)) {
+        clone.terminal_mule.ip_cluster.forEach(ip => {
+          if (ip.last_seen) {
+            const ipMs = Date.parse(ip.last_seen);
+            if (!isNaN(ipMs)) {
+              ip.last_seen = new Date(ipMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      // 5. Shift cell tower cluster last_seen if present
+      if (clone.terminal_mule && Array.isArray(clone.terminal_mule.cell_tower_cluster)) {
+        clone.terminal_mule.cell_tower_cluster.forEach(ct => {
+          if (ct.last_seen) {
+            const ctMs = Date.parse(ct.last_seen);
+            if (!isNaN(ctMs)) {
+              ct.last_seen = new Date(ctMs + deltaMs).toISOString();
+            }
+          }
+        });
+      }
+
+      return clone;
+    }
+
+    async function purgeAllIncidents() {
+      if (!confirm('Clear all stored incidents in Synapse? This will reset the Tactical Dashboard and Bank Feed incident queue for a clean test run.')) return;
+      try {
+        const res = await fetch(`${SYNAPSE}/api/v1/incidents/clear`, { method: 'POST' });
+        if (res.ok) {
+          log('ok', '🧹 Cleared all stored incidents in Synapse');
+          await pollIncidents();
+        } else {
+          log('err', 'Failed to clear incidents: ' + res.statusText);
+        }
+      } catch (err) {
+        log('err', 'Failed to clear incidents: ' + err.message);
+      }
+    }
+
+    let _bulkQueue = [];
+    let _bulkTotal = 0;
+    let _bulkSent = 0;
+    let _bulkSuccess = 0;
+    let _bulkFailed = 0;
+    let _bulkRunning = false;
+    let _bulkCountdown = 5;
+    let _bulkCountdownInterval = null;
+
+    async function stageBulkFiles(input) {
+      if (!input.files || input.files.length === 0) return;
+
+      if (_bulkRunning) {
+        cancelBulkQueue();
+      }
+
+      const files = Array.from(input.files);
+      const validItems = [];
+
+      for (const file of files) {
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          const ticketId = json.ncrp_ticket?.ticket_id || 'UNKNOWN';
+          validItems.push({
+            filename: file.name,
+            payload: json,
+            ticketId: ticketId
+          });
+        } catch (err) {
+          log('err', `Bulk: ${file.name} is not valid JSON (${err.message})`);
+        }
+      }
+
+      if (validItems.length === 0) {
+        flash('submit-status', '⚠ No valid JSON files selected', '#f59e0b');
+        input.value = '';
+        return;
+      }
+
+      _bulkQueue = validItems;
+      _bulkTotal = _bulkQueue.length;
+      _bulkSent = 0;
+      _bulkSuccess = 0;
+      _bulkFailed = 0;
+      _bulkRunning = true;
+      _bulkCountdown = 5;
+
+      // Show panel & initialize metrics
+      document.getElementById('bulk-progress-panel').style.display = 'block';
+      document.getElementById('bulk-stat-total').textContent = _bulkTotal;
+      document.getElementById('bulk-stat-sent').textContent = '0';
+      document.getElementById('bulk-stat-remaining').textContent = _bulkTotal;
+      document.getElementById('bulk-stat-countdown').textContent = '5s';
+      document.getElementById('bulk-progress-bar').style.width = '0%';
+      document.getElementById('bulk-status-dot').style.background = '#f97316';
+      document.getElementById('bulk-status-dot').className = 'conn-dot pulse';
+      document.getElementById('bulk-cancel-btn').disabled = false;
+      document.getElementById('bulk-cancel-btn').style.display = 'inline-block';
+
+      updateBulkModeBadge();
+      const modeStr = _simMode ? 'Sim Mode' : 'Live Mode';
+      const endpointStr = _simMode ? 'POST /api/v1/ingest?simulate=true' : 'POST /api/v1/ingest';
+      log('info', `📦 Staged ${_bulkTotal} payload(s) for bulk queue (5s pacing via ${endpointStr} · ${modeStr})`);
+
+      // Process the first payload immediately, then establish 5s countdown
+      await processNextBulkPayload();
+
+      if (_bulkQueue.length > 0 && _bulkRunning) {
+        startBulkCountdown();
+      }
+    }
+
+    function startBulkCountdown() {
+      if (_bulkCountdownInterval) clearInterval(_bulkCountdownInterval);
+      _bulkCountdown = 5;
+      updateCountdownDisplay();
+
+      _bulkCountdownInterval = setInterval(async () => {
+        if (!_bulkRunning) {
+          clearInterval(_bulkCountdownInterval);
+          return;
+        }
+
+        _bulkCountdown--;
+        updateCountdownDisplay();
+
+        if (_bulkCountdown <= 0) {
+          clearInterval(_bulkCountdownInterval);
+          await processNextBulkPayload();
+          if (_bulkQueue.length > 0 && _bulkRunning) {
+            startBulkCountdown();
+          }
+        }
+      }, 1000);
+    }
+
+    function updateCountdownDisplay() {
+      const cd = document.getElementById('bulk-stat-countdown');
+      if (cd) {
+        cd.textContent = _bulkCountdown > 0 ? `${_bulkCountdown}s` : 'Sending…';
+      }
+    }
+
+    async function processNextBulkPayload() {
+      if (!_bulkRunning || _bulkQueue.length === 0) {
+        if (_bulkQueue.length === 0 && _bulkRunning) {
+          finishBulkQueue();
+        }
+        return;
+      }
+
+      const item = _bulkQueue.shift();
+      const currentIdx = _bulkSent + 1;
+      _bulkSent++;
+      const remaining = _bulkQueue.length;
+
+      // Update UI
+      document.getElementById('bulk-stat-sent').textContent = `${_bulkSent} (${_bulkSuccess}✓ ${_bulkFailed}✗)`;
+      document.getElementById('bulk-stat-remaining').textContent = remaining;
+      const pct = Math.round((_bulkSent / _bulkTotal) * 100);
+      document.getElementById('bulk-progress-bar').style.width = `${pct}%`;
+      document.getElementById('bulk-current-item').textContent = `[${currentIdx}/${_bulkTotal}] Sending ${item.filename} (${item.ticketId})…`;
+
+      // Respect Simulation Mode toggle: align timestamps & bypass gates only when sim mode is ON
+      const body = _simMode ? alignPayloadTimestampsToNow(item.payload) : item.payload;
+      const url = _simMode
+        ? `${SYNAPSE}/api/v1/ingest?simulate=true`
+        : `${SYNAPSE}/api/v1/ingest`;
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const d = await res.json();
+        if (res.ok) {
+          _bulkSuccess++;
+          const tier = d.intervention_tier || '—';
+          const conf = d.confidence_score != null ? ((d.confidence_score * 100).toFixed(1) + '%') : '—';
+          const drain = d.drain_time_remaining_minutes != null ? (d.drain_time_remaining_minutes.toFixed(1) + 'm') : '—';
+          log('ok', `[Bulk ${currentIdx}/${_bulkTotal}] Accepted: ${item.ticketId} | Tier: ${tier} | C: ${conf} | Drain: ${drain}`);
+        } else {
+          _bulkFailed++;
+          const reason = d.detail || JSON.stringify(d);
+          log('err', `[Bulk ${currentIdx}/${_bulkTotal}] Rejected: ${item.ticketId} — ${reason}`);
+        }
+      } catch (err) {
+        _bulkFailed++;
+        log('err', `[Bulk ${currentIdx}/${_bulkTotal}] Network Failed: ${item.ticketId} — ${err.message}`);
+      }
+
+      // Update sent metric counter after dispatch completes
+      document.getElementById('bulk-stat-sent').textContent = `${_bulkSent} (${_bulkSuccess}✓ ${_bulkFailed}✗)`;
+      document.getElementById('bulk-stat-remaining').textContent = remaining;
+
+      // Poll incidents so table reflects state
+      await pollIncidents();
+
+      if (_bulkQueue.length === 0) {
+        finishBulkQueue();
+      }
+    }
+
+    function finishBulkQueue() {
+      _bulkRunning = false;
+      if (_bulkCountdownInterval) clearInterval(_bulkCountdownInterval);
+      document.getElementById('bulk-stat-countdown').textContent = 'Done';
+      document.getElementById('bulk-current-item').textContent = `Queue complete — ${_bulkSuccess} accepted, ${_bulkFailed} rejected.`;
+      document.getElementById('bulk-status-dot').style.background = '#10b981';
+      document.getElementById('bulk-status-dot').className = 'conn-dot';
+      document.getElementById('bulk-cancel-btn').style.display = 'none';
+      document.getElementById('bulk-file-input').value = '';
+      log('ok', `🎉 Bulk ingestion complete — ${_bulkSuccess} accepted, ${_bulkFailed} rejected out of ${_bulkTotal} staged.`);
+    }
+
+    function cancelBulkQueue() {
+      _bulkRunning = false;
+      if (_bulkCountdownInterval) clearInterval(_bulkCountdownInterval);
+      const remainingCount = _bulkQueue.length;
+      _bulkQueue = [];
+      document.getElementById('bulk-stat-countdown').textContent = 'Stopped';
+      document.getElementById('bulk-current-item').textContent = `Queue cancelled by operator (${remainingCount} unsent).`;
+      document.getElementById('bulk-status-dot').style.background = '#ef4444';
+      document.getElementById('bulk-status-dot').className = 'conn-dot';
+      document.getElementById('bulk-cancel-btn').style.display = 'none';
+      document.getElementById('bulk-file-input').value = '';
+      log('warn', `⏹ Bulk ingestion cancelled by operator (${_bulkSent} sent, ${remainingCount} cancelled).`);
+    }
+
     // ── Simulation Mode ──────────────────────────────────────────────────────────
     let _simMode = false;
+
+    function updateBulkModeBadge() {
+      const badge = document.getElementById('bulk-mode-badge');
+      if (badge) {
+        if (_simMode) {
+          badge.textContent = '5s Pacing · Sim Mode';
+          badge.style.background = 'rgba(251,191,36,.15)';
+          badge.style.color = '#fbbf24';
+        } else {
+          badge.textContent = '5s Pacing · Live Mode';
+          badge.style.background = 'rgba(148,163,184,.15)';
+          badge.style.color = '#94a3b8';
+        }
+      }
+    }
 
     function onSimToggle() {
       _simMode = document.getElementById('sim-toggle').checked;
@@ -721,6 +1129,7 @@
         thumb.style.left = '3px';
         log('info', '🔴 Simulation Mode OFF — uploads sent as live payloads');
       }
+      updateBulkModeBadge();
     }
 
     async function submitPayload() {
@@ -729,13 +1138,10 @@
       let body;
       try { body = JSON.parse(raw); } catch { flash('submit-status', '✖ Invalid JSON', '#ef4444'); return; }
 
-      // Simulation mode: stamp ingestion_timestamp to NOW so drain timer starts from upload time.
-      // This is what makes the INTERCEPTION WINDOW countdown begin at the moment of demo-upload.
+      // Simulation mode: align all timestamps to NOW preserving relative intervals (tau)
       if (_simMode) {
-        if (body.ncrp_ticket) {
-          body.ncrp_ticket.ingestion_timestamp = new Date().toISOString();
-        }
-        log('info', `⏱ Sim mode: stamped ingestion_timestamp = ${new Date().toISOString()}`);
+        body = alignPayloadTimestampsToNow(body);
+        log('info', `⏱ Sim mode: aligned all timestamps relative to ${body.ingestion_timestamp}`);
       }
 
       const url = _simMode
@@ -862,6 +1268,7 @@
       document.getElementById('resolve-ncrp-display').textContent = ncrp;
       const storedOpId = localStorage.getItem('synapse_operator_id') || '';
       document.getElementById('resolve-operator-id').value = storedOpId;
+      document.getElementById('resolve-note').value = '';
       document.getElementById('resolve-submit-err').textContent = '';
       document.getElementById('resolve-modal').style.display = 'flex';
     }
@@ -986,7 +1393,7 @@
 
       <div style="margin-bottom:1.25rem">
         <label style="display:block;font-size:.7rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem">Officer Note (optional)</label>
-        <textarea id="resolve-note" rows="2" placeholder="e.g. Confirmed freeze by HDFC card ops team at 18:32 IST" style="width:100%;background:#0d1117;border:1px solid rgba(99,102,241,.15);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none;resize:none">Resolved via Bank Feed Simulator</textarea>
+        <textarea id="resolve-note" rows="2" placeholder="e.g. Confirmed freeze by HDFC card ops team at 18:32 IST" style="width:100%;background:#0d1117;border:1px solid rgba(99,102,241,.15);border-radius:8px;padding:.6rem .875rem;color:#f1f5f9;font-family:inherit;font-size:.82rem;outline:none;resize:none"></textarea>
       </div>
 
       <div style="color:#fca5a5;font-size:.75rem;margin-bottom:.75rem;min-height:1rem" id="resolve-submit-err"></div>

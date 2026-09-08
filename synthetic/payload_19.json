@@ -1,0 +1,116 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "cfa09a75-5974-405b-bac8-dc984127a83f",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-2909446",
+    "complaint_timestamp": "2026-09-08T06:56:28.121196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Arjun Dasgupta",
+    "fraud_type": "UPI_FRAUD",
+    "amount_inr": 648969.8,
+    "source_account": {
+      "account_number": "11883806563767",
+      "ifsc": "SBIN0011424",
+      "bank_name": "State Bank of India"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 5,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609088787",
+        "txn_timestamp": "2026-09-08T06:33:40.721196+00:00",
+        "sender_account": "11883806563767",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "43403309833954",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 648969.8,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609081614",
+        "txn_timestamp": "2026-09-08T06:41:47.921196+00:00",
+        "sender_account": "43403309833954",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "53624737470049",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 633271.81,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609086245",
+        "txn_timestamp": "2026-09-08T06:43:10.721196+00:00",
+        "sender_account": "53624737470049",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "72489414090465",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 615519.47,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "NEFT202609087871",
+        "txn_timestamp": "2026-09-08T06:49:11.321196+00:00",
+        "sender_account": "72489414090465",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "84492411574554",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 595404.42,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "NEFT202609088329",
+        "txn_timestamp": "2026-09-08T06:53:55.121196+00:00",
+        "sender_account": "84492411574554",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "51288048404980",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 577874.4,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "51288048404980",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 765271.69,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "25d604b0fe041946dfec3538040594e9215843cc7d2ed7568f15736fe86a44f0",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "22.204.238.51",
+        "geo_lat": 12.9198,
+        "geo_lon": 77.5441,
+        "asn": "AS2177",
+        "last_seen": "2026-09-08T06:39:01.121196+00:00"
+      },
+      {
+        "ip_address": "61.198.189.26",
+        "geo_lat": 12.9569,
+        "geo_lon": 77.5868,
+        "asn": "AS1661",
+        "last_seen": "2026-09-08T06:56:01.121196+00:00"
+      }
+    ]
+  }
+}

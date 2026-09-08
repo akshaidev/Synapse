@@ -1,0 +1,83 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "537a7645-94ea-4066-9dfb-713dc97217b6",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-2379675",
+    "complaint_timestamp": "2026-09-08T07:04:49.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Girish Madhavan",
+    "fraud_type": "UPI_FRAUD",
+    "amount_inr": 154729.66,
+    "source_account": {
+      "account_number": "20736210550818",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 3,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609084361",
+        "txn_timestamp": "2026-09-08T06:50:22.721196+00:00",
+        "sender_account": "20736210550818",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "68332641951340",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 154729.66,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609088083",
+        "txn_timestamp": "2026-09-08T06:58:49.121196+00:00",
+        "sender_account": "68332641951340",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "71045321395284",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 149119.56,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609086501",
+        "txn_timestamp": "2026-09-08T07:01:43.121196+00:00",
+        "sender_account": "71045321395284",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "98843477676448",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 142448.04,
+        "channel": "UPI"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "98843477676448",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 190994.71,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "eddc26487a3d7347589b03614ef97ae94696f8283df00c0f3483b4ae6275b073",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "179.116.16.206",
+        "geo_lat": 28.6016,
+        "geo_lon": 77.1947,
+        "asn": "AS1997",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      }
+    ]
+  }
+}

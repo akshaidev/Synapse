@@ -1,0 +1,77 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "c4c9431a-7106-4da3-b208-d7191cb08227",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-1100092",
+    "complaint_timestamp": "2026-09-08T07:07:01.121196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Sneha Kulkarni",
+    "fraud_type": "PHISHING",
+    "amount_inr": 137465.85,
+    "source_account": {
+      "account_number": "98996742893627",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609081479",
+        "txn_timestamp": "2026-09-08T07:01:00.521196+00:00",
+        "sender_account": "98996742893627",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "6458250182774",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 137465.85,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609085226",
+        "txn_timestamp": "2026-09-08T07:03:55.121196+00:00",
+        "sender_account": "6458250182774",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "76803318244864",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 133567.48,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "76803318244864",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 161846.98,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "3c49a988715e6a57f30327ecb8d3249c971c4222dfe3926a17729cff9e5273c2",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 30000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "93.107.149.166",
+        "geo_lat": 28.64,
+        "geo_lon": 77.176,
+        "asn": "AS6956",
+        "last_seen": "2026-09-08T06:51:01.121196+00:00"
+      },
+      {
+        "ip_address": "84.250.71.253",
+        "geo_lat": 28.634,
+        "geo_lon": 77.2436,
+        "asn": "AS4772",
+        "last_seen": "2026-09-08T07:03:01.121196+00:00"
+      }
+    ]
+  }
+}

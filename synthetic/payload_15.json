@@ -1,0 +1,122 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "da01112d-e0b0-4276-9819-5e0e2e4092b5",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-3925736",
+    "complaint_timestamp": "2026-09-08T07:15:29.921196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Deepak Joshi",
+    "fraud_type": "PHISHING",
+    "amount_inr": 50831.43,
+    "source_account": {
+      "account_number": "79033934435200",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 6,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609082847",
+        "txn_timestamp": "2026-09-08T06:45:16.121196+00:00",
+        "sender_account": "79033934435200",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "85763036677021",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 50831.43,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609081855",
+        "txn_timestamp": "2026-09-08T07:02:33.521196+00:00",
+        "sender_account": "85763036677021",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "97223440735383",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 49012.29,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "IMPS202609082721",
+        "txn_timestamp": "2026-09-08T07:05:41.921196+00:00",
+        "sender_account": "97223440735383",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "10854086873417",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 47405.81,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "IMPS202609081415",
+        "txn_timestamp": "2026-09-08T07:01:20.321196+00:00",
+        "sender_account": "10854086873417",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "25278330855191",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 46004.85,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "IMPS202609085849",
+        "txn_timestamp": "2026-09-08T07:10:14.321196+00:00",
+        "sender_account": "25278330855191",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "20677287821597",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 45119.84,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 6,
+        "txn_id": "RTGS202609088259",
+        "txn_timestamp": "2026-09-08T07:13:19.121196+00:00",
+        "sender_account": "20677287821597",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "17030485976108",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 43458.58,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "17030485976108",
+    "mule_ifsc": "PUNB0187600",
+    "mule_bank": "Punjab National Bank",
+    "current_balance_inr": 53493.9,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "cc70ce8b241780cee88d0352991408d82215b98c0183c97e4d385230ec1a8bdd",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 40000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "12.246.233.178",
+        "geo_lat": 28.5907,
+        "geo_lon": 77.1667,
+        "asn": "AS9635",
+        "last_seen": "2026-09-08T07:01:01.121196+00:00"
+      }
+    ]
+  }
+}

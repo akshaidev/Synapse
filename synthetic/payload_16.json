@@ -1,0 +1,77 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "a4b59d63-ddbf-45dc-b311-1a4b131c3d6f",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-5564572",
+    "complaint_timestamp": "2026-09-08T07:11:25.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Anita Pillai",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 92464.42,
+    "source_account": {
+      "account_number": "55416063208927",
+      "ifsc": "BARB0VJPUNE",
+      "bank_name": "Bank of Baroda"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609089908",
+        "txn_timestamp": "2026-09-08T07:07:22.721196+00:00",
+        "sender_account": "55416063208927",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "36947593368592",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 92464.42,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "RTGS202609082982",
+        "txn_timestamp": "2026-09-08T07:10:25.121196+00:00",
+        "sender_account": "36947593368592",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "455014552543",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 89450.23,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "455014552543",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 108569.7,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "7604bd9a73d52eb6a18f28a1a0d0e054910712ca6677314e0ad9165ee056f0ba",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "157.128.37.48",
+        "geo_lat": 28.6522,
+        "geo_lon": 77.1613,
+        "asn": "AS4031",
+        "last_seen": "2026-09-08T06:37:01.121196+00:00"
+      },
+      {
+        "ip_address": "15.66.53.31",
+        "geo_lat": 28.7009,
+        "geo_lon": 77.2041,
+        "asn": "AS5829",
+        "last_seen": "2026-09-08T06:38:01.121196+00:00"
+      }
+    ]
+  }
+}

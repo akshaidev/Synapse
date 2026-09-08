@@ -1,0 +1,84 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "082adc52-e838-4113-b3be-d0cd312cc128",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-2095843",
+    "complaint_timestamp": "2026-09-08T07:13:41.921196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Shalini Trivedi",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 64157.78,
+    "source_account": {
+      "account_number": "48801059034853",
+      "ifsc": "SBIN0011424",
+      "bank_name": "State Bank of India"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "RTGS202609084117",
+        "txn_timestamp": "2026-09-08T07:09:14.921196+00:00",
+        "sender_account": "48801059034853",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "84644614946139",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 64157.78,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609086820",
+        "txn_timestamp": "2026-09-08T07:11:49.121196+00:00",
+        "sender_account": "84644614946139",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "51952949067067",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 61830.01,
+        "channel": "UPI"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "51952949067067",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 81199.02,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "5d234792ec103844c276cf017317939f37e6e63265a66e84c84beb15167766ca",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 10000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "76.159.141.97",
+        "geo_lat": 18.5755,
+        "geo_lon": 73.8048,
+        "asn": "AS8315",
+        "last_seen": "2026-09-08T06:42:01.121196+00:00"
+      },
+      {
+        "ip_address": "139.226.125.211",
+        "geo_lat": 18.594,
+        "geo_lon": 73.8224,
+        "asn": "AS4171",
+        "last_seen": "2026-09-08T06:49:01.121196+00:00"
+      },
+      {
+        "ip_address": "25.179.96.231",
+        "geo_lat": 18.536,
+        "geo_lon": 73.8623,
+        "asn": "AS4103",
+        "last_seen": "2026-09-08T07:10:01.121196+00:00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "d5ea0da5-fac8-4522-9d52-def1f7d3d8e3",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-2794367",
+    "complaint_timestamp": "2026-09-08T07:15:28.721196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Suresh Patel",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 65386.51,
+    "source_account": {
+      "account_number": "90080511189768",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 6,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609085429",
+        "txn_timestamp": "2026-09-08T06:41:19.121196+00:00",
+        "sender_account": "90080511189768",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "96902017952422",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 65386.51,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609085568",
+        "txn_timestamp": "2026-09-08T07:00:05.921196+00:00",
+        "sender_account": "96902017952422",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "22933701046676",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 63677.32,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "IMPS202609083404",
+        "txn_timestamp": "2026-09-08T07:02:38.321196+00:00",
+        "sender_account": "22933701046676",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "77701169219334",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 62587.63,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609082749",
+        "txn_timestamp": "2026-09-08T07:01:39.521196+00:00",
+        "sender_account": "77701169219334",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "76111621674007",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 61208.29,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "IMPS202609085254",
+        "txn_timestamp": "2026-09-08T07:07:12.521196+00:00",
+        "sender_account": "76111621674007",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "9203320477673",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 59236.85,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 6,
+        "txn_id": "IMPS202609086443",
+        "txn_timestamp": "2026-09-08T07:13:37.121196+00:00",
+        "sender_account": "9203320477673",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "96969375819575",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 57053.19,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "96969375819575",
+    "mule_ifsc": "KKBK0000958",
+    "mule_bank": "Kotak Mahindra Bank",
+    "current_balance_inr": 72974.14,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "f6fdd2d343285b75eb2546fbac00c9a1fec939b5a6b601de6723f984134d4c5d",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "28.61.175.143",
+        "geo_lat": 18.5941,
+        "geo_lon": 73.8347,
+        "asn": "AS9691",
+        "last_seen": "2026-09-08T06:55:01.121196+00:00"
+      },
+      {
+        "ip_address": "181.172.41.206",
+        "geo_lat": 18.4854,
+        "geo_lon": 73.8585,
+        "asn": "AS7143",
+        "last_seen": "2026-09-08T06:47:01.121196+00:00"
+      }
+    ]
+  }
+}

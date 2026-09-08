@@ -1,0 +1,136 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "ee22d199-d6bd-46a5-bede-31cac15596f9",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-1809658",
+    "complaint_timestamp": "2026-09-08T06:53:38.921196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Siddharth Rawat",
+    "fraud_type": "LOAN_APP_FRAUD",
+    "amount_inr": 220742.08,
+    "source_account": {
+      "account_number": "46589005275179",
+      "ifsc": "KKBK0000958",
+      "bank_name": "Kotak Mahindra Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 6,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609085093",
+        "txn_timestamp": "2026-09-08T06:24:22.121196+00:00",
+        "sender_account": "46589005275179",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "42209118708571",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 220742.08,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609084192",
+        "txn_timestamp": "2026-09-08T06:26:10.721196+00:00",
+        "sender_account": "42209118708571",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "61548521483110",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 211017.35,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609084108",
+        "txn_timestamp": "2026-09-08T06:40:10.721196+00:00",
+        "sender_account": "61548521483110",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "83498645248423",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 205262.2,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609086272",
+        "txn_timestamp": "2026-09-08T06:46:17.921196+00:00",
+        "sender_account": "83498645248423",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "86830284742527",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 197675.02,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "RTGS202609083062",
+        "txn_timestamp": "2026-09-08T06:45:53.321196+00:00",
+        "sender_account": "86830284742527",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "13578801301821",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 191341.29,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 6,
+        "txn_id": "RTGS202609081249",
+        "txn_timestamp": "2026-09-08T06:51:49.121196+00:00",
+        "sender_account": "13578801301821",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "92922853425919",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 184291.0,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "92922853425919",
+    "mule_ifsc": "HDFC0001729",
+    "mule_bank": "HDFC Bank",
+    "current_balance_inr": 237635.11,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "72c57b616799d89a6b22a26007182cdc81bbd680c4dcbd821285fe4027f58ee0",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 20000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "116.43.248.43",
+        "geo_lat": 28.6234,
+        "geo_lon": 77.2556,
+        "asn": "AS4295",
+        "last_seen": "2026-09-08T06:36:01.121196+00:00"
+      },
+      {
+        "ip_address": "213.206.253.35",
+        "geo_lat": 28.6266,
+        "geo_lon": 77.2679,
+        "asn": "AS1753",
+        "last_seen": "2026-09-08T06:46:01.121196+00:00"
+      },
+      {
+        "ip_address": "75.112.187.25",
+        "geo_lat": 28.6318,
+        "geo_lon": 77.295,
+        "asn": "AS7822",
+        "last_seen": "2026-09-08T06:40:01.121196+00:00"
+      }
+    ]
+  }
+}

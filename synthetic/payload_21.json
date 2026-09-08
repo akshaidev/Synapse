@@ -1,0 +1,70 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "48afb506-6641-40ff-bf35-ad068d623e9f",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-6209897",
+    "complaint_timestamp": "2026-09-08T07:14:14.921196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Madhavi Pillai",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 602440.41,
+    "source_account": {
+      "account_number": "67182649583725",
+      "ifsc": "SBIN0011424",
+      "bank_name": "State Bank of India"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "RTGS202609083959",
+        "txn_timestamp": "2026-09-08T07:09:14.321196+00:00",
+        "sender_account": "67182649583725",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "91714462616761",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 602440.41,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609082070",
+        "txn_timestamp": "2026-09-08T07:12:19.121196+00:00",
+        "sender_account": "91714462616761",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "7180890680917",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 583145.24,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "7180890680917",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 765646.58,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "49e31302aa0726bf322b9f19dd7756ae1f05beddbbb985165bb77c730f4813f9",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "40.253.69.173",
+        "geo_lat": 28.6871,
+        "geo_lon": 77.2438,
+        "asn": "AS8810",
+        "last_seen": "2026-09-08T06:50:01.121196+00:00"
+      }
+    ]
+  }
+}

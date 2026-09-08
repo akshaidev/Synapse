@@ -1,0 +1,129 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "10f6e4e0-4666-4009-bc1e-20a9555c0b4d",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-3545579",
+    "complaint_timestamp": "2026-09-08T06:52:28.721196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Gaurav Saxena",
+    "fraud_type": "VISHING",
+    "amount_inr": 428895.77,
+    "source_account": {
+      "account_number": "4629377304109",
+      "ifsc": "BARB0VJPUNE",
+      "bank_name": "Bank of Baroda"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 6,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609085336",
+        "txn_timestamp": "2026-09-08T06:21:40.121196+00:00",
+        "sender_account": "4629377304109",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "24952438786004",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 428895.77,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609081812",
+        "txn_timestamp": "2026-09-08T06:35:26.321196+00:00",
+        "sender_account": "24952438786004",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "39228414736003",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 421149.04,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609082372",
+        "txn_timestamp": "2026-09-08T06:31:42.521196+00:00",
+        "sender_account": "39228414736003",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "12323095848025",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 402518.22,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "NEFT202609089808",
+        "txn_timestamp": "2026-09-08T06:42:52.721196+00:00",
+        "sender_account": "12323095848025",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "31978963650086",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 385140.49,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "NEFT202609089611",
+        "txn_timestamp": "2026-09-08T06:45:01.121196+00:00",
+        "sender_account": "31978963650086",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "2524472224770",
+        "receiver_ifsc": "HDFC0001729",
+        "receiver_bank": "HDFC Bank",
+        "amount_inr": 377340.67,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 6,
+        "txn_id": "IMPS202609085778",
+        "txn_timestamp": "2026-09-08T06:50:31.121196+00:00",
+        "sender_account": "2524472224770",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "29138005478739",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 363863.04,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "29138005478739",
+    "mule_ifsc": "KKBK0000958",
+    "mule_bank": "Kotak Mahindra Bank",
+    "current_balance_inr": 498163.68,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "dacbd1f97a9f1c53ae37735859b8ecc1dd9729feef7021110911d1d2e873bb59",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "53.88.211.182",
+        "geo_lat": 18.5545,
+        "geo_lon": 73.8669,
+        "asn": "AS4824",
+        "last_seen": "2026-09-08T06:52:01.121196+00:00"
+      },
+      {
+        "ip_address": "40.161.255.4",
+        "geo_lat": 18.5991,
+        "geo_lon": 73.8933,
+        "asn": "AS8264",
+        "last_seen": "2026-09-08T06:47:01.121196+00:00"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "7330be72-72c4-472d-bada-85bb6bf68586",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-8447140",
+    "complaint_timestamp": "2026-09-08T06:52:43.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Rajesh Kumar",
+    "fraud_type": "INVESTMENT_SCAM",
+    "amount_inr": 195884.8,
+    "source_account": {
+      "account_number": "35665911513660",
+      "ifsc": "CNRB0002341",
+      "bank_name": "Canara Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609081675",
+        "txn_timestamp": "2026-09-08T06:48:33.521196+00:00",
+        "sender_account": "35665911513660",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "93030839432214",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 195884.8,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609082055",
+        "txn_timestamp": "2026-09-08T06:51:43.121196+00:00",
+        "sender_account": "93030839432214",
+        "sender_ifsc": "ICIC0000100",
+        "sender_bank": "ICICI Bank",
+        "receiver_account": "74149648924365",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 188838.85,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "74149648924365",
+    "mule_ifsc": "ICIC0000100",
+    "mule_bank": "ICICI Bank",
+    "current_balance_inr": 249461.4,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "cd3fd4e252da667c7eada7c052d1e96133ccba217bd4c0a7bb2f61292300d219",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 20000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "128.79.176.161",
+        "geo_lat": 28.6196,
+        "geo_lon": 77.182,
+        "asn": "AS3877",
+        "last_seen": "2026-09-08T06:59:01.121196+00:00"
+      },
+      {
+        "ip_address": "109.85.14.171",
+        "geo_lat": 28.6141,
+        "geo_lon": 77.2816,
+        "asn": "AS9883",
+        "last_seen": "2026-09-08T06:36:01.121196+00:00"
+      }
+    ]
+  }
+}

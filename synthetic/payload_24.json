@@ -1,0 +1,103 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "c9e7f2d7-e044-42e4-935f-d08a8e4a83b0",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-5612492",
+    "complaint_timestamp": "2026-09-08T07:02:08.921196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Madhavi Pillai",
+    "fraud_type": "INVESTMENT_SCAM",
+    "amount_inr": 362252.96,
+    "source_account": {
+      "account_number": "35226505375414",
+      "ifsc": "SBIN0011424",
+      "bank_name": "State Bank of India"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 4,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609084072",
+        "txn_timestamp": "2026-09-08T06:45:45.521196+00:00",
+        "sender_account": "35226505375414",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "65749922891493",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 362252.96,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609088540",
+        "txn_timestamp": "2026-09-08T06:53:13.121196+00:00",
+        "sender_account": "65749922891493",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "11649453907962",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 348087.04,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "RTGS202609088317",
+        "txn_timestamp": "2026-09-08T06:56:29.321196+00:00",
+        "sender_account": "11649453907962",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "49916311864653",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 337915.12,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609086643",
+        "txn_timestamp": "2026-09-08T07:00:13.121196+00:00",
+        "sender_account": "49916311864653",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "30656956589110",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 332740.07,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "30656956589110",
+    "mule_ifsc": "CNRB0002341",
+    "mule_bank": "Canara Bank",
+    "current_balance_inr": 394207.97,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "4bdd27626deb24514ea3f36d40742b534e5d37bc2cc6b217355867dc6694e03e",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "49.62.118.30",
+        "geo_lat": 18.559,
+        "geo_lon": 73.7947,
+        "asn": "AS6592",
+        "last_seen": "2026-09-08T06:56:01.121196+00:00"
+      },
+      {
+        "ip_address": "135.86.17.252",
+        "geo_lat": 18.5145,
+        "geo_lon": 73.8324,
+        "asn": "AS3243",
+        "last_seen": "2026-09-08T07:01:01.121196+00:00"
+      }
+    ]
+  }
+}

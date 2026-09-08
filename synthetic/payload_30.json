@@ -1,0 +1,84 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "8b1cffdb-d2f8-4c9d-8fca-5fc9fb2c5496",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-4611659",
+    "complaint_timestamp": "2026-09-08T07:11:05.321196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Girish Madhavan",
+    "fraud_type": "SIM_SWAP",
+    "amount_inr": 597035.12,
+    "source_account": {
+      "account_number": "97975040994821",
+      "ifsc": "PUNB0187600",
+      "bank_name": "Punjab National Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609086478",
+        "txn_timestamp": "2026-09-08T07:04:08.321196+00:00",
+        "sender_account": "97975040994821",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "98117723365397",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 597035.12,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609083807",
+        "txn_timestamp": "2026-09-08T07:08:13.121196+00:00",
+        "sender_account": "98117723365397",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "1549690081189",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 570351.06,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "1549690081189",
+    "mule_ifsc": "BARB0VJPUNE",
+    "mule_bank": "Bank of Baroda",
+    "current_balance_inr": 764620.57,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "2cbd47b2c17037d4024b19046b64c2830f998111ff11d8edba6294dff4dfbbc4",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "206.250.69.84",
+        "geo_lat": 18.5747,
+        "geo_lon": 73.8919,
+        "asn": "AS7781",
+        "last_seen": "2026-09-08T06:40:01.121196+00:00"
+      },
+      {
+        "ip_address": "4.62.40.115",
+        "geo_lat": 18.6123,
+        "geo_lon": 73.7828,
+        "asn": "AS3817",
+        "last_seen": "2026-09-08T07:08:01.121196+00:00"
+      },
+      {
+        "ip_address": "146.14.33.125",
+        "geo_lat": 18.6195,
+        "geo_lon": 73.8059,
+        "asn": "AS7506",
+        "last_seen": "2026-09-08T06:49:01.121196+00:00"
+      }
+    ]
+  }
+}

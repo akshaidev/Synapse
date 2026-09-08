@@ -1,0 +1,84 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "803d2e97-7387-423b-a017-8b8b006fdd24",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-7731924",
+    "complaint_timestamp": "2026-09-08T06:47:23.321196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Aditi Deshmukh",
+    "fraud_type": "UPI_FRAUD",
+    "amount_inr": 632651.13,
+    "source_account": {
+      "account_number": "61192529829122",
+      "ifsc": "UTIB0002583",
+      "bank_name": "Axis Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609084923",
+        "txn_timestamp": "2026-09-08T06:40:05.921196+00:00",
+        "sender_account": "61192529829122",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "70849881250709",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 632651.13,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609087740",
+        "txn_timestamp": "2026-09-08T06:45:07.121196+00:00",
+        "sender_account": "70849881250709",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "85373758725687",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 611131.58,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "85373758725687",
+    "mule_ifsc": "KKBK0000958",
+    "mule_bank": "Kotak Mahindra Bank",
+    "current_balance_inr": 786399.11,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "ea527cca8118a96c44d35eea52a556d9f99112b37b27df26b081bdbc58afbc72",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "95.235.18.31",
+        "geo_lat": 28.7008,
+        "geo_lon": 77.2556,
+        "asn": "AS6376",
+        "last_seen": "2026-09-08T06:40:01.121196+00:00"
+      },
+      {
+        "ip_address": "72.208.46.205",
+        "geo_lat": 28.6675,
+        "geo_lon": 77.2935,
+        "asn": "AS4866",
+        "last_seen": "2026-09-08T07:01:01.121196+00:00"
+      },
+      {
+        "ip_address": "28.186.220.91",
+        "geo_lat": 28.6454,
+        "geo_lon": 77.2129,
+        "asn": "AS3266",
+        "last_seen": "2026-09-08T07:12:01.121196+00:00"
+      }
+    ]
+  }
+}

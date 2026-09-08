@@ -1,0 +1,77 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "c1783097-9877-4a8c-b88f-78b677a582bd",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-4739224",
+    "complaint_timestamp": "2026-09-08T06:49:44.321196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Pradeep Nambiar",
+    "fraud_type": "PHISHING",
+    "amount_inr": 294974.76,
+    "source_account": {
+      "account_number": "14979597937045",
+      "ifsc": "UTIB0002583",
+      "bank_name": "Axis Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "RTGS202609087728",
+        "txn_timestamp": "2026-09-08T06:41:23.321196+00:00",
+        "sender_account": "14979597937045",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "43561172493305",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 294974.76,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "RTGS202609087037",
+        "txn_timestamp": "2026-09-08T06:46:49.121196+00:00",
+        "sender_account": "43561172493305",
+        "sender_ifsc": "BARB0VJPUNE",
+        "sender_bank": "Bank of Baroda",
+        "receiver_account": "98128215395364",
+        "receiver_ifsc": "KKBK0000958",
+        "receiver_bank": "Kotak Mahindra Bank",
+        "amount_inr": 287286.36,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "98128215395364",
+    "mule_ifsc": "KKBK0000958",
+    "mule_bank": "Kotak Mahindra Bank",
+    "current_balance_inr": 346861.08,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "34b3471b5aee19b050457a44ee5a0b3175053d0d59f0ad9f11d20e23b9362eb5",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "60.75.245.139",
+        "geo_lat": 12.963,
+        "geo_lon": 77.6125,
+        "asn": "AS2847",
+        "last_seen": "2026-09-08T06:41:01.121196+00:00"
+      },
+      {
+        "ip_address": "120.255.9.71",
+        "geo_lat": 12.9461,
+        "geo_lon": 77.6478,
+        "asn": "AS9026",
+        "last_seen": "2026-09-08T07:08:01.121196+00:00"
+      }
+    ]
+  }
+}

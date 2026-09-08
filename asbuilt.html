@@ -411,8 +411,7 @@
             debit-card hash, (2) account type must be <span class="inline-code">SAVINGS</span>/<span
                 class="inline-code">BASIC_SAVINGS_BD</span>/<span class="inline-code">UNKNOWN</span>, (3) bank/IFSC must
             not be in a hardcoded non-ATM-capable exclusion list (Paytm/Fino/Airtel/Jio/India Post payments banks).
-            Failing any check produces <span class="inline-code">NO_VIABLE_ATM_MULE</span> and the pipeline stops — this
-            is the ATM-only scope boundary from Section 1, enforced in code.</p>
+            Failing any check produces an immediate <span class="inline-code">HTTP 422 Unprocessable Entity</span> rejection (<span class="inline-code">NO_VIABLE_ATM_MULE: &lt;reason&gt;</span>) and stops without persisting to <span class="inline-code">_incidents</span> or entering the dashboard — unifying Stage 1 viability failure with Gate 1 &amp; Gate 2 ingestion rejections. This is the ATM-only scope boundary from Section 1, enforced in code.</p>
     </div>
 
     <div class="stage-block">
@@ -533,8 +532,10 @@
 
     <h3>7.1 Human Resolution — <span class="inline-code">POST /api/v1/incidents/{ncrp_id}/resolve</span></h3>
     <p>An operator resolves a case by submitting a resolution reason and optional note. The backend endpoint enforces:
-        (1) the case must exist, and (2) it must not already be resolved (HTTP 409 idempotency guard). In the dashboard,
-        the resolution modal enforces that <span class="inline-code">operator_id</span> is configured and restricts
+        (1) the case must exist, and (2) it must not already be resolved (HTTP 409 idempotency guard). In both the dashboard
+        (<span class="inline-code">ui/index.html</span>) and the Bank Feed Simulator (<span class="inline-code">ui/feed.html</span>),
+        the resolution modal enforces that <span class="inline-code">operator_id</span> is configured (sharing state via
+        <span class="inline-code">localStorage</span> key <span class="inline-code">synapse_operator_id</span>) and restricts
         <span class="inline-code">resolution_reason</span> to a fixed taxonomy:</p>
     <table class="ref-table">
         <tr>
@@ -673,15 +674,25 @@
     </p>
 
     <h3>10.3 Bank Feed Simulator — <span class="inline-code">ui/feed.html</span></h3>
-    <p>A separate page served at <span class="endpoint">/feed</span>, used for testing and demonstration. It has
-        three functional sections:</p>
+    <p>A separate page served at <span class="endpoint">/feed</span>, used for testing and high-throughput demonstration. It has
+        six functional capabilities:</p>
     <ul>
-        <li><strong>Upload with Simulation Mode:</strong> accepts a standard <span
+        <li><strong>Single Upload with Simulation Mode:</strong> accepts an <span
                 class="inline-code">IncidentPayload</span> JSON file. When Simulation Mode is toggled on, it
-            re-stamps <span class="inline-code">ingestion_timestamp</span> with the current wall-clock time before
-            posting — this makes a static payload with a past fraud timestamp behave as if the fraud just happened,
-            starting the Golden Hour countdown from now. Without this, any realistic demo payload would immediately
-            fail Gate 1.</li>
+            dynamically aligns all payload timestamps to the current wall-clock time via <span class="inline-code">alignPayloadTimestampsToNow()</span>,
+            ensuring the Golden Hour countdown begins fresh from upload while bypassing Gate 1 and Gate 2 admission checks. When Simulation Mode is off,
+            payloads post to live ingestion (<span class="endpoint">/api/v1/ingest</span>) where Gates 1 &amp; 2 are strictly enforced.</li>
+        <li><strong>Bulk Payload Upload &amp; 5-Second Paced Queue:</strong> accepts multi-file selection (<span
+                class="inline-code">&lt;input type="file" multiple accept=".json"&gt;</span>). Files are parsed into an in-memory queue preserving selection order.
+            The queue engine dispatches the first payload immediately, followed by remaining staged payloads at strict 5.0-second intervals.
+            A live visual telemetry panel displays Total Staged, Sent (with success/failure counts), Remaining, a fractional countdown timer (<span class="inline-code">5s</span> ... <span class="inline-code">0s</span>),
+            an animated progress bar, and the active ticket ID in flight. The engine is non-blocking: individual payload rejections (e.g. HTTP 422 <span class="inline-code">NO_VIABLE_ATM_MULE</span>)
+            are logged to the Feed Activity Log without halting subsequent payloads. A "Cancel" button enables immediate mid-run termination.</li>
+        <li><strong>Dynamic Timestamp Alignment &amp; &tau; Invariance:</strong> to prevent static or historical payload timestamps from artificially exhausting the
+            cash-out session time, <span class="inline-code">alignPayloadTimestampsToNow(payload)</span> shifts <span class="inline-code">ingestion_timestamp</span>,
+            <span class="inline-code">complaint_timestamp</span>, all <span class="inline-code">txn_timestamp</span> entries, and cluster <span class="inline-code">last_seen</span>
+            timestamps by the exact same offset <span class="inline-code">&Delta; = Date.now() - T_base</span>. Because <span class="inline-code">(T_ingest + &Delta;) - (T_last_txn + &Delta;) &equiv; T_ingest - T_last_txn = &tau;</span>,
+            the elapsed session time is mathematically invariant, preserving the designed non-zero interception window (e.g. 15.7m, 38.5m) and preventing premature auto-withdrawals or 6-hour sweeper timeouts.</li>
         <li><strong>Live Withdrawal Push:</strong> a dropdown of all active incidents, an amount field, and a
             "Push" button. Submitting hits <span class="endpoint method-patch">PATCH</span> <span
                 class="endpoint">/api/v1/incidents/{id}/live-update</span>, which adds the withdrawal amount to
@@ -692,8 +703,15 @@
             needed. This lets a demonstrator show the dashboard reacting in real-time to a simulated ATM
             withdrawal happening at the mule's end.
         </li>
-        <li><strong>Feed Activity Log:</strong> a running per-session log of every upload, withdrawal push, and
-            mode toggle — purely a demo convenience, not persisted to disk.</li>
+        <li><strong>Case Resolution:</strong> a "Mark Resolved" action surfaced next to the active incident selector
+            opening a dedicated resolution modal. It synchronizes with <span class="inline-code">synapse_operator_id</span>
+            in <span class="inline-code">localStorage</span>, enforces a non-blank operator identity, provides the
+            full 5-reason taxonomy dropdown, and dispatches <span class="endpoint method-post">POST</span> <span
+                class="endpoint">/api/v1/incidents/{id}/resolve</span>.
+        </li>
+        <li><strong>Feed Activity Log &amp; Incident Purge:</strong> a running per-session log of every upload, withdrawal push, case
+            resolution, rejection, and mode toggle. A dedicated "Clear Incident Feed" button calls <span class="endpoint method-post">POST</span>
+            <span class="endpoint">/api/v1/incidents/clear</span> to wipe in-memory and persisted incident records for clean demonstration rehearsals.</li>
     </ul>
     <p>Both pages are unauthenticated static files served directly by FastAPI. There is no role separation — "View
         A / View B" describes two panels of one page, not the RBAC-gated Strategic Command vs. Tactical Operator

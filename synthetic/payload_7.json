@@ -1,0 +1,70 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "0509426b-9ab8-43b9-95f8-35f6efc42755",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-1831032",
+    "complaint_timestamp": "2026-09-08T07:08:07.721196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Harish Choudhury",
+    "fraud_type": "PHISHING",
+    "amount_inr": 95404.45,
+    "source_account": {
+      "account_number": "23498844218150",
+      "ifsc": "ICIC0000100",
+      "bank_name": "ICICI Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609086123",
+        "txn_timestamp": "2026-09-08T07:01:05.321196+00:00",
+        "sender_account": "23498844218150",
+        "sender_ifsc": "ICIC0000100",
+        "sender_bank": "ICICI Bank",
+        "receiver_account": "93426248770627",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 95404.45,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609081016",
+        "txn_timestamp": "2026-09-08T07:06:13.121196+00:00",
+        "sender_account": "93426248770627",
+        "sender_ifsc": "UTIB0002583",
+        "sender_bank": "Axis Bank",
+        "receiver_account": "84184184439160",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 92329.13,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "84184184439160",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 128040.2,
+    "account_type": "BASIC_SAVINGS_BD",
+    "linked_card_number_hash": "c705f1c8bd8a127d892c026b34616b023f3a81171d2b0c4f6bdf9c9813249189",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "138.155.230.71",
+        "geo_lat": 28.5978,
+        "geo_lon": 77.2706,
+        "asn": "AS5814",
+        "last_seen": "2026-09-08T06:43:01.121196+00:00"
+      }
+    ]
+  }
+}

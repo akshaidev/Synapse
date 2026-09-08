@@ -1,0 +1,70 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "51190daa-c2e0-4630-af5d-f0c307333c5c",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-9124078",
+    "complaint_timestamp": "2026-09-08T07:08:08.321196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Swati Hegde",
+    "fraud_type": "PHISHING",
+    "amount_inr": 663276.33,
+    "source_account": {
+      "account_number": "27660576773828",
+      "ifsc": "HDFC0001729",
+      "bank_name": "HDFC Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "UPI202609083043",
+        "txn_timestamp": "2026-09-08T07:01:07.721196+00:00",
+        "sender_account": "27660576773828",
+        "sender_ifsc": "HDFC0001729",
+        "sender_bank": "HDFC Bank",
+        "receiver_account": "13885237606435",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 663276.33,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "NEFT202609089719",
+        "txn_timestamp": "2026-09-08T07:05:49.121196+00:00",
+        "sender_account": "13885237606435",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "48491135343679",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 648222.05,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "48491135343679",
+    "mule_ifsc": "SBIN0011424",
+    "mule_bank": "State Bank of India",
+    "current_balance_inr": 830100.27,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "682ca1e939db818bbf3d8f5d415d397668101dc89a1b0779c9bf2797a9531c4e",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 20000.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "48.60.195.89",
+        "geo_lat": 28.6226,
+        "geo_lon": 77.2483,
+        "asn": "AS1493",
+        "last_seen": "2026-09-08T06:41:01.121196+00:00"
+      }
+    ]
+  }
+}

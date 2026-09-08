@@ -1,0 +1,123 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "0c550652-2d52-4f45-b6fb-1fd517e74f8e",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-9408411",
+    "complaint_timestamp": "2026-09-08T06:59:27.521196+00:00",
+    "victim_state": "DL",
+    "victim_district": "Delhi",
+    "complainant_name": "Madhavi Pillai",
+    "fraud_type": "PHISHING",
+    "amount_inr": 680083.96,
+    "source_account": {
+      "account_number": "67070779356152",
+      "ifsc": "PUNB0187600",
+      "bank_name": "Punjab National Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 5,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "IMPS202609087303",
+        "txn_timestamp": "2026-09-08T06:36:58.721196+00:00",
+        "sender_account": "67070779356152",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "83228025387329",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 680083.96,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609083763",
+        "txn_timestamp": "2026-09-08T06:47:04.721196+00:00",
+        "sender_account": "83228025387329",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "40968837043761",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 660775.42,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609084219",
+        "txn_timestamp": "2026-09-08T06:51:16.721196+00:00",
+        "sender_account": "40968837043761",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "97227712246638",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 633043.32,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "IMPS202609084497",
+        "txn_timestamp": "2026-09-08T06:52:16.721196+00:00",
+        "sender_account": "97227712246638",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "12101063055038",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 606043.73,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "IMPS202609085811",
+        "txn_timestamp": "2026-09-08T06:57:13.121196+00:00",
+        "sender_account": "12101063055038",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "50407923867233",
+        "receiver_ifsc": "ICIC0000100",
+        "receiver_bank": "ICICI Bank",
+        "amount_inr": 582148.12,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "50407923867233",
+    "mule_ifsc": "ICIC0000100",
+    "mule_bank": "ICICI Bank",
+    "current_balance_inr": 814431.04,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "2eb23df3547dc6c31e72cd5da5adb59e709ce658ae55d786c6f8839e2a007f4d",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "138.10.115.59",
+        "geo_lat": 28.6376,
+        "geo_lon": 77.2182,
+        "asn": "AS2661",
+        "last_seen": "2026-09-08T06:55:01.121196+00:00"
+      },
+      {
+        "ip_address": "3.209.42.250",
+        "geo_lat": 28.6169,
+        "geo_lon": 77.2582,
+        "asn": "AS7046",
+        "last_seen": "2026-09-08T07:07:01.121196+00:00"
+      },
+      {
+        "ip_address": "201.4.248.64",
+        "geo_lat": 28.5932,
+        "geo_lon": 77.2383,
+        "asn": "AS5562",
+        "last_seen": "2026-09-08T07:06:01.121196+00:00"
+      }
+    ]
+  }
+}

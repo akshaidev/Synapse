@@ -1,0 +1,103 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "85da1e2b-89fb-4aa2-826b-759ef57afecc",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-7394004",
+    "complaint_timestamp": "2026-09-08T07:06:26.321196+00:00",
+    "victim_state": "MH",
+    "victim_district": "Pune",
+    "complainant_name": "Alok Sengupta",
+    "fraud_type": "PHISHING",
+    "amount_inr": 171045.12,
+    "source_account": {
+      "account_number": "85307421350842",
+      "ifsc": "ICIC0000100",
+      "bank_name": "ICICI Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 4,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "RTGS202609087809",
+        "txn_timestamp": "2026-09-08T06:50:28.121196+00:00",
+        "sender_account": "85307421350842",
+        "sender_ifsc": "ICIC0000100",
+        "sender_bank": "ICICI Bank",
+        "receiver_account": "35851147063985",
+        "receiver_ifsc": "CNRB0002341",
+        "receiver_bank": "Canara Bank",
+        "amount_inr": 171045.12,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609085471",
+        "txn_timestamp": "2026-09-08T06:58:41.921196+00:00",
+        "sender_account": "35851147063985",
+        "sender_ifsc": "CNRB0002341",
+        "sender_bank": "Canara Bank",
+        "receiver_account": "52228244394554",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 167864.46,
+        "channel": "IMPS"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "UPI202609086445",
+        "txn_timestamp": "2026-09-08T06:57:24.521196+00:00",
+        "sender_account": "52228244394554",
+        "sender_ifsc": "INDB0000001",
+        "sender_bank": "IndusInd Bank",
+        "receiver_account": "74368989999087",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 162683.57,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "NEFT202609086080",
+        "txn_timestamp": "2026-09-08T07:03:49.121196+00:00",
+        "sender_account": "74368989999087",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "53912844425529",
+        "receiver_ifsc": "UTIB0002583",
+        "receiver_bank": "Axis Bank",
+        "amount_inr": 159730.34,
+        "channel": "NEFT"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "53912844425529",
+    "mule_ifsc": "UTIB0002583",
+    "mule_bank": "Axis Bank",
+    "current_balance_inr": 206048.92,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "83db26f54fc3619ac21014372416f8c63488647de039f73b4601a0dc40eab50f",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "71.97.164.167",
+        "geo_lat": 18.5957,
+        "geo_lon": 73.8339,
+        "asn": "AS4149",
+        "last_seen": "2026-09-08T06:49:01.121196+00:00"
+      },
+      {
+        "ip_address": "179.240.79.150",
+        "geo_lat": 18.5377,
+        "geo_lon": 73.7887,
+        "asn": "AS5616",
+        "last_seen": "2026-09-08T06:52:01.121196+00:00"
+      }
+    ]
+  }
+}

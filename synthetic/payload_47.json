@@ -1,0 +1,123 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "df5e1a6b-dea7-42cf-ba13-bf81f1ced6b8",
+  "ingestion_timestamp": "2026-09-08T07:17:01.121196+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-3934971",
+    "complaint_timestamp": "2026-09-08T07:16:08.921196+00:00",
+    "victim_state": "KA",
+    "victim_district": "Bengaluru",
+    "complainant_name": "Rajesh Kumar",
+    "fraud_type": "PHISHING",
+    "amount_inr": 325948.01,
+    "source_account": {
+      "account_number": "28060390774862",
+      "ifsc": "KKBK0000958",
+      "bank_name": "Kotak Mahindra Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 5,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609086207",
+        "txn_timestamp": "2026-09-08T06:55:19.121196+00:00",
+        "sender_account": "28060390774862",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "98639098551064",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 325948.01,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "UPI202609081659",
+        "txn_timestamp": "2026-09-08T06:59:44.921196+00:00",
+        "sender_account": "98639098551064",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "6057606565311",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 317601.28,
+        "channel": "UPI"
+      },
+      {
+        "hop_index": 3,
+        "txn_id": "NEFT202609089444",
+        "txn_timestamp": "2026-09-08T07:07:21.521196+00:00",
+        "sender_account": "6057606565311",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "31100944081730",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 309695.27,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 4,
+        "txn_id": "RTGS202609085274",
+        "txn_timestamp": "2026-09-08T07:09:26.321196+00:00",
+        "sender_account": "31100944081730",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "12058581374525",
+        "receiver_ifsc": "PUNB0187600",
+        "receiver_bank": "Punjab National Bank",
+        "amount_inr": 303553.35,
+        "channel": "RTGS"
+      },
+      {
+        "hop_index": 5,
+        "txn_id": "RTGS202609087019",
+        "txn_timestamp": "2026-09-08T07:14:07.121196+00:00",
+        "sender_account": "12058581374525",
+        "sender_ifsc": "PUNB0187600",
+        "sender_bank": "Punjab National Bank",
+        "receiver_account": "32436655042624",
+        "receiver_ifsc": "BARB0VJPUNE",
+        "receiver_bank": "Bank of Baroda",
+        "amount_inr": 290314.19,
+        "channel": "RTGS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "32436655042624",
+    "mule_ifsc": "BARB0VJPUNE",
+    "mule_bank": "Bank of Baroda",
+    "current_balance_inr": 357467.42,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "4f12bfd054537ec4a107c7abc37016f3ed23cc4d6ac451acfe9d217ec20f4296",
+    "daily_withdrawal_limit_inr": 100000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "86.83.27.243",
+        "geo_lat": 13.0168,
+        "geo_lon": 77.5639,
+        "asn": "AS7516",
+        "last_seen": "2026-09-08T07:00:01.121196+00:00"
+      },
+      {
+        "ip_address": "191.192.115.184",
+        "geo_lat": 12.9865,
+        "geo_lon": 77.6232,
+        "asn": "AS9732",
+        "last_seen": "2026-09-08T07:04:01.121196+00:00"
+      },
+      {
+        "ip_address": "16.105.167.243",
+        "geo_lat": 12.9987,
+        "geo_lon": 77.5734,
+        "asn": "AS1948",
+        "last_seen": "2026-09-08T07:11:01.121196+00:00"
+      }
+    ]
+  }
+}

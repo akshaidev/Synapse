@@ -1,0 +1,70 @@
+{
+  "payload_version": "1.1.0",
+  "payload_id": "aee27544-ead4-41a0-b819-0a25ddd0a84b",
+  "ingestion_timestamp": "2026-09-08T02:44:25.957847+00:00",
+  "ncrp_ticket": {
+    "ticket_id": "NCRP-2026-2930703",
+    "complaint_timestamp": "2026-09-08T02:09:25.957847+00:00",
+    "victim_state": "MH",
+    "victim_district": "Mumbai",
+    "complainant_name": "Lakshmi Iyer",
+    "fraud_type": "VISHING",
+    "amount_inr": 284073.39,
+    "source_account": {
+      "account_number": "26605898575113",
+      "ifsc": "KKBK0000958",
+      "bank_name": "Kotak Mahindra Bank"
+    }
+  },
+  "fund_flow": {
+    "total_hops": 2,
+    "transactions": [
+      {
+        "hop_index": 1,
+        "txn_id": "NEFT202609081145",
+        "txn_timestamp": "2026-09-08T02:01:25.957847+00:00",
+        "sender_account": "26605898575113",
+        "sender_ifsc": "KKBK0000958",
+        "sender_bank": "Kotak Mahindra Bank",
+        "receiver_account": "2781714651585",
+        "receiver_ifsc": "SBIN0011424",
+        "receiver_bank": "State Bank of India",
+        "amount_inr": 284073.39,
+        "channel": "NEFT"
+      },
+      {
+        "hop_index": 2,
+        "txn_id": "IMPS202609089730",
+        "txn_timestamp": "2026-09-08T02:08:25.957847+00:00",
+        "sender_account": "2781714651585",
+        "sender_ifsc": "SBIN0011424",
+        "sender_bank": "State Bank of India",
+        "receiver_account": "24729474504487",
+        "receiver_ifsc": "INDB0000001",
+        "receiver_bank": "IndusInd Bank",
+        "amount_inr": 275475.22,
+        "channel": "IMPS"
+      }
+    ]
+  },
+  "terminal_mule": {
+    "mule_account_number": "24729474504487",
+    "mule_ifsc": "INDB0000001",
+    "mule_bank": "IndusInd Bank",
+    "current_balance_inr": 326684.4,
+    "account_type": "SAVINGS",
+    "linked_card_number_hash": "b3d673466fed63e5d23fc87d00c6987c0df46398ee4954e9235106a2bba313e3",
+    "daily_withdrawal_limit_inr": 200000.0,
+    "withdrawals_today_inr": 0.0,
+    "cell_tower_cluster": [],
+    "ip_cluster": [
+      {
+        "ip_address": "106.165.57.72",
+        "geo_lat": 19.0796,
+        "geo_lon": 72.8053,
+        "asn": "AS4451",
+        "last_seen": "2026-09-08T01:59:25.957847+00:00"
+      }
+    ]
+  }
+}
