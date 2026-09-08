@@ -412,3 +412,27 @@
 * **Context / Decision:** The "Initiate Digital Lien" flow uses a custom glassmorphism modal (`#lien-initiate-modal`) to collect the mandatory reason and confirm the action. The previous implementation used the browser's native `prompt()` dialog.
 * **Why This Over Alternatives:** `prompt()` is a synchronous, blocking browser API that cannot be styled, does not integrate with the UI's design system (dark theme, monospace fonts, glassmorphism cards), and provides no room for validation feedback or a loading state during the async webhook dispatch. The custom modal matches the existing Revoke modal design (indigo accent vs. red accent), preserves the `_initiateTarget` context across the async flow, and shows inline error messages if the reason is blank or the server returns an error. Consistency across the two destructive-action modals (Initiate = indigo, Revoke = red) also aids operator muscle memory.
 * **System Impact:** `toggleLien()` no longer calls `prompt()`. Instead, it stores the target context in `_initiateTarget` and shows the modal. `submitLienInitiate()` handles the fetch, error display, and post-action re-render. The Operator ID check is moved inside `submitLienInitiate()` (was previously a guard before `prompt()`), so the flow is: click button → modal opens → fill reason → confirm → webhook fires → panel re-renders.
+
+---
+
+### [Architectural & Design Choice] Async Lock on Lien INITIATE (Single-Process Constraint)
+
+* **Context / Decision:** `_LIEN_LOCK` (`asyncio.Lock()`) wraps the check→webhook→write sequence in lien INITIATE. REVOKE is intentionally not wrapped — it has no `await` between its duplicate check and its write, making it already atomic under asyncio's cooperative scheduling. Locking REVOKE would add overhead with no race to close.
+* **System Impact:** This lock is effective only while the server runs as a single process (`uvicorn --workers 1`). Multiple workers would each hold a separate lock instance and a separate in-memory `_LIEN_REGISTRY`, silently reintroducing the race. The Phase 10 single-server architecture decision must remain in force — do not add worker processes without revisiting this.
+
+---
+
+### [Architectural & Design Choice] `resolved = True` is Reserved for Human Confirmations Only
+
+* **Context / Decision:** The `resolved` field on an incident is set to `True` exclusively by `resolve_incident()` — the human-triggered close path. The 30-day administrative sweeper deliberately does not set `resolved`; it sets only `status = "ADMINISTRATIVELY_CLOSED"` and `synapse_disengaged_at`.
+* **Why This Over Alternatives:** Treating a system timeout the same as a human confirmation would mislead any future consumer of the incidents store: audit logs would show a machine-generated outcome as operator-confirmed, NCRP intimation triggers would fire as if a resolution was reached, and ML training pipelines would label a default timeout as a ground-truth case closure. `resolved = True` must only ever mean "a human looked at this and confirmed an outcome."
+
+---
+
+### [Architectural & Design Choice] Resolve Idempotency Guard
+
+* **Context / Decision:** `resolve_incident()` rejects (HTTP 409) any resolve call on an already-resolved incident, instead of silently overwriting `resolution_reason`, `operator_id`, `resolved_at`, and re-firing the NCRP intimation webhook.
+* **Why This Over Alternatives:** Without this guard, the same ticket could be resolved twice with conflicting reasons — sending NCRP two different "resolved" intimations for one case with no record that an overwrite happened. The audit log would show only the most recent state, erasing the first resolution entirely.
+* **System Impact:** Changing a resolution now requires an explicit `/unresolve` call first — a deliberate two-step, both logged with operator identity — rather than an implicit silent overwrite. This makes resolution changes auditable by design.
+
+

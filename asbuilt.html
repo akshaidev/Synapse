@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Project Synapse — As-Built System Documentation</title>
+    <style>
+        @page {
+            margin: 60px 58px 66px 58px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #1c1f26;
+            font-size: 10.2pt;
+            line-height: 1.55;
+        }
+
+        .cover {
+            height: 720px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+        }
+
+        .cover .kicker {
+            font-size: 11pt;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .cover h1 {
+            font-size: 40pt;
+            margin: 0 0 6px 0;
+            color: #0f172a;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .cover .subtitle {
+            font-size: 15pt;
+            color: #334155;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        .cover .purpose-box {
+            border-left: 4px solid #0f766e;
+            background: #f0fdfa;
+            padding: 18px 22px;
+            font-size: 11pt;
+            color: #334155;
+            line-height: 1.6;
+            max-width: 540px;
+        }
+
+        .cover .purpose-box b {
+            color: #0f172a;
+        }
+
+        .cover .meta {
+            margin-top: 40px;
+            font-size: 9.5pt;
+            color: #94a3b8;
+        }
+
+        h2 {
+            font-size: 16.5pt;
+            color: #0f172a;
+            font-weight: 800;
+            margin-top: 32px;
+            margin-bottom: 4px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        h2 .num {
+            color: #0f766e;
+            margin-right: 8px;
+        }
+
+        h3 {
+            font-size: 12pt;
+            color: #1e293b;
+            font-weight: 700;
+            margin-top: 20px;
+            margin-bottom: 6px;
+        }
+
+        h3 .num {
+            color: #0f766e;
+        }
+
+        p {
+            margin: 7px 0;
+        }
+
+        ul,
+        ol {
+            margin: 7px 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin: 3px 0;
+        }
+
+        li li {
+            margin: 2px 0;
+        }
+
+        code,
+        .inline-code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            background: #f0fdfa;
+            color: #0f766e;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 9.1pt;
+        }
+
+        strong {
+            color: #0f172a;
+        }
+
+        table.ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 14px 0;
+            font-size: 9.5pt;
+        }
+
+        table.ref-table th {
+            text-align: left;
+            background: #f1f5f9;
+            padding: 6px 10px;
+            font-weight: 700;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        table.ref-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #eef2f6;
+            vertical-align: top;
+        }
+
+        table.ref-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .callout {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #64748b;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 9.5pt;
+        }
+
+        .callout.math {
+            border-left-color: #0f766e;
+            background: #f0fdfa;
+        }
+
+        .callout.limit {
+            border-left-color: #b45309;
+            background: #fffbeb;
+        }
+
+        .callout .callout-label {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 7.8pt;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .callout.math .callout-label {
+            color: #0f766e;
+        }
+
+        .callout.limit .callout-label {
+            color: #b45309;
+        }
+
+        .stage-block {
+            margin: 12px 0 16px 0;
+            padding: 12px 16px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #ececec;
+            page-break-inside: avoid;
+        }
+
+        .stage-block h3 {
+            margin-top: 0;
+        }
+
+        .endpoint {
+            font-family: monospace;
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 9pt;
+            font-weight: 600;
+        }
+
+        .method-get {
+            color: #0369a1;
+        }
+
+        .method-post {
+            color: #15803d;
+        }
+
+        .method-patch {
+            color: #a16207;
+        }
+
+        .limitation-item {
+            margin: 8px 0;
+            padding: 9px 14px;
+            background: #fffbeb;
+            border-left: 4px solid #d97706;
+            border-radius: 0 6px 6px 0;
+            font-size: 9.5pt;
+        }
+
+        .limitation-item .lm-title {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 2px;
+        }
+
+        .modular-item {
+            margin: 10px 0;
+            padding: 10px 15px;
+            background: #f0fdfa;
+            border-left: 4px solid #0f766e;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .modular-item .mod-title {
+            font-weight: 700;
+            color: #0f766e;
+            margin-bottom: 3px;
+        }
+
+        .modular-item p {
+            font-size: 9.6pt;
+            margin: 3px 0;
+        }
+
+        .gap-item {
+            margin: 10px 0;
+            padding: 10px 15px;
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .gap-item .gap-title {
+            font-weight: 700;
+            color: #b91c1c;
+            margin-bottom: 3px;
+        }
+
+        .gap-item p {
+            font-size: 9.6pt;
+            margin: 3px 0;
+        }
+
+        .section-page {
+            page-break-before: always;
+        }
+
+        .footer-note {
+            margin-top: 36px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 8.2pt;
+            color: #94a3b8;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="cover">
+        <div class="kicker">As-Built System Documentation</div>
+        <h1>Project Synapse</h1>
+        <div class="subtitle">Golden Hour ATM Cash-Out Interception — What Is Actually Implemented</div>
+        <div class="purpose-box">
+            <b>Scope of this document:</b> This describes the system as it exists in the current codebase — every claim
+            below is traceable to a specific file, function, or endpoint. It does not describe planned features, PRD
+            aspirations, or roadmap items unless explicitly marked as such. Where the original PRD specifies something
+            that is not built, that gap is stated directly.
+        </div>
+        <div class="meta">Internal Technical Reference &nbsp;·&nbsp; MVP, Single-Process Deployment</div>
+    </div>
+
+    <h2><span class="num">1.</span>Mission &amp; Scope Boundary</h2>
+    <p>Synapse predicts the physical ATM location where a cyber-fraud mule account will attempt to withdraw stolen
+        funds, within a 120-minute "Golden Hour" window from the fraud's most recent transaction, and triggers an
+        automated bank freeze webhook and/or a tactical dispatch recommendation.</p>
+    <p><strong>What Synapse is not:</strong> it is not a general fraud fund-tracing system. Cases where the terminal
+        account is a Crypto P2P off-ramp, a POS merchant, or a non-ATM-capable account are deliberately rejected (<span
+            class="inline-code">NO_VIABLE_ATM_MULE</span>) and fall out of the pipeline entirely — this is a scope
+        boundary matching the underlying problem statement, not an oversight.</p>
+    <p><strong>Deployment precondition:</strong> the fund-flow DAG traversal (Section 4) assumes full visibility across
+        every hop, including inter-bank transfers. A single bank running this system in isolation would lose visibility
+        the moment funds leave to an external bank via IMPS/UPI/NEFT. The system is architected to sit at a central
+        switch or investigating-cyber-cell level with cross-bank visibility — not inside one bank's own systems.</p>
+
+    <h2><span class="num">2.</span>Architecture — What's Actually Running</h2>
+    <table class="ref-table">
+        <tr>
+            <th>Layer</th>
+            <th>Implementation</th>
+        </tr>
+        <tr>
+            <td>API framework</td>
+            <td>FastAPI, single process (<span class="inline-code">api/main.py</span>), no ASGI worker pool</td>
+        </tr>
+        <tr>
+            <td>Data validation</td>
+            <td>Pydantic v2 models (<span class="inline-code">api/schemas.py</span>) — every payload, webhook, and
+                internal request body is a typed model</td>
+        </tr>
+        <tr>
+            <td>Core algorithms</td>
+            <td><span class="inline-code">core/graph.py</span>, <span class="inline-code">core/temporal.py</span>, <span
+                    class="inline-code">core/cluster.py</span> — pure functions, zero FastAPI/HTTP imports</td>
+        </tr>
+        <tr>
+            <td>Persistence</td>
+            <td>Flat JSON files under <span class="inline-code">data/</span> — <span
+                    class="inline-code">incidents.json</span>, <span class="inline-code">lien_registry.json</span>,
+                <span class="inline-code">sent_crew.json</span> — no database</td>
+        </tr>
+        <tr>
+            <td>Concurrency safety</td>
+            <td><span class="inline-code">FileLock</span> (the <span class="pkg">filelock</span> package) wraps every
+                disk write to the three JSON stores. A dedicated <span class="inline-code">asyncio.Lock</span>
+                additionally guards the lien-initiate business logic (Section 6).</td>
+        </tr>
+        <tr>
+            <td>ATM registry</td>
+            <td>Static JSON, 200 records, loaded into memory once at startup. Never modified at runtime.</td>
+        </tr>
+        <tr>
+            <td>Background jobs</td>
+            <td>One <span class="inline-code">asyncio</span> task, started at app startup, sweeping <span
+                    class="inline-code">_incidents</span> every 60 seconds (Section 7)</td>
+        </tr>
+        <tr>
+            <td>Frontend</td>
+            <td>Two static HTML files, vanilla JS, no build step — <span class="inline-code">ui/index.html</span> (main
+                dashboard) and <span class="inline-code">ui/feed.html</span> (Bank Feed Simulator)</td>
+        </tr>
+        <tr>
+            <td>Authentication</td>
+            <td>None. No login, no session, no RBAC, no TOTP. Any operator identity captured (Section 6) is a
+                self-declared free-text field.</td>
+        </tr>
+    </table>
+
+    <h2><span class="num">3.</span>Ingestion &amp; Golden Hour Gates</h2>
+    <p><span class="endpoint method-post">POST</span> <span class="endpoint">/api/v1/ingest</span> accepts an <span
+            class="inline-code">IncidentPayload</span> (NCRP ticket + fund-flow DAG + terminal mule intelligence) and
+        runs it through two admission gates before any prediction happens:</p>
+    <div class="callout math">
+        <span class="callout-label">Gate Logic</span>
+        <strong>Gate 1 — Fraud Recency:</strong> <span class="inline-code">NOW() − max(txn_timestamp across all hops) ≤
+            120 min</span>. Fails → <span class="inline-code">GOLDEN_HOUR_EXPIRED</span>.<br>
+        <strong>Gate 2 — Payload Freshness:</strong> <span class="inline-code">NOW() − complaint_timestamp ≤ 240
+            min</span>. Fails → <span class="inline-code">STALE_PAYLOAD</span>.
+    </div>
+    <p>A <span class="inline-code">X-Simulation-Mode: true</span> header (or <span
+            class="inline-code">?simulate=true</span>) bypasses both gates and uses the payload's own <span
+            class="inline-code">ingestion_timestamp</span> as the reference clock instead of wall-clock time — this
+        exists purely so static demo payloads and automated tests produce deterministic, repeatable results.</p>
+
+    <h2><span class="num">4.</span>The Three-Stage Pipeline</h2>
+
+    <div class="stage-block">
+        <h3><span class="num">4.1</span>Stage 1 — Terminal Mule Isolation (<span
+                class="inline-code">core/graph.py</span>)</h3>
+        <p>Builds a <span class="inline-code">networkx</span> DiGraph from the transaction list, identifies leaf nodes
+            (out-degree 0), and scores each with a <strong>Mule Probability Score</strong>:</p>
+        <div class="callout math">
+            <span class="callout-label">MPS Formula</span>
+            <span class="inline-code">MPS = 0.30 × (amount / max_amount) + 0.30 × exp(−0.1 × Δt_minutes) + 0.40 ×
+                𝟙[matches payload-declared mule]</span>
+        </div>
+        <p>The top-scoring leaf then passes a three-part <strong>viability filter</strong>: (1) must have a linked
+            debit-card hash, (2) account type must be <span class="inline-code">SAVINGS</span>/<span
+                class="inline-code">BASIC_SAVINGS_BD</span>/<span class="inline-code">UNKNOWN</span>, (3) bank/IFSC must
+            not be in a hardcoded non-ATM-capable exclusion list (Paytm/Fino/Airtel/Jio/India Post payments banks).
+            Failing any check produces <span class="inline-code">NO_VIABLE_ATM_MULE</span> and the pipeline stops — this
+            is the ATM-only scope boundary from Section 1, enforced in code.</p>
+    </div>
+
+    <div class="stage-block">
+        <h3><span class="num">4.2</span>Stage 2 — Drain Time Engine (<span class="inline-code">core/temporal.py</span>)
+        </h3>
+        <div class="callout math">
+            <span class="callout-label">Drain Time Formula</span>
+            <span class="inline-code">B_accessible = min(balance, daily_limit − withdrawn_today)</span><br>
+            <span class="inline-code">drain_time = max(0, ceil(B_accessible / ₹20,000) × 4.5 min − τ)</span>, where τ =
+            minutes elapsed since the latest transaction.<br>
+            <span class="inline-code">urgency = 0</span> if the daily limit is already exhausted; otherwise <span
+                class="inline-code">max(0, 1 − drain_time / 120)</span>.
+        </div>
+        <p>The urgency-zero guard when the daily limit is exhausted is deliberate: a mule who legally cannot withdraw
+            more today should never register as high-urgency.</p>
+    </div>
+
+    <div class="stage-block">
+        <h3><span class="num">4.3</span>Stage 3 — Spatial ATM Ranker (<span class="inline-code">core/cluster.py</span>)
+        </h3>
+        <p>Estimates the mule's position via a priority cascade — combined cell-tower + IP, cell-tower only, IP-only
+            (the primary MVP path, since live cell-tower/CDR data requires telecom authorization not available at MVP
+            stage), or a static IFSC/city coordinate fallback. Then runs a brute-force Haversine scan against the
+            200-ATM registry:</p>
+        <div class="callout math">
+            <span class="callout-label">Search &amp; Scoring</span>
+            Search radius starts at 5 km (urban) or 15 km (rural), expanding ×1.5 up to twice if fewer than 3 ATMs are
+            found.<br>
+            <span class="inline-code">RiskScore = 0.30×Proximity + 0.25×BankMatch + 0.20×CashStatus + 0.15×Offsite +
+                0.10×Traffic</span><br>
+            Proximity is penalized by <span class="inline-code">base_radius / active_radius</span> — an ATM only found
+            because the radius had to expand scores lower than one found in the initial pass.
+        </div>
+        <p>If position estimation falls back to a static IFSC/city coordinate, a <span
+                class="inline-code">confidence_cap_applied</span> flag is set, which caps the final composite confidence
+            at 0.75 regardless of what the raw math produces (Section 5) — a low-confidence location estimate can never
+            trigger a physical dispatch.</p>
+    </div>
+
+    <h2><span class="num">5.</span>Confidence Aggregation &amp; Intervention Tiers</h2>
+    <div class="callout math">
+        <span class="callout-label">Composite Confidence</span>
+        <span class="inline-code">C = 0.20 × MPS + 0.35 × Urgency + 0.45 × RiskScore(top ATM)</span>, clamped to [0, 1],
+        capped at 0.75 if the position estimate used a static fallback.
+    </div>
+    <table class="ref-table">
+        <tr>
+            <th>Confidence</th>
+            <th>Tier</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td>&lt; 0.70</td>
+            <td><span class="inline-code">TIER_1_LOG_ONLY</span></td>
+            <td>Logged, no webhook fired</td>
+        </tr>
+        <tr>
+            <td>≥ 0.70</td>
+            <td><span class="inline-code">PRIMARY_DIGITAL</span></td>
+            <td>Freeze webhook fires automatically to <span class="endpoint">/api/v1/freeze-card-atm</span> (mock bank
+                switch)</td>
+        </tr>
+        <tr>
+            <td>≥ 0.85</td>
+            <td><span class="inline-code">SECONDARY_PHYSICAL</span></td>
+            <td>Same as above, plus flagged for tactical dispatch recommendation</td>
+        </tr>
+    </table>
+    <p>Spatial confidence (weight 0.45) dominates the composite score — the system is, by construction, more sensitive
+        to "do we know where" than "do we know who" or "how urgent."</p>
+
+    <h2 class="section-page"><span class="num">6.</span>Digital Lien Management</h2>
+    <p><span class="endpoint method-get">GET</span> / <span class="endpoint method-post">POST</span> <span
+            class="endpoint">/api/v1/liens</span> manages a persistent freeze registry independent of the auto-pipeline.
+    </p>
+
+    <h3>6.1 Operator ID — Identity Without Authentication</h3>
+    <p>Every destructive action in the system — initiating a lien, revoking a lien, dispatching a crew, resolving a
+        case — requires an <span class="inline-code">operator_id</span>. This is a free-text string the operator
+        types once into the Admin Drawer on the dashboard. It is stored in the browser's <span
+            class="inline-code">localStorage</span> and automatically attached to every subsequent action in that
+        session.</p>
+    <p><strong>It is an asserted identity, not an authenticated one.</strong> There is no login, no session token,
+        no mechanism to verify the string matches a real person. Its purpose is auditability, not access control:
+        every lien record, revocation log entry, dispatch record, and resolution entry carries an
+        <span class="inline-code">operator_id</span>, creating a traceable trail of who claimed to do what and
+        when. If a case is later reviewed — in an audit, an NCRP inquiry, or an internal investigation — each
+        action has a named responsible party attached to it, even if that name cannot be cryptographically verified.</p>
+    <p>The backend enforces its presence on lien actions via the <span class="inline-code">LienActionRequest</span>
+        schema — an empty or missing <span class="inline-code">operator_id</span> returns HTTP 422. On the resolve
+        endpoint, the same check applies: a resolution without an identified operator is rejected.</p>
+
+    <h3>6.2 INITIATE and REVOKE</h3>
+    <ul>
+        <li><strong>INITIATE</strong> requires a mandatory <span class="inline-code">reason</span> (collected via a
+            modal, not a browser <span class="inline-code">prompt()</span>). On confirmation, it checks for a
+            duplicate lien, fires a freeze webhook to the mock bank switch, records the lien with
+            <span class="inline-code">source: MANUAL</span>, and persists to <span
+                class="inline-code">data/lien_registry.json</span>.</li>
+        <li><strong>REVOKE</strong> requires a reason from a fixed set (Account verified as non-mule, Incorrect
+            account flagged, Operational override, Court order, Lien placed in error, Other). It moves the entry
+            from <span class="inline-code">active_liens</span> to <span class="inline-code">revocation_log</span> —
+            the history is never deleted, only reclassified.</li>
+        <li>A dedicated <span class="inline-code">asyncio.Lock</span> wraps the INITIATE path's check → webhook → write
+            sequence, closing a race where two concurrent requests on the same account could both pass the duplicate
+            check before either wrote — REVOKE does not need it, since it has no <span class="inline-code">await</span>
+            between check and write and is already atomic under single-threaded async scheduling. <strong>This lock only
+                holds under a single-process deployment</strong> — adding multiple uvicorn workers would give each its
+            own lock instance and its own copy of the registry, reopening the race.</li>
+        <li>If the automated pipeline dispatches a Tier-1/Tier-2 freeze, it seeds the same registry with
+            <span class="inline-code">source: PIPELINE</span>, so the UI shows
+            "Revoke Digital Lien (Pipeline)" — manual and automatic actions share one source of truth.</li>
+    </ul>
+
+    <h2><span class="num">7.</span>Case Lifecycle, Resolution &amp; the Sweeper</h2>
+
+    <h3>7.1 Human Resolution — <span class="inline-code">POST /api/v1/incidents/{ncrp_id}/resolve</span></h3>
+    <p>An operator resolves a case by submitting a resolution reason and optional note. The endpoint enforces:
+        (1) the case must exist and not already be resolved, (2) <span class="inline-code">operator_id</span> must be
+        non-empty, (3) <span class="inline-code">resolution_reason</span> must be one of a fixed taxonomy:</p>
+    <table class="ref-table">
+        <tr><th>Reason Code</th><th>Meaning</th></tr>
+        <tr><td><span class="inline-code">FUNDS_FROZEN</span></td><td>Bank confirmed card hold / lien took effect and funds are secured</td></tr>
+        <tr><td><span class="inline-code">MULE_APPREHENDED</span></td><td>Field crew detained the mule at an ATM</td></tr>
+        <tr><td><span class="inline-code">FUNDS_RECOVERED</span></td><td>Funds reversed to victim via bank reversal or court order</td></tr>
+        <tr><td><span class="inline-code">WINDOW_ELAPSED_CASE_CLOSED</span></td><td>Operator manually acknowledges the window has passed and closes the case</td></tr>
+        <tr><td><span class="inline-code">FALSE_POSITIVE</span></td><td>Incident was incorrectly flagged or based on faulty intelligence</td></tr>
+    </table>
+    <p>On a valid resolve call, the handler sets <span class="inline-code">resolved = True</span>, stamps
+        <span class="inline-code">resolved_at</span>, stores <span class="inline-code">operator_id</span> and
+        <span class="inline-code">resolution_note</span>, then immediately fires the NCRP intimation webhook
+        (Section 8). A corresponding <span class="endpoint method-post">POST</span> <span
+            class="endpoint">/unresolve</span> endpoint exists to reverse this — it clears <span
+            class="inline-code">resolved</span>, <span class="inline-code">resolved_at</span>, <span
+            class="inline-code">resolution_reason</span>, and <span class="inline-code">resolution_note</span>,
+        returning the incident to the Active queue. The dashboard surfaces a "Reopen" button in the Resolved section
+        for exactly this path.</p>
+
+    <h3>7.2 Sweeper — Time-Based Disengagement</h3>
+    <p>A background task sweeps every open incident every 60 seconds, enforcing two time-based states distinct from
+        human resolution:</p>
+    <table class="ref-table">
+        <tr>
+            <th>Condition</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td>6 hours since fraud recency, status still <span class="inline-code">ACTIVE</span>, and not
+                human-resolved</td>
+            <td><span class="inline-code">status → TACTICAL_TIMEOUT</span> — real-time interception is considered moot;
+                case is not marked resolved</td>
+        </tr>
+        <tr>
+            <td>30 days since fraud recency, and never human-resolved</td>
+            <td><span class="inline-code">status → ADMINISTRATIVELY_CLOSED</span>, <span
+                    class="inline-code">synapse_disengaged_at</span> timestamp set — again, <strong>not</strong> marked
+                resolved</td>
+        </tr>
+    </table>
+    <div class="callout limit">
+        <span class="callout-label">Why "not resolved" matters here</span>
+        <span class="inline-code">resolved = True</span> is reserved exclusively for a human calling <span
+            class="endpoint">/resolve</span> with an <span class="inline-code">operator_id</span> and a reason from the
+        fixed taxonomy above. A sweeper-driven timeout is Synapse disengaging, not a confirmed outcome — conflating the
+        two would mislead any future reader of the incident log (audits, NCRP intimation triggers, future training
+        labels) into treating an unattended case as a solved one.
+    </div>
+    <p>The dashboard reflects this as three mutually exclusive buckets: Active, Resolved (human), and Closed by System
+        (<span class="inline-code">TACTICAL_TIMEOUT</span> / <span class="inline-code">ADMINISTRATIVELY_CLOSED</span>,
+        each still carrying its own <span class="inline-code">not resolved</span> guard as a defensive check independent
+        of the sweeper's own guard).</p>
+
+    <h2><span class="num">8.</span>Outbound NCRP Intimation</h2>
+    <p>A mock endpoint, <span class="endpoint">/api/v1/mock/ncrp-intimation</span>, exists and is called exactly once in
+        the codebase: inside the human <span class="inline-code">/resolve</span> handler, immediately after an incident
+        is marked resolved. It carries <span class="inline-code">ncrp_ticket_id</span>, <span
+            class="inline-code">operator_id</span>, <span class="inline-code">resolution_reason</span>, <span
+            class="inline-code">resolution_note</span>, and the resolution timestamp.</p>
+    <p><strong>It does not fire on sweeper-driven closures</strong> — this is deliberate, not an oversight: a case
+        Synapse gave up on after 6 hours or 30 days was never confirmed resolved, so telling NCRP "resolved" would be a
+        false-closure signal. NCRP retains the complaint in its own queue throughout; Synapse never take custody of it,
+        so a rejected or timed-out case is not something Synapse "hands back" — there is nothing to hand back.</p>
+
+    <h2><span class="num">9.</span>Crew Dispatch</h2>
+    <p><span class="endpoint method-get">GET</span> <span class="endpoint">/api/v1/dispatch-registry</span> and <span
+            class="endpoint method-post">POST</span> <span class="endpoint">/api/v1/dispatch</span> record which of the
+        Top-3 ranked ATMs an operator has acknowledged and dispatched a crew to, backed by <span
+            class="inline-code">data/sent_crew.json</span> under the same <span class="inline-code">FileLock</span>
+        pattern as liens. State is shared across every browser session polling the dashboard — not per-operator <span
+            class="inline-code">localStorage</span>, which was the original (and rejected) design.</p>
+
+    <h2><span class="num">10.</span>User Interface</h2>
+
+    <h3>10.1 Main Dashboard — <span class="inline-code">ui/index.html</span></h3>
+    <p>Single-page dashboard served at <span class="endpoint">/</span> with two views. <strong>View A</strong> shows
+        the incident queue, KPI counts, and all three status buckets (Active / Resolved / Closed-by-System).
+        <strong>View B</strong> shows per-incident tactical detail: the Leaflet map with the mule's estimated
+        position and ATM markers, the intelligence panel (case overview, source account, terminal mule details,
+        transaction flow accordion with per-hop lien buttons), the interception countdown, and ATM dispatch cards.
+        Both views poll <span class="inline-code">/api/v1/incidents</span>, <span
+            class="inline-code">/liens</span>, and <span class="inline-code">/dispatch-registry</span> every
+        5 seconds.</p>
+
+    <h3>10.2 Interception Countdown Timer</h3>
+    <p>Displayed prominently in View B, the timer counts down live from <span
+            class="inline-code">drain_time_remaining_minutes</span> (as computed at ingestion) toward zero. It has
+        three distinct terminal states, each visually differentiated:</p>
+    <table class="ref-table">
+        <tr><th>Terminal State</th><th>Condition</th><th>Meaning</th></tr>
+        <tr>
+            <td><span class="inline-code">INTERCEPTION WINDOW: CLOSED</span></td>
+            <td>Timer hits zero during live countdown</td>
+            <td>The mule's estimated withdrawal session has elapsed — field response is now operating past the
+                predicted window</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">DAILY LIMIT EXHAUSTED</span></td>
+            <td><span class="inline-code">drainable_today_inr ≤ 0</span> at ingestion time</td>
+            <td>The mule had already hit their daily ATM cap before Synapse processed the case — no withdrawal
+                urgency today; urgency score is explicitly forced to 0.0 (not computed)</td>
+        </tr>
+        <tr>
+            <td><span class="inline-code">NO WITHDRAWABLE BALANCE</span></td>
+            <td>Account balance itself is zero or negligible</td>
+            <td>Nothing to withdraw regardless of limits</td>
+        </tr>
+    </table>
+    <p>The distinction between DAILY LIMIT EXHAUSTED and INTERCEPTION WINDOW: CLOSED is operationally important:
+        the former means no urgency today (mule cannot act until midnight); the latter means urgency has
+        <em>passed</em> — a different kind of bad outcome.</p>
+
+    <h3>10.3 Bank Feed Simulator — <span class="inline-code">ui/feed.html</span></h3>
+    <p>A separate page served at <span class="endpoint">/feed</span>, used for testing and demonstration. It has
+        three functional sections:</p>
+    <ul>
+        <li><strong>Upload with Simulation Mode:</strong> accepts a standard <span
+                class="inline-code">IncidentPayload</span> JSON file. When Simulation Mode is toggled on, it
+            re-stamps <span class="inline-code">ingestion_timestamp</span> with the current wall-clock time before
+            posting — this makes a static payload with a past fraud timestamp behave as if the fraud just happened,
+            starting the Golden Hour countdown from now. Without this, any realistic demo payload would immediately
+            fail Gate 1.</li>
+        <li><strong>Live Withdrawal Push:</strong> a dropdown of all active incidents, an amount field, and a
+            "Push" button. Submitting hits <span class="endpoint method-patch">PATCH</span> <span
+                class="endpoint">/api/v1/incidents/{id}/live-update</span>, which adds the withdrawal amount to
+            <span class="inline-code">withdrawals_today_inr</span>, subtracts it from <span
+                class="inline-code">balance_inr</span>, and recalculates <span
+                class="inline-code">drainable_today_inr</span>. The main dashboard polls every 5 seconds and
+            automatically reflects these changes in the intelligence panel and countdown — no manual refresh
+            needed. This lets a demonstrator show the dashboard reacting in real-time to a simulated ATM
+            withdrawal happening at the mule's end.</li>
+        <li><strong>Feed Activity Log:</strong> a running per-session log of every upload, withdrawal push, and
+            mode toggle — purely a demo convenience, not persisted to disk.</li>
+    </ul>
+    <p>Both pages are unauthenticated static files served directly by FastAPI. There is no role separation — "View
+        A / View B" describes two panels of one page, not the RBAC-gated Strategic Command vs. Tactical Operator
+        portals the original PRD describes.</p>
+
+    <h2 class="section-page"><span class="num">11.</span>Testing &amp; Assumptive Testing</h2>
+
+    <h3>11.1 Simulation Mode</h3>
+    <p>Simulation Mode is toggled via a switch in the Admin Drawer on the dashboard, or by passing
+        <span class="inline-code">X-Simulation-Mode: true</span> as a header (or <span
+            class="inline-code">?simulate=true</span> as a query parameter) directly to the ingest endpoint.
+        When active, an amber <span class="inline-code">⚡ SIM MODE</span> badge appears in the navbar.</p>
+    <p>Its effect is narrow and specific: both Golden Hour gates are bypassed, and the pipeline uses the payload's
+        own <span class="inline-code">ingestion_timestamp</span> field as its reference clock instead of
+        <span class="inline-code">datetime.now()</span>. This means a static demo payload with a fraud timestamp
+        from weeks ago can pass Gate 1 and produce a meaningful drain time, because the system evaluates "how much
+        time has elapsed" relative to a baked-in anchor, not the real clock. Nothing else changes — all pipeline
+        math, confidence scores, and webhook dispatch logic run identically.</p>
+    <p>Simulation Mode exists purely for testing and demonstration. It is not a bypass that should ever be enabled
+        in an operational deployment against real incident data.</p>
+
+    <h3>11.2 Automated Withdrawal Simulation on Late Ingestion</h3>
+    <p>When a payload is ingested and the computed drain time is already ≤ 0 at the moment of ingestion — meaning
+        the mule's estimated withdrawal window has fully elapsed before Synapse received the case — the system
+        does not simply display the original account balance. Instead, it automatically simulates the withdrawals
+        the mule most likely already completed.</p>
+    <p>The simulation is not graduated — it does not scale withdrawal amount to how far past zero the timer has
+        drifted. Whenever the drain timer has already reached zero at ingestion, the system floors the entire
+        <span class="inline-code">drainable_today_inr</span> to the nearest ₹10,000 and simulates it as fully
+        withdrawn in one shot. The dashboard then reflects this adjusted balance — not the pre-cash-out figure
+        from the original payload — giving the operator a working estimate of what funds remain.</p>
+    <p>This is an assumptive inference, not observed data. The actual withdrawal amounts and timing are unknown;
+        the system treats the worst-case (everything drainable was already taken) as the operative assumption.
+        The first thing that should change when real case outcomes become available is validating this assumption
+        against observed post-fraud ATM transaction logs.</p>
+
+    <h2><span class="num">12.</span>Design Assumptions Built Into the System</h2>
+    <p>These are constraints and decisions embedded in the running code — not configuration options, not roadmap
+        items. Changing any of them requires code changes, not config edits.</p>
+
+    <div class="limitation-item">
+        <div class="lm-title">Victim account is excluded from lien controls</div>
+        <p>In the Transaction Flow accordion, the first sender in the fund flow — the fraud victim — is hardcoded
+            to never display a lien button. The exclusion is applied by the UI based on position in the hop list
+            (the sender in Hop 1 is always the victim in a standard NCRP payload), not by any flag in the payload
+            itself. Placing a digital freeze on the victim's account would compound the harm: they have already
+            lost funds, and freezing their account would block access to whatever remains.</p>
+        <p>This is a correctness constraint, not a UX choice. An operator cannot accidentally initiate a lien on
+            the victim through the dashboard — the button simply does not exist for that account slot.</p>
+    </div>
+
+    <div class="limitation-item">
+        <div class="lm-title">4.5 minutes inter-withdrawal interval is a synthetic calibration constant</div>
+        <p>The baseline drain time formula uses 4.5 minutes as the average time between successive ATM
+            withdrawals. This was calibrated against synthetic mule behaviour trajectories (AMLSim-derived), not
+            real observed data. It directly controls how urgently Synapse classifies every case — a number that
+            is too low produces over-urgent predictions; too high gives false comfort. This constant should be
+            the first thing re-evaluated when real case outcome data becomes available.</p>
+    </div>
+
+    <div class="limitation-item">
+        <div class="lm-title">IP geolocation is the primary location method at MVP</div>
+        <p>Cell-tower trilateration (the higher-accuracy location method) requires real-time CDR data from telecom
+            operators. In India, tower dumps and CDRs are requisitioned under Section 91 CrPC / Section 94 BNSS
+            through a formal legal process — they are not obtained unilaterally. (The older Telegraph Act
+            interception framework has since been superseded by the Telecommunications Act, 2023.) This
+            authorization step does not fit within Golden Hour latency, which is why the system falls back to IP
+            geolocation. The location priority cascade is implemented correctly (cell tower → IP → IFSC fallback),
+            but in practice every live incident at MVP will resolve to IP geolocation, which is typically
+            city-block accurate (±1–5 km), not street-level.</p>
+    </div>
+
+    <h2 class="section-page"><span class="num">13.</span>What's Genuinely Modular, Ready for Production Swap-In</h2>
+    <p>These are real seams in the current code — not aspirational, verified by reading the actual boundaries.</p>
+
+    <div class="modular-item">
+        <div class="mod-title">Core math has zero HTTP/framework dependency</div>
+        <p><span class="inline-code">core/graph.py</span>, <span class="inline-code">core/temporal.py</span>, <span
+                class="inline-code">core/cluster.py</span> take typed Pydantic inputs and return typed Pydantic results
+            — no FastAPI imports, no request/response handling inside them. Any of the three can be lifted into a
+            separate service, a batch job, or an ML-serving process without touching a line of routing code.</p>
+    </div>
+
+    <div class="modular-item">
+        <div class="mod-title">Outbound webhook targets are environment-driven, not hardcoded</div>
+        <p><span class="inline-code">MOCK_WEBHOOK_BASE_URL</span> reads from <span
+                class="inline-code">SYNAPSE_BASE_URL</span> (env var, default <span
+                class="inline-code">localhost:8000</span>). Pointing the freeze webhook at a real bank switch, or the
+            intimation webhook at a real CFCFRMS/NCRP endpoint, is a deployment config change — the calling code and
+            payload shape do not need to change.</p>
+    </div>
+
+    <div class="modular-item">
+        <div class="mod-title">Every wire payload is schema-versioned</div>
+        <p><span class="inline-code">IncidentPayload.payload_version</span> and <span
+                class="inline-code">FreezeCardATMRequest.webhook_version</span> exist today. A future NCRP integration
+            can introduce a new payload version alongside the current one without breaking the existing contract.</p>
+    </div>
+
+    <div class="modular-item">
+        <div class="mod-title">The ATM registry is a swappable data source, not baked into the algorithm</div>
+        <p><span class="inline-code">rank_atms()</span> takes the registry as a plain list of dicts. Swapping the
+            200-record in-memory JSON for a PostGIS-backed query (as the roadmap already anticipates) means changing
+            what populates that list at startup — the ranking math itself is untouched.</p>
+    </div>
+
+
+    <h2><span class="num">14.</span>What Is Explicitly Not Built — Stated, Not Hidden</h2>
+
+    <div class="gap-item">
+        <div class="gap-title">No authentication, RBAC, or audit-grade identity</div>
+        <p>Zero login, session, or TOTP anywhere in the codebase. Every <span class="inline-code">operator_id</span> is
+            a self-typed string. If the PRD's RBAC/audit spec is a production requirement, it is unbuilt in its entirety
+            — this needs to be a deliberate, scheduled scope decision, not something the documentation should imply is
+            "mostly there."</p>
+    </div>
+
+    <div class="gap-item">
+        <div class="gap-title">Single-process only</div>
+        <p>The lien concurrency lock, the in-memory ATM registry, and the sweeper task all assume exactly one running
+            process. Horizontal scaling (multiple workers/replicas) is not supported without redesigning state sharing.
+        </p>
+    </div>
+
+    <div class="gap-item">
+        <div class="gap-title">No database</div>
+        <p>All persistence is flat JSON files with file locking. This works at MVP scale; it is not a production data
+            layer — no indexing, no query language, no transactional guarantees beyond single-writer-at-a-time.</p>
+    </div>
+
+    <div class="gap-item">
+        <div class="gap-title">MPS and RiskScore weights are hand-tuned, not learned</div>
+        <p>Every β/γ/w coefficient in Sections 4–5 is a fixed constant chosen for the MVP, not fit against real fraud
+            data. No false-positive rate has been measured against anything but synthetic payloads. This is a
+            documented, accepted roadmap item (ML substitution via trained gradient-boosted models) — not a hidden gap,
+            but worth restating plainly here.</p>
+    </div>
+
+    <div class="footer-note">Project Synapse — As-Built System Documentation</div>
+
+</body>
+
+</html>

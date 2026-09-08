@@ -114,6 +114,11 @@ _LIEN_REGISTRY_PATH: str = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "data", "lien_registry.json"
 )
 
+# Per-lien async lock — prevents duplicate INITIATE from concurrent requests
+# NOTE: Effective only while running single-process (uvicorn --workers 1).
+# Multiple workers would each get their own lock + their own _LIEN_REGISTRY.
+_LIEN_LOCK: asyncio.Lock = asyncio.Lock()
+
 
 def _persist_lien_registry() -> None:
     """Write the in-memory lien registry to disk (data/lien_registry.json)."""
@@ -339,22 +344,19 @@ async def incident_garbage_collector() -> None:
             except ValueError:
                 continue
                 
-            # 6-Hour Tactical Timeout
-            if inc.get("status") == "ACTIVE":
+            # 6-Hour Tactical Timeout — only if not already resolved by a human
+            if inc.get("status") == "ACTIVE" and not inc.get("resolved"):
                 if (now_dt - ingestion_dt) > timedelta(hours=6):
                     inc["status"] = "TACTICAL_TIMEOUT"
                     changed = True
                     logger.info(f"[SWEEPER] {inc['ncrp_ticket_id']} -> TACTICAL_TIMEOUT (6h elapsed)")
             
-            # 30-Day Administratively Closed
+            # 30-Day Administrative Closure — distinct from resolved; Synapse disengages,
+            # case deferred to NCRP standard procedure. Does NOT set resolved = True.
             if inc.get("status") not in ["RESOLVED", "ADMINISTRATIVELY_CLOSED"] and not inc.get("resolved"):
                 if (now_dt - ingestion_dt) > timedelta(days=30):
                     inc["status"] = "ADMINISTRATIVELY_CLOSED"
-                    inc["resolved"] = True
-                    inc["resolved_at"] = now_dt.isoformat()
-                    inc["resolution_reason"] = "WINDOW_ELAPSED_CASE_CLOSED"
-                    inc["resolution_note"] = "Auto-closed after 30 days by system sweeper."
-                    inc["operator_id"] = "SYSTEM"
+                    inc["synapse_disengaged_at"] = now_dt.isoformat()
                     changed = True
                     logger.info(f"[SWEEPER] {inc['ncrp_ticket_id']} -> ADMINISTRATIVELY_CLOSED (30d elapsed)")
                     
@@ -1261,6 +1263,18 @@ async def resolve_incident(ncrp_ticket_id: str, payload: ResolveIncidentRequest)
             content={"error": f"Incident '{ncrp_ticket_id}' not found in active session."},
         )
 
+    # Idempotency guard — reject a second resolve without an explicit /unresolve first.
+    # Without this, two resolve calls could overwrite each other's reason/operator_id
+    # and fire the NCRP intimation webhook twice with conflicting outcomes.
+    if target.get("resolved") is True:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": f"Incident '{ncrp_ticket_id}' is already resolved. "
+                         f"Call /unresolve first if you need to change the resolution."
+            },
+        )
+
     ts = datetime.now(timezone.utc).isoformat()
     target["resolved"]           = True
     target["resolved_at"]        = ts
@@ -1494,100 +1508,103 @@ async def manage_lien(payload: LienActionRequest) -> JSONResponse:
         return JSONResponse(status_code=400, content={"error": "account_number is required."})
 
     if action == "INITIATE":
-        # ── Check for duplicate ──────────────────────────────────────────────
-        if account_number in _LIEN_REGISTRY["active_liens"]:
+        # _LIEN_LOCK prevents a race where two concurrent INITIATE requests for the
+        # same account both pass the duplicate check before either has written.
+        async with _LIEN_LOCK:
+            # ── Check for duplicate ──────────────────────────────────────────────
+            if account_number in _LIEN_REGISTRY["active_liens"]:
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "error": f"Account {account_number} already has an active lien.",
+                        "existing_lien": _LIEN_REGISTRY["active_liens"][account_number],
+                    },
+                )
+
+            bank_name = payload.bank_name or "Unknown Bank"
+            ifsc = payload.ifsc or "UNKNOWN"
+            incident_id = payload.incident_id or "MANUAL"
+
+            # ── Build and dispatch freeze webhook ────────────────────────────────
+            # Construct a lightweight webhook payload for this specific account.
+            ts_now = datetime.now(timezone.utc)
+            webhook_body = {
+                "webhook_version": "1.1.0",
+                "request_id": str(uuid.uuid4()),
+                "synapse_incident_id": incident_id,
+                "ncrp_ticket_id": incident_id,
+                "request_timestamp": ts_now.isoformat(),
+                "requesting_authority": {
+                    "authority_name": "Indian Cyber Crime Coordination Centre (I4C), MHA",
+                    "authority_code": "I4C-MHA",
+                    "authorized_officer_id": "I4C-HANDLER-MANUAL",
+                },
+                "golden_hour_expiry": (ts_now + timedelta(minutes=120)).isoformat(),
+                "confidence_score": 1.0,
+                "intervention_tier": "PRIMARY_DIGITAL",
+                "card_hold": {
+                    "card_number_hash": "0" * 64,
+                    "hold_type": "ATM_WITHDRAWAL_BLOCK",
+                    "hold_duration_minutes": 120,
+                    "mule_account_number": account_number,
+                    "mule_ifsc": ifsc,
+                },
+                "atm_blocks": [],
+                "justification": {
+                    "drain_time_remaining_minutes": 0,
+                    "drainable_today_inr": 0,
+                    "fund_flow_depth": 0,
+                    "total_amount_inr": 0,
+                    "mule_location_method": "MANUAL_LIEN",
+                },
+                "callback_url": f"{MOCK_WEBHOOK_BASE_URL}/api/v1/webhook-callback/{incident_id}",
+            }
+
+            target_url = f"{MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
+            wh_status = "FAILED"
+            try:
+                if _WEBHOOK_HTTP_CLIENT is not None:
+                    resp = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=webhook_body)
+                else:
+                    async with httpx.AsyncClient(timeout=10.0) as http:
+                        resp = await http.post(target_url, json=webhook_body)
+                if resp.status_code == 200:
+                    wh_status = "SUCCESS"
+                logger.info(
+                    f"[LIEN] Manual webhook dispatched for {account_number} → "
+                    f"HTTP {resp.status_code} ({wh_status})"
+                )
+            except Exception as exc:
+                logger.error(f"[LIEN] Manual webhook dispatch FAILED for {account_number}: {exc}")
+
+            # ── Record in registry ───────────────────────────────────────────────
+            _LIEN_REGISTRY["active_liens"][account_number] = {
+                "account_number": account_number,
+                "bank_name": bank_name,
+                "ifsc": ifsc,
+                "incident_id": incident_id,
+                "initiated_at": ts_now.isoformat(),
+                "source": "MANUAL",
+                "webhook_status": wh_status,
+                "operator_id": operator_id,
+                "reason": reason,
+            }
+            _persist_lien_registry()
+
+            logger.info(
+                f"[LIEN] INITIATED for {account_number} ({bank_name}) by {operator_id} | "
+                f"reason='{reason}' | incident={incident_id} | webhook={wh_status}"
+            )
+
             return JSONResponse(
-                status_code=409,
+                status_code=201,
                 content={
-                    "error": f"Account {account_number} already has an active lien.",
-                    "existing_lien": _LIEN_REGISTRY["active_liens"][account_number],
+                    "status": "LIEN_INITIATED",
+                    "account_number": account_number,
+                    "webhook_status": wh_status,
+                    "lien": _LIEN_REGISTRY["active_liens"][account_number],
                 },
             )
-
-        bank_name = payload.bank_name or "Unknown Bank"
-        ifsc = payload.ifsc or "UNKNOWN"
-        incident_id = payload.incident_id or "MANUAL"
-
-        # ── Build and dispatch freeze webhook ────────────────────────────────
-        # Construct a lightweight webhook payload for this specific account.
-        ts_now = datetime.now(timezone.utc)
-        webhook_body = {
-            "webhook_version": "1.1.0",
-            "request_id": str(uuid.uuid4()),
-            "synapse_incident_id": incident_id,
-            "ncrp_ticket_id": incident_id,
-            "request_timestamp": ts_now.isoformat(),
-            "requesting_authority": {
-                "authority_name": "Indian Cyber Crime Coordination Centre (I4C), MHA",
-                "authority_code": "I4C-MHA",
-                "authorized_officer_id": "I4C-HANDLER-MANUAL",
-            },
-            "golden_hour_expiry": (ts_now + timedelta(minutes=120)).isoformat(),
-            "confidence_score": 1.0,
-            "intervention_tier": "PRIMARY_DIGITAL",
-            "card_hold": {
-                "card_number_hash": "0" * 64,
-                "hold_type": "ATM_WITHDRAWAL_BLOCK",
-                "hold_duration_minutes": 120,
-                "mule_account_number": account_number,
-                "mule_ifsc": ifsc,
-            },
-            "atm_blocks": [],
-            "justification": {
-                "drain_time_remaining_minutes": 0,
-                "drainable_today_inr": 0,
-                "fund_flow_depth": 0,
-                "total_amount_inr": 0,
-                "mule_location_method": "MANUAL_LIEN",
-            },
-            "callback_url": f"{MOCK_WEBHOOK_BASE_URL}/api/v1/webhook-callback/{incident_id}",
-        }
-
-        target_url = f"{MOCK_WEBHOOK_BASE_URL}{MOCK_WEBHOOK_PATH}"
-        wh_status = "FAILED"
-        try:
-            if _WEBHOOK_HTTP_CLIENT is not None:
-                resp = _WEBHOOK_HTTP_CLIENT.post(MOCK_WEBHOOK_PATH, json=webhook_body)
-            else:
-                async with httpx.AsyncClient(timeout=10.0) as http:
-                    resp = await http.post(target_url, json=webhook_body)
-            if resp.status_code == 200:
-                wh_status = "SUCCESS"
-            logger.info(
-                f"[LIEN] Manual webhook dispatched for {account_number} → "
-                f"HTTP {resp.status_code} ({wh_status})"
-            )
-        except Exception as exc:
-            logger.error(f"[LIEN] Manual webhook dispatch FAILED for {account_number}: {exc}")
-
-        # ── Record in registry ───────────────────────────────────────────────
-        _LIEN_REGISTRY["active_liens"][account_number] = {
-            "account_number": account_number,
-            "bank_name": bank_name,
-            "ifsc": ifsc,
-            "incident_id": incident_id,
-            "initiated_at": ts_now.isoformat(),
-            "source": "MANUAL",
-            "webhook_status": wh_status,
-            "operator_id": operator_id,
-            "reason": reason,
-        }
-        _persist_lien_registry()
-
-        logger.info(
-            f"[LIEN] INITIATED for {account_number} ({bank_name}) by {operator_id} | "
-            f"reason='{reason}' | incident={incident_id} | webhook={wh_status}"
-        )
-
-        return JSONResponse(
-            status_code=201,
-            content={
-                "status": "LIEN_INITIATED",
-                "account_number": account_number,
-                "webhook_status": wh_status,
-                "lien": _LIEN_REGISTRY["active_liens"][account_number],
-            },
-        )
 
     elif action == "REVOKE":
         # ── Validate active lien exists ──────────────────────────────────────
@@ -1639,6 +1656,8 @@ async def manage_lien(payload: LienActionRequest) -> JSONResponse:
             status_code=400,
             content={"error": f"Unknown action '{action}'. Use 'INITIATE' or 'REVOKE'."},
         )
+
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/dispatch-registry — Retrieve Dispatch Registry

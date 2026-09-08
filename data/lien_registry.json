@@ -1,16 +1,23 @@
 {
-  "active_liens": {},
-  "revocation_log": [
-    {
+  "active_liens": {
+    "84542071726385": {
       "account_number": "84542071726385",
       "bank_name": "HDFC Bank",
       "ifsc": "HDFC0001729",
       "incident_id": "NCRP-2026-6263051",
-      "was_source": "MANUAL",
-      "original_initiated_at": "2026-09-07T17:50:37.984023+00:00",
-      "revoked_at": "2026-09-07T17:51:06.645952+00:00",
-      "revoked_by": "Akshai",
-      "reason": "Account verified as non-mule"
+      "initiated_at": "2026-09-07T18:54:10.362572+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
+    },
+    "09871234567890": {
+      "account_number": "09871234567890",
+      "bank_name": "Canara Bank",
+      "ifsc": "CNRB0002341",
+      "incident_id": "NCRP-2026-0045781",
+      "initiated_at": "2026-09-07T18:54:21.003181+00:00",
+      "source": "PIPELINE",
+      "webhook_status": "SUCCESS"
     }
-  ]
+  },
+  "revocation_log": []
 }

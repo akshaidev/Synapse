@@ -1584,6 +1584,28 @@
           </table>
         </div>
       </div>
+
+      <!-- ── System-Closed Cases Section (TACTICAL_TIMEOUT / ADMINISTRATIVELY_CLOSED) ── -->
+      <div id="sysclosed-section" style="display:none;margin-top:1.5rem">
+        <p class="sec-title" style="color:#64748b">⏹ Closed by System</p>
+        <div style="font-size:.7rem;color:#475569;margin-bottom:.6rem;padding-left:.1rem">
+          Cases Synapse could not intercept in time. Deferred to NCRP standard procedure.
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>NCRP Ticket</th>
+                <th>Status</th>
+                <th>Tier</th>
+                <th>Confidence</th>
+                <th>Closed At</th>
+              </tr>
+            </thead>
+            <tbody id="sysclosed-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ── View B ── -->
@@ -2744,11 +2766,17 @@
       }
     }
 
-    // Override renderTable to split active / resolved
+    // Override renderTable to split active / resolved / system-closed
     const _origRenderTable = renderTable; // keep ref if needed
+    const _SYSCLOSED_STATUSES = ['TACTICAL_TIMEOUT', 'ADMINISTRATIVELY_CLOSED'];
     function renderTable(inc) {
-      const active   = inc.filter(r => !r.resolved);
-      const resolved = inc.filter(r =>  r.resolved);
+      // Three-way split — each bucket is mutually exclusive.
+      // Active:      not resolved AND status not in sysclosed set
+      // Resolved:    resolved = true (human-closed only; sysclosed never sets this)
+      // Sys-closed:  status in sysclosed set AND not resolved (defensive guard)
+      const active    = inc.filter(r => !r.resolved && !_SYSCLOSED_STATUSES.includes(r.status));
+      const resolved  = inc.filter(r =>  r.resolved);
+      const sysclosed = inc.filter(r =>  _SYSCLOSED_STATUSES.includes(r.status) && !r.resolved);
 
       // Active queue
       const tbody = document.getElementById('tbody');
@@ -2808,6 +2836,32 @@
             <td><span class="mono" style="font-size:.7rem">${ts}</span></td>
             <td style="font-size:.72rem;color:var(--muted)">${note}</td>
             <td><button class="map-link" style="background:rgba(16,185,129,.1);color:#6ee7b7;border-color:rgba(16,185,129,.3)" onclick="reopenCase('${r.ncrp_ticket_id}')">Reopen</button></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // System-Closed section (TACTICAL_TIMEOUT + ADMINISTRATIVELY_CLOSED)
+      const scsec  = document.getElementById('sysclosed-section');
+      const sctbody = document.getElementById('sysclosed-tbody');
+      if (!sysclosed.length) {
+        scsec.style.display = 'none';
+      } else {
+        scsec.style.display = 'block';
+        sctbody.innerHTML = sysclosed.map((r) => {
+          const tier = r.intervention_tier || '—';
+          const conf = r.confidence_score != null ? `${(r.confidence_score * 100).toFixed(1)}%` : '—';
+          const statusLabel = r.status === 'TACTICAL_TIMEOUT'
+            ? '<span style="color:#f59e0b;font-size:.7rem;font-weight:700">⏱ TACTICAL TIMEOUT</span>'
+            : '<span style="color:#64748b;font-size:.7rem;font-weight:700">🔘 ADMIN CLOSED</span>';
+          const closedAt = (r.synapse_disengaged_at || r.tactical_timeout_at)
+            ? new Date(r.synapse_disengaged_at || r.tactical_timeout_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' }) + ' IST'
+            : '—';
+          return `<tr style="opacity:.55">
+            <td><span class="mono" style="color:#94a3b8">${r.ncrp_ticket_id || '—'}</span></td>
+            <td>${statusLabel}</td>
+            <td><span class="mono" style="font-size:.7rem;color:#64748b">${tier}</span></td>
+            <td style="color:#64748b">${conf}</td>
+            <td><span class="mono" style="font-size:.7rem;color:#64748b">${closedAt}</span></td>
           </tr>`;
         }).join('');
       }
