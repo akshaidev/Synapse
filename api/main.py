@@ -332,10 +332,8 @@ async def incident_garbage_collector() -> None:
         changed = False
         
         for inc in _incidents:
-            ingestion_str = inc.get("payload_snapshot", {}).get("ingestion_timestamp")
-            if not ingestion_str:
-                # Fallback to complaint_timestamp for legacy payloads
-                ingestion_str = inc.get("payload_snapshot", {}).get("complaint_timestamp")
+            snapshot = inc.get("payload_snapshot") or {}
+            ingestion_str = snapshot.get("ingestion_timestamp") or snapshot.get("complaint_timestamp")
             if not ingestion_str:
                 continue
                 

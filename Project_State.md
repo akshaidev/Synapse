@@ -2,18 +2,18 @@
 
 > **Protocol:** This file is the single source of truth for project progress. Updated per `instructions.md` §3 Verification Gate.  
 > **PRD Version:** v2.0.0 (Phase 12 complete — Crew Dispatch Migration)  
-> **ASSUMPTIONS Version:** 43 entries (6 added — Phase 10 & 11 design decisions)  
-> **Last Updated:** 07 September 2026 — Phase 12 complete
+> **ASSUMPTIONS Version:** 44 entries (1 added — Bank Feed Simulator Resolution Modal & Shared Operator Identity)  
+> **Last Updated:** 08 September 2026 — BUG-001 resolved & verified
 
 ---
 
 ## Current Status
 
 | **Current Phase** | Phase 13 — Production Hardening & Audit Fixes |
-| **Last Completed Feature** | Phase 13 Point 6: Verification (`Verified` 07 Sep 2026) |
-| **Active Task** | None — Phase 13 is fully complete. |
+| **Last Completed Feature** | Module 24 — Bank Feed Simulator Resolution Modal & Shared Operator Identity (`Verified` 08 Sep 2026) |
+| **Active Task** | None — All audit and bugfix tasks complete. |
 | **Immediate Next Task** | Await next project phase. |
-| **Known Blockers / Warnings** | Phase 10 and Phase 11 modules have no formal verification gate — verified live. |
+| **Known Blockers / Warnings** | None. All test suites verified passing (100%). |
 
 ---
 
@@ -433,6 +433,19 @@ No module may reach `Verified & Approved` without a passing verification script,
 
 ---
 
+### Module 24: Bank Feed Simulator Case Resolution & Shared Identity (BUG-001)
+
+| Field | Value |
+|---|---|
+| **File** | `ui/feed.html`, `Assumptions.MD`, `bug.md` |
+| **PRD Reference** | Phase 10 Feature 02, §5.4 Case Resolution |
+| **Description** | Replaced the direct button action with a full glassmorphism resolution modal (`#resolve-modal`) in `ui/feed.html`. The modal reads, updates, and syncs the operator badge/name with `localStorage.getItem('synapse_operator_id')` shared across Synapse and the feed simulator, strictly enforcing non-blank operator accountability. Replaced hardcoded reason with a dynamic selector for all 5 valid Synapse resolution taxonomy options (`FUNDS_FROZEN`, `MULE_APPREHENDED`, `FUNDS_RECOVERED`, `WINDOW_ELAPSED_CASE_CLOSED`, `FALSE_POSITIVE`). Sends `{ reason, operator_id, note }` to `POST /api/v1/incidents/{ncrp}/resolve`. |
+| **Status** | `Verified & Approved` |
+| **Verification Date** | 08 September 2026 |
+| **Notes** | Verified via `tests/verify_feed_resolution.py` (17/17 PASS) and user sign-off. |
+
+---
+
 ## Verification Audit Log
 
 All verification records are appended here chronologically. Each entry is created only after a verification script is executed, terminal output is presented, and the user explicitly approves.
@@ -461,6 +474,7 @@ All verification records are appended here chronologically. Each entry is create
 | 07 Sep 2026 | Module 21 — Auto Withdrawal | N/A — verified live (simulated withdrawal on ingestion when time <= 0) | PASS | N/A |
 | 07 Sep 2026 | Module 22 — Digital Lien System | N/A — verified live (syncs UI state with manual/pipeline webhooks) | PASS | N/A |
 | 07 Sep 2026 | Module 23 — Dispatch Migration | N/A — verified live (syncs UI state with backend sent_crew.json) | PASS | N/A |
+| 08 Sep 2026 | Module 24 — Bank Feed Resolution (BUG-001) | `/tests/verify_feed_resolution.py` | PASS (17/17) | USER |
 
 ---
 

@@ -435,4 +435,14 @@
 * **Why This Over Alternatives:** Without this guard, the same ticket could be resolved twice with conflicting reasons — sending NCRP two different "resolved" intimations for one case with no record that an overwrite happened. The audit log would show only the most recent state, erasing the first resolution entirely.
 * **System Impact:** Changing a resolution now requires an explicit `/unresolve` call first — a deliberate two-step, both logged with operator identity — rather than an implicit silent overwrite. This makes resolution changes auditable by design.
 
+---
+
+### [Architectural & Design Choice] Bank Feed Simulator Resolution Modal & Shared Operator Identity
+* **Context / Decision:** In `ui/feed.html`, the case resolution flow opens a custom modal (`#resolve-modal`) allowing operators to pick from the 5 standard Synapse resolution taxonomy reasons (`FUNDS_FROZEN`, `MULE_APPREHENDED`, `FUNDS_RECOVERED`, `WINDOW_ELAPSED_CASE_CLOSED`, `FALSE_POSITIVE`) and provide an optional note. The modal reads and synchronizes the operator identity from `localStorage.getItem('synapse_operator_id')`, which is shared with the main dashboard (`ui/index.html`). If blank, resolution submission is prevented with an inline validation prompt.
+* **Why This Over Alternatives:** 
+  - (1) **Taxonomy Selection vs Hardcoding:** Hardcoding a default reason like `'FUNDS_FROZEN'` violated the domain model and corrupted NCRP intimation records with incorrect resolution statuses. Exposing the full 5-choice taxonomy guarantees audit fidelity regardless of which interface executes the resolution.
+  - (2) **Shared LocalStorage vs Isolated Identity:** Using the identical `synapse_operator_id` key allows an operator authenticated or identified in Synapse to resolve cases in the simulator without re-typing their badge or ID, while still allowing in-place edits that persist back to the main dashboard.
+* **System Impact:** Closes BUG-001 by supplying the required `operator_id` string to `POST /api/v1/incidents/{ncrp}/resolve`, eliminating HTTP 422 errors while preventing arbitrary or hardcoded resolution outcomes.
+
+
 
